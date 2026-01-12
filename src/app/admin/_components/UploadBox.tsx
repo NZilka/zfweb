@@ -2,8 +2,7 @@
 
 import { useUploadThing } from "~/utils/uploadthing";
 import { useRouter } from "next/navigation";
-import { set } from "zod";
-import { ProductType } from "./__ProductForm";
+import { type ProductType } from "./ProductForm";
 
 // inferred input off useUploadThing
 type Input = Parameters<typeof useUploadThing>;

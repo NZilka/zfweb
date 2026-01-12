@@ -6,8 +6,6 @@ import { config } from "dotenv";
 
 config();
 
-console.log("Database URL:", process.env.DATABASE_URL); // Add this line for debugging
-
 const sql = neon(env.DATABASE_URL);
 export const db = drizzle(sql, { schema });
 
