@@ -2,6 +2,7 @@ import "~/styles/globals.css";
 
 import { GeistSans } from "geist/font/sans";
 import { type Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 
 export const metadata: Metadata = {
   title: "Zilka Forgewerks",
@@ -9,16 +10,16 @@ export const metadata: Metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
-// Copied this after doing work to it already. Not sure what the default state is. May have more code than needed.
-// Added a permanent redirect to /shop from root. If you need to change that, got to next.config.js and change the redirect there.
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body className={`${GeistSans.variable} flex flex-col gap-4`}>
-        {children}
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body className={`${GeistSans.variable} flex flex-col gap-4`}>
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
