@@ -29,7 +29,7 @@ export const product = createTable(
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
     title: varchar("title", { length: 1024 }).notNull(),
     description: varchar("description", { length: 4096 }).notNull(),
-    price: integer("price").notNull(),
+    price: decimal("price", { precision: 10, scale: 2 }).notNull(),
     imgUrl: text("img_url")
       .array()
       .notNull()
@@ -163,9 +163,7 @@ export const cart_item = createTable("cart_item", {
     .notNull(),
   product_id: integer("product_id")
     .references(() => product.id)
-    .array()
-    .notNull()
-    .$default(() => []),
+    .notNull(),
   quantity: integer("quantity").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)

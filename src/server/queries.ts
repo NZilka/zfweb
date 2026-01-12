@@ -26,6 +26,13 @@ export async function getProductById(id: number) {
   return product;
 }
 
+export async function getPublicProductById(id: number) {
+  const product = await db.query.product.findFirst({
+    where: (model, { eq }) => eq(model.id, id),
+  });
+  return product;
+}
+
 export async function deleteProduct(id: number) {
   const user = await auth();
   if (!user.userId) throw new Error("Unauthorized"); //technically this doesn't need to be here I don't think, but I'm leaving it.

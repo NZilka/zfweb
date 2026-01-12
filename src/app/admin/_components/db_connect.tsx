@@ -2,8 +2,7 @@
 
 import { db } from "~/server/db";
 import { product as dbProduct } from "~/server/db/schema";
-import { ProductType } from "./ProductForm";
-import { object } from "zod";
+import { type ProductType } from "./ProductForm";
 
 export const addProduct = async (
   product: ProductType,
@@ -14,7 +13,7 @@ export const addProduct = async (
     .insert(dbProduct)
     .values({
       title: product.title,
-      price: product.price,
+      price: String(product.price),
       description: product.description,
       imgKey: keys ?? [],
       imgUrl: urls ?? [],
