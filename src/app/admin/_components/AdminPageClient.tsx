@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProductForm, type CategoryType } from "./ProductForm";
-import { FileProvider } from "~/app/_context/FileContext";
 import { ProductProvider, type ProductType } from "~/app/_context/ProductContext";
-import { ImgUploadProvider } from "~/app/_context/ImgUploadContext";
 import { EditImageProvider } from "~/app/_context/EditImageContext";
 import { deleteProductAction } from "./deleteAction";
 import { Button } from "~/components/ui/button";
@@ -93,25 +91,20 @@ export default function AdminPageClient({ products, categories }: AdminPageClien
         )}
 
         {/* Wrap form with context providers - key forces re-mount on selection change */}
-        <FileProvider>
-          <EditImageProvider>
-            <ProductProvider
-              key={selectedProduct?.id ?? "create"}
-              initialProduct={selectedProduct ? getInitialProduct(selectedProduct) : undefined}
-            >
-              <ImgUploadProvider>
-                <ProductForm
-                  mode={isEditMode ? "edit" : "create"}
-                  categories={categories}
-                  initialImageUrls={selectedProduct?.imgUrl ?? []}
-                  initialImageKeys={selectedProduct?.imgKey ?? []}
-                  onCancel={isEditMode ? handleCancel : undefined}
-                  onSuccess={handleSaveSuccess}
-                />
-              </ImgUploadProvider>
-            </ProductProvider>
-          </EditImageProvider>
-        </FileProvider>
+        <EditImageProvider key={selectedProduct?.id ?? "create"}>
+          <ProductProvider
+            initialProduct={selectedProduct ? getInitialProduct(selectedProduct) : undefined}
+          >
+            <ProductForm
+              mode={isEditMode ? "edit" : "create"}
+              categories={categories}
+              initialImageUrls={selectedProduct?.imgUrl ?? []}
+              initialImageKeys={selectedProduct?.imgKey ?? []}
+              onCancel={isEditMode ? handleCancel : undefined}
+              onSuccess={handleSaveSuccess}
+            />
+          </ProductProvider>
+        </EditImageProvider>
       </div>
 
       {/* Product inventory grid */}

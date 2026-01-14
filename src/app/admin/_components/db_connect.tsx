@@ -32,7 +32,8 @@ export const addProduct = async (
 
 // Image changes structure for update operations
 interface ImageChanges {
-  keepKeys: string[];    // Existing image keys to retain
+  keepKeys: string[];    // Existing image keys to retain (in NEW order from client)
+  keepUrls: string[];    // Existing image URLs to retain (in NEW order from client)
   removeKeys: string[];  // Existing image keys to delete from UploadThing
   newUrls: string[];     // URLs from newly uploaded images
   newKeys: string[];     // Keys from newly uploaded images
@@ -65,25 +66,10 @@ export const updateProduct = async (
     }
   }
 
-  // Build final image arrays: kept images + new uploads
-  // This preserves order: kept images first, then new ones appended
-  const finalUrls: string[] = [];
-  const finalKeys: string[] = [];
-
-  // Add kept images (filter existing by keepKeys to maintain order)
-  for (let i = 0; i < existingProduct.imgKey.length; i++) {
-    const key = existingProduct.imgKey[i];
-    if (key && imageChanges.keepKeys.includes(key)) {
-      finalUrls.push(existingProduct.imgUrl[i] ?? "");
-      finalKeys.push(key);
-    }
-  }
-
-  // Append new uploads
-  for (let i = 0; i < imageChanges.newUrls.length; i++) {
-    finalUrls.push(imageChanges.newUrls[i] ?? "");
-    finalKeys.push(imageChanges.newKeys[i] ?? "");
-  }
+  // Build final image arrays using client's order (keepUrls/keepKeys already in correct order)
+  // Then append new uploads at the end
+  const finalUrls: string[] = [...imageChanges.keepUrls, ...imageChanges.newUrls];
+  const finalKeys: string[] = [...imageChanges.keepKeys, ...imageChanges.newKeys];
 
   // Update the product record
   const result = await db
