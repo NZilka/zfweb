@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from ".";
-import { type ProductType } from "~/app/admin/_components/ProductForm";
+// ProductType moved to ProductContext
+import { type ProductType } from "~/app/_context/ProductContext";
 
 // import pool from "./client";
 // import { ProductType } from "~/app/admin/_components/product_form";

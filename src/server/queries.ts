@@ -61,5 +61,13 @@ export async function deleteProduct(id: number) {
   // });
 
   //revalidatePath("/"); // part of the demo, just left it in as a reminder.
-  redirect("/");
+  redirect("/admin");
+}
+
+// Fetch all product categories for dropdown selection
+export async function getCategories() {
+  const categories = await db.query.product_category.findMany({
+    orderBy: (model, { asc }) => asc(model.name),
+  });
+  return categories;
 }

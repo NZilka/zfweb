@@ -1,9 +1,14 @@
 # CLAUDE.md - zfweb
 
-E-commerce platform for Zilka Forgewerks (bespoke jewelry/tools) built with Next.js 15.
+E-commerce platform for Zilka Forgewerks (bespoke jewelry/tools) built with Next.js 16.
+
+Use the context from PROJECT.md in all understanding and decision making
 
 After completing a task that involves tool use, provide a quick summary of the work you've done
+
 Always use the design skill when changing the UI
+
+Comment all code that is added, changed, or deleted explaining the change and reasoning. Be concise.
 
 <use_parallel_tool_calls>
 If you intend to call multiple tools and there are no dependencies
@@ -30,7 +35,7 @@ answer - give grounded and hallucination-free answers.
 
 ## Git Workflow
 
-**IMPORTANT:** When working on a new feature or fixing a bug, create a git branch first. Work on changes in that branch for the remainder of the session.
+**IMPORTANT:** When working on a new feature or fixing a bug, create a git branch first. Work on changes in that branch for the remainder of the session. When planning, break down tasks into pull request sized units of work. After each pull request is done, check it into the branch. Ask any questions you have.
 
 ```bash
 git checkout -b feature/your-feature-name
@@ -40,7 +45,7 @@ git checkout -b fix/your-bug-fix
 
 ## Tech Stack
 
-- **Framework:** Next.js 15 (App Router, Server Components)
+- **Framework:** Next.js 16 (App Router, Server Components)
 - **Database:** PostgreSQL (Neon serverless) + Drizzle ORM
 - **Auth:** Clerk
 - **File Upload:** UploadThing

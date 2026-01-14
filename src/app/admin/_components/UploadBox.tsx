@@ -2,7 +2,8 @@
 
 import { useUploadThing } from "~/utils/uploadthing";
 import { useRouter } from "next/navigation";
-import { type ProductType } from "./ProductForm";
+// ProductType moved to ProductContext - this import was unused
+import { type ProductType } from "~/app/_context/ProductContext";
 
 // inferred input off useUploadThing
 type Input = Parameters<typeof useUploadThing>;
