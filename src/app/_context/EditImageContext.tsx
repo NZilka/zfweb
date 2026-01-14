@@ -121,8 +121,10 @@ export const EditImageProvider = ({ children }: { children: ReactNode }) => {
 
     images.forEach((img) => {
       if (img.type === "existing") {
-        if (img.url) keepUrls.push(img.url);
-        if (img.key) keepKeys.push(img.key);
+        // Always add to arrays to maintain index alignment with orderedImages.
+        // Use empty string for falsy values to preserve array positions.
+        keepUrls.push(img.url ?? "");
+        keepKeys.push(img.key ?? "");
         // Record this position references existing image at existingIndex
         orderedImages.push({ type: "existing", index: existingIndex });
         existingIndex++;
