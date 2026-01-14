@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { addProduct, updateProduct } from "./db_connect";
 import { useProduct, type ProductType } from "~/app/_context/ProductContext";
-import { useImageUpload } from "~/app/_context/ImgUploadContext";
-import FileSelector from "./FileSelector";
-import { useFile } from "~/app/_context/FileContext";
 import { useUploadThing } from "~/utils/uploadthing";
 import { useRouter } from "next/navigation";
 import { useEditImage } from "~/app/_context/EditImageContext";
+import ImageSlot from "./ImageSlot";
 
 // Error type for form validation
 export type ErrorType = {
@@ -41,40 +39,40 @@ export const ProductForm = ({
   onSuccess,
 }: ProductFormProps) => {
   const { product, setProduct, resetProduct } = useProduct();
-  const { imgUpload, setImgUpload } = useImageUpload();
-  const { files, setFiles } = useFile();
   const [errors, setErrors] = useState<ErrorType>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const $ut = useUploadThing("imageUploader");
   const router = useRouter();
 
-  // Try to get edit image context (only available in edit mode with provider)
-  let editImageContext: ReturnType<typeof useEditImage> | null = null;
-  try {
-    editImageContext = useEditImage();
-  } catch {
-    // Not in edit mode or provider not available
-  }
+  // Image context is required - component must be wrapped in EditImageProvider
+  const { displaySlotCount, getImageChanges, reset: resetImages, initializeFromProduct } = useEditImage();
 
-  // Initialize image slots from existing product data in edit mode
+  // Track if images have been initialized to prevent re-initialization on every render.
+  // Using a ref instead of adding initializeFromProduct to deps avoids infinite loops
+  // since initializeFromProduct is not memoized in the context provider.
+  const hasInitializedImages = useRef(false);
+
+  // Initialize image slots from existing product data in edit mode.
+  // Only runs once when entering edit mode with images.
   useEffect(() => {
-    if (mode === "edit" && editImageContext && initialImageUrls.length > 0) {
-      editImageContext.initializeFromProduct(initialImageUrls, initialImageKeys);
+    if (mode === "edit" && initialImageUrls.length > 0 && !hasInitializedImages.current) {
+      initializeFromProduct(initialImageUrls, initialImageKeys);
+      hasInitializedImages.current = true;
     }
-  }, [mode, initialImageUrls.length]);
+    // Reset the flag when switching to create mode so it can re-initialize if needed
+    if (mode === "create") {
+      hasInitializedImages.current = false;
+    }
+  }, [mode, initialImageUrls, initialImageKeys, initializeFromProduct]);
 
   const handleErrors = (error: ErrorType) => {
     setErrors(error);
   };
 
-  // Clear form state (create mode) or reset to initial (edit mode)
+  // Clear form state
   const clearForm = () => {
     resetProduct();
-    setImgUpload({ path1: "", path2: "", path3: "" });
-    setFiles({ file1: undefined, file2: undefined, file3: undefined });
-    if (editImageContext) {
-      editImageContext.resetSlots();
-    }
+    resetImages();
     router.refresh();
   };
 
@@ -93,47 +91,38 @@ export const ProductForm = ({
     setIsSubmitting(true);
 
     try {
-      if (mode === "create") {
-        // CREATE MODE: Upload all new files and create product
-        const selectedFiles = [files.file1, files.file2, files.file3].filter(
-          (f): f is File => !!f,
-        );
-        const uploadResult = await handleImageUpload(selectedFiles);
-        const urls = uploadResult.map(r => r.url).filter(Boolean);
-        const keys = uploadResult.map(r => r.key).filter(Boolean);
+      // Get image data from context (works for both create and edit)
+      const imageChanges = getImageChanges();
 
-        console.log("Creating product with urls:", urls);
-        const newProduct = await addProduct(product, urls, keys);
+      // Upload any new files
+      const uploadResult = await handleImageUpload(imageChanges.newFiles);
+      const newUrls = uploadResult.map(r => r.url).filter(Boolean);
+      const newKeys = uploadResult.map(r => r.key).filter(Boolean);
+
+      if (mode === "create") {
+        // CREATE MODE: Create product with uploaded images
+        console.log("Creating product with urls:", newUrls);
+        const newProduct = await addProduct(product, newUrls, newKeys);
         console.log("Product created:", newProduct);
         clearForm();
       } else {
-        // EDIT MODE: Handle image changes and update product
+        // EDIT MODE: Update product with image changes
         if (!product.id) {
           throw new Error("Product ID required for edit mode");
         }
 
-        // Get image changes from context
-        const imageChanges = editImageContext?.getImageChanges() ?? {
-          keepUrls: [],
-          keepKeys: [],
-          removeKeys: [],
-          newFiles: [],
-        };
-
-        // Upload any new files
-        const uploadResult = await handleImageUpload(imageChanges.newFiles);
-        const newUrls = uploadResult.map(r => r.url).filter(Boolean);
-        const newKeys = uploadResult.map(r => r.key).filter(Boolean);
-
         console.log("Updating product:", product.id);
         console.log("Image changes:", { ...imageChanges, newUrls, newKeys });
 
-        // Call update server action
+        // Call update server action with orderedImages to preserve interleaved order
+        // when new images are dragged among existing ones
         await updateProduct(product.id, product, {
+          keepUrls: imageChanges.keepUrls,
           keepKeys: imageChanges.keepKeys,
           removeKeys: imageChanges.removeKeys,
           newUrls,
           newKeys,
+          orderedImages: imageChanges.orderedImages,
         });
 
         console.log("Product updated successfully");
@@ -154,29 +143,20 @@ export const ProductForm = ({
     onCancel?.();
   };
 
+  // Generate slot indices based on displaySlotCount (dynamic 1-5)
+  const slotIndices = Array.from({ length: displaySlotCount }, (_, i) => i);
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Image selectors - pass mode for different behavior */}
-      <div className="flex items-center justify-center gap-4 p-4">
-        <FileSelector
-          num="1"
-          mode={mode}
-          existingUrl={initialImageUrls[0]}
-          existingKey={initialImageKeys[0]}
-        />
-        <FileSelector
-          num="2"
-          mode={mode}
-          existingUrl={initialImageUrls[1]}
-          existingKey={initialImageKeys[1]}
-        />
-        <FileSelector
-          num="3"
-          mode={mode}
-          existingUrl={initialImageUrls[2]}
-          existingKey={initialImageKeys[2]}
-        />
+      {/* Dynamic image slots - drag to reorder, click to add/replace */}
+      <div className="flex flex-wrap items-center justify-center gap-4 p-4">
+        {slotIndices.map((index) => (
+          <ImageSlot key={index} index={index} />
+        ))}
       </div>
+      <p className="text-center text-sm text-gray-400">
+        Drag images to reorder. Click + to add (max 5).
+      </p>
 
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col gap-4">

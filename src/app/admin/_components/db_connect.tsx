@@ -6,6 +6,7 @@ import { type ProductType } from "~/app/_context/ProductContext";
 import { auth } from "@clerk/nextjs/server";
 import { utapi } from "~/server/uploadthing";
 import { eq } from "drizzle-orm";
+import { type OrderedImageRef } from "~/app/_context/EditImageContext";
 
 // Create a new product with images
 export const addProduct = async (
@@ -30,12 +31,16 @@ export const addProduct = async (
   return JSON.stringify(result);
 };
 
-// Image changes structure for update operations
+// Image changes structure for update operations.
+// orderedImages describes the final display order, allowing new images
+// to be interleaved with existing ones rather than always appended at the end.
 interface ImageChanges {
   keepKeys: string[];    // Existing image keys to retain
+  keepUrls: string[];    // Existing image URLs to retain
   removeKeys: string[];  // Existing image keys to delete from UploadThing
   newUrls: string[];     // URLs from newly uploaded images
   newKeys: string[];     // Keys from newly uploaded images
+  orderedImages: OrderedImageRef[];  // Final order: each entry references existing or new by index
 }
 
 // Update an existing product with support for image changes
@@ -65,24 +70,26 @@ export const updateProduct = async (
     }
   }
 
-  // Build final image arrays: kept images + new uploads
-  // This preserves order: kept images first, then new ones appended
+  // Build final image arrays using orderedImages to preserve interleaved order.
+  // This allows new images to appear at any position (not just at the end)
+  // based on where the user dragged them during reordering.
   const finalUrls: string[] = [];
   const finalKeys: string[] = [];
 
-  // Add kept images (filter existing by keepKeys to maintain order)
-  for (let i = 0; i < existingProduct.imgKey.length; i++) {
-    const key = existingProduct.imgKey[i];
-    if (key && imageChanges.keepKeys.includes(key)) {
-      finalUrls.push(existingProduct.imgUrl[i] ?? "");
-      finalKeys.push(key);
+  for (const ref of imageChanges.orderedImages) {
+    if (ref.type === "existing") {
+      // Reference to an existing image - pull from keepUrls/keepKeys
+      const url = imageChanges.keepUrls[ref.index];
+      const key = imageChanges.keepKeys[ref.index];
+      if (url) finalUrls.push(url);
+      if (key) finalKeys.push(key);
+    } else {
+      // Reference to a newly uploaded image - pull from newUrls/newKeys
+      const url = imageChanges.newUrls[ref.index];
+      const key = imageChanges.newKeys[ref.index];
+      if (url) finalUrls.push(url);
+      if (key) finalKeys.push(key);
     }
-  }
-
-  // Append new uploads
-  for (let i = 0; i < imageChanges.newUrls.length; i++) {
-    finalUrls.push(imageChanges.newUrls[i] ?? "");
-    finalKeys.push(imageChanges.newKeys[i] ?? "");
   }
 
   // Update the product record
