@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { addProduct, updateProduct } from "./db_connect";
 import { useProduct, type ProductType } from "~/app/_context/ProductContext";
 import { useUploadThing } from "~/utils/uploadthing";
@@ -47,12 +47,23 @@ export const ProductForm = ({
   // Image context is required - component must be wrapped in EditImageProvider
   const { displaySlotCount, getImageChanges, reset: resetImages, initializeFromProduct } = useEditImage();
 
-  // Initialize image slots from existing product data in edit mode
+  // Track if images have been initialized to prevent re-initialization on every render.
+  // Using a ref instead of adding initializeFromProduct to deps avoids infinite loops
+  // since initializeFromProduct is not memoized in the context provider.
+  const hasInitializedImages = useRef(false);
+
+  // Initialize image slots from existing product data in edit mode.
+  // Only runs once when entering edit mode with images.
   useEffect(() => {
-    if (mode === "edit" && initialImageUrls.length > 0) {
+    if (mode === "edit" && initialImageUrls.length > 0 && !hasInitializedImages.current) {
       initializeFromProduct(initialImageUrls, initialImageKeys);
+      hasInitializedImages.current = true;
     }
-  }, [mode, initialImageUrls.length]);
+    // Reset the flag when switching to create mode so it can re-initialize if needed
+    if (mode === "create") {
+      hasInitializedImages.current = false;
+    }
+  }, [mode, initialImageUrls, initialImageKeys, initializeFromProduct]);
 
   const handleErrors = (error: ErrorType) => {
     setErrors(error);
@@ -103,13 +114,15 @@ export const ProductForm = ({
         console.log("Updating product:", product.id);
         console.log("Image changes:", { ...imageChanges, newUrls, newKeys });
 
-        // Call update server action - keepUrls/keepKeys preserve the client's reordered order
+        // Call update server action with orderedImages to preserve interleaved order
+        // when new images are dragged among existing ones
         await updateProduct(product.id, product, {
           keepUrls: imageChanges.keepUrls,
           keepKeys: imageChanges.keepKeys,
           removeKeys: imageChanges.removeKeys,
           newUrls,
           newKeys,
+          orderedImages: imageChanges.orderedImages,
         });
 
         console.log("Product updated successfully");

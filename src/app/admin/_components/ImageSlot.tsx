@@ -6,21 +6,30 @@ import { useEditImage } from "~/app/_context/EditImageContext";
 import { useDragDrop } from "./useDragDrop";
 
 interface ImageSlotProps {
-  index: number;  // Slot index in the display
+  index: number;  // Slot index in the display (0-4)
 }
 
-// ImageSlot component - displays either an image or an empty add slot
-// Supports drag-and-drop reordering for slots with images
+/**
+ * ImageSlot component - displays either an image or an empty "+" add slot.
+ * Supports drag-and-drop reordering for slots with images.
+ *
+ * Behavior:
+ * - Empty slot: Click to trigger file picker
+ * - Filled slot: Drag to reorder, click to replace image, X button to remove
+ *
+ * The component uses the useDragDrop hook for custom drag behavior with
+ * early hit detection (5% overlap threshold vs HTML5 drag API's 50%).
+ */
 const ImageSlot = ({ index }: ImageSlotProps) => {
   const { images, addImage, removeImage, reorderImages, canAddMore } = useEditImage();
   const inputRef = useRef<HTMLInputElement>(null);
-  const slotRef = useRef<HTMLDivElement>(null);
+  const slotRef = useRef<HTMLDivElement>(null);  // Used by drag/drop for position calculations
 
-  // Get the image at this index (if any)
+  // Get the image at this index (if any) - may be undefined for empty slots
   const image = images[index];
   const hasImage = !!image;
 
-  // Use custom drag/drop hook for precise hit detection
+  // Use custom drag/drop hook for precise hit detection (5% overlap threshold)
   const { isDragging, isDropTarget, dragHandlers } = useDragDrop({
     index,
     hasImage,
@@ -28,38 +37,43 @@ const ImageSlot = ({ index }: ImageSlotProps) => {
     onReorder: reorderImages,
   });
 
-  // Get display URL based on image type
+  // Get display URL based on image type:
+  // - "existing": Use UploadThing CDN URL stored in database
+  // - "new": Use blob URL created when user selected file (for preview before upload)
   const displayUrl = image?.type === "existing"
     ? image.url
     : image?.type === "new"
       ? image.previewUrl
       : undefined;
 
-  // Handle file selection for empty slot
+  // Handle file selection for empty slot or replacing existing image
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && canAddMore) {
-      // Create blob URL for preview
+      // Create blob URL for immediate preview (revoked when image is removed or component unmounts)
       const previewUrl = URL.createObjectURL(file);
       addImage(file, previewUrl);
     }
-    // Reset input to allow selecting same file again
+    // Reset input value to allow selecting the same file again if needed
     event.target.value = "";
   };
 
-  // Handle remove button click
+  // Handle remove button click - prevents event from bubbling to parent click handler
   const handleRemove = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     removeImage(index);
   };
 
-  // Handle click on empty slot to trigger file input
+  // Handle click on empty slot to trigger hidden file input
   const handleEmptyClick = () => {
     inputRef.current?.click();
   };
 
   return (
+    // Container div with conditional styling for drag states:
+    // - isDragging: Green ring + slight scale up + reduced opacity (source slot)
+    // - isDropTarget: Blue ring + slight scale up (potential drop location)
     <div
       ref={slotRef}
       className={`relative transition-all ${
@@ -67,7 +81,7 @@ const ImageSlot = ({ index }: ImageSlotProps) => {
       } ${
         isDropTarget ? "scale-105 ring-2 ring-blue-500" : ""
       }`}
-      {...dragHandlers}
+      {...dragHandlers}  // Includes onMouseDown and data-slot-index for drag detection
     >
       {/* Hidden file input */}
       <input
@@ -79,8 +93,10 @@ const ImageSlot = ({ index }: ImageSlotProps) => {
         id={`image-slot-${index}`}
       />
 
+      {/* Conditional rendering: show image with controls, or empty add slot */}
       {hasImage ? (
-        // Show image with remove button, draggable
+        // Filled slot: shows image thumbnail with remove button overlay
+        // Click on image opens file picker to replace it (unless mid-drag)
         <>
           <div
             className="cursor-grab active:cursor-grabbing select-none"
@@ -88,6 +104,7 @@ const ImageSlot = ({ index }: ImageSlotProps) => {
           >
             <ShowImg imgUrl={displayUrl ?? ""} altTxt={`Image ${index + 1}`} />
           </div>
+          {/* Remove button - positioned outside slot bounds for easy clicking */}
           <button
             type="button"
             onClick={handleRemove}
@@ -98,7 +115,8 @@ const ImageSlot = ({ index }: ImageSlotProps) => {
           </button>
         </>
       ) : (
-        // Show empty slot for adding (not draggable)
+        // Empty slot: displays "+" icon, click to add new image
+        // Not draggable (hasImage=false prevents drag initiation in useDragDrop)
         <div className="cursor-pointer" onClick={handleEmptyClick}>
           <ImgBox mediaType="+" num="" />
         </div>

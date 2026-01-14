@@ -6,6 +6,7 @@ import { type ProductType } from "~/app/_context/ProductContext";
 import { auth } from "@clerk/nextjs/server";
 import { utapi } from "~/server/uploadthing";
 import { eq } from "drizzle-orm";
+import { type OrderedImageRef } from "~/app/_context/EditImageContext";
 
 // Create a new product with images
 export const addProduct = async (
@@ -30,13 +31,16 @@ export const addProduct = async (
   return JSON.stringify(result);
 };
 
-// Image changes structure for update operations
+// Image changes structure for update operations.
+// orderedImages describes the final display order, allowing new images
+// to be interleaved with existing ones rather than always appended at the end.
 interface ImageChanges {
-  keepKeys: string[];    // Existing image keys to retain (in NEW order from client)
-  keepUrls: string[];    // Existing image URLs to retain (in NEW order from client)
+  keepKeys: string[];    // Existing image keys to retain
+  keepUrls: string[];    // Existing image URLs to retain
   removeKeys: string[];  // Existing image keys to delete from UploadThing
   newUrls: string[];     // URLs from newly uploaded images
   newKeys: string[];     // Keys from newly uploaded images
+  orderedImages: OrderedImageRef[];  // Final order: each entry references existing or new by index
 }
 
 // Update an existing product with support for image changes
@@ -66,10 +70,27 @@ export const updateProduct = async (
     }
   }
 
-  // Build final image arrays using client's order (keepUrls/keepKeys already in correct order)
-  // Then append new uploads at the end
-  const finalUrls: string[] = [...imageChanges.keepUrls, ...imageChanges.newUrls];
-  const finalKeys: string[] = [...imageChanges.keepKeys, ...imageChanges.newKeys];
+  // Build final image arrays using orderedImages to preserve interleaved order.
+  // This allows new images to appear at any position (not just at the end)
+  // based on where the user dragged them during reordering.
+  const finalUrls: string[] = [];
+  const finalKeys: string[] = [];
+
+  for (const ref of imageChanges.orderedImages) {
+    if (ref.type === "existing") {
+      // Reference to an existing image - pull from keepUrls/keepKeys
+      const url = imageChanges.keepUrls[ref.index];
+      const key = imageChanges.keepKeys[ref.index];
+      if (url) finalUrls.push(url);
+      if (key) finalKeys.push(key);
+    } else {
+      // Reference to a newly uploaded image - pull from newUrls/newKeys
+      const url = imageChanges.newUrls[ref.index];
+      const key = imageChanges.newKeys[ref.index];
+      if (url) finalUrls.push(url);
+      if (key) finalKeys.push(key);
+    }
+  }
 
   // Update the product record
   const result = await db

@@ -13,6 +13,15 @@ export interface ImageItem {
   previewUrl?: string; // Blob URL for preview (new uploads only)
 }
 
+// Describes the final order of images after user reordering.
+// Each entry points to either an existing image (by index into keepUrls/keepKeys)
+// or a new upload (by index into newFiles array). This preserves interleaved order
+// when users drag new images among existing ones.
+export interface OrderedImageRef {
+  type: "existing" | "new";
+  index: number;  // Index into keepUrls/keepKeys (existing) or newFiles (new)
+}
+
 interface EditImageContextType {
   // Current images array (no gaps, max 5)
   images: ImageItem[];
@@ -24,12 +33,13 @@ interface EditImageContextType {
   removeImage: (index: number) => void;
   // Reorder images by moving from one index to another
   reorderImages: (fromIndex: number, toIndex: number) => void;
-  // Get data for form submission
+  // Get data for form submission - includes orderedImages to preserve interleaved order
   getImageChanges: () => {
     keepUrls: string[];
     keepKeys: string[];
     removeKeys: string[];
     newFiles: File[];
+    orderedImages: OrderedImageRef[];  // Describes final order after reordering
   };
   // Reset to initial state
   reset: () => void;
@@ -95,22 +105,36 @@ export const EditImageProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  // Extract changes for form submission
+  // Extract changes for form submission.
+  // Returns separate arrays for existing (keep) and new images, plus an orderedImages
+  // array that describes the final interleaved order after user reordering.
+  // Example: User reorders [E1, N1, E2] -> orderedImages: [{existing,0}, {new,0}, {existing,1}]
   const getImageChanges = () => {
     const keepUrls: string[] = [];
     const keepKeys: string[] = [];
     const newFiles: File[] = [];
+    const orderedImages: OrderedImageRef[] = [];
+
+    // Track indices as we build the arrays so orderedImages can reference them
+    let existingIndex = 0;
+    let newIndex = 0;
 
     images.forEach((img) => {
       if (img.type === "existing") {
         if (img.url) keepUrls.push(img.url);
         if (img.key) keepKeys.push(img.key);
+        // Record this position references existing image at existingIndex
+        orderedImages.push({ type: "existing", index: existingIndex });
+        existingIndex++;
       } else if (img.type === "new" && img.file) {
         newFiles.push(img.file);
+        // Record this position references new upload at newIndex
+        orderedImages.push({ type: "new", index: newIndex });
+        newIndex++;
       }
     });
 
-    return { keepUrls, keepKeys, removeKeys: removedKeys, newFiles };
+    return { keepUrls, keepKeys, removeKeys: removedKeys, newFiles, orderedImages };
   };
 
   // Reset to empty state
