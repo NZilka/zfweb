@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getOrderByPaymentIntent } from "~/server/order-actions";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
+import { OrderPolling } from "./OrderPolling";
 
 // This page is the return_url from Stripe after successful payment
 // It looks up the order by payment_intent and redirects to order confirmation
@@ -34,8 +35,7 @@ export default async function CheckoutSuccessPage({
   }
 
   // Try to find the order - it may take a moment for webhook to create it
-  // In production, you might want to poll or use a loading state
-  let order = await getOrderByPaymentIntent(payment_intent);
+  const order = await getOrderByPaymentIntent(payment_intent);
 
   // If order not found yet, show processing message
   // The webhook creates the order asynchronously
@@ -50,12 +50,12 @@ export default async function CheckoutSuccessPage({
         <p className="text-sm text-gray-500">
           This page will automatically redirect when your order is ready.
         </p>
-        {/* Auto-refresh to check for order */}
-        <meta httpEquiv="refresh" content="3" />
+        {/* Client component handles polling for order creation */}
+        <OrderPolling />
       </div>
     );
   }
 
-  // Redirect to order confirmation page
-  redirect(`/shop/order/${order.id}`);
+  // Redirect to order confirmation page using payment_intent (secure, unpredictable)
+  redirect(`/shop/order/confirmation/${payment_intent}`);
 }
