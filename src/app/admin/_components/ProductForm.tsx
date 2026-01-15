@@ -164,7 +164,7 @@ export const ProductForm = ({
           <div>
             <label>Title: </label>
             <input
-              className="text-black"
+              className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-white"
               type="text"
               value={product.title}
               onChange={(e) =>
@@ -178,7 +178,7 @@ export const ProductForm = ({
           <div>
             <label>Price: </label>
             <input
-              className="text-black"
+              className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-white"
               type="number"
               step="0.01"
               min="0"
@@ -194,7 +194,7 @@ export const ProductForm = ({
           <div>
             <label>Description: </label>
             <input
-              className="text-black"
+              className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-white"
               type="text"
               value={product.description}
               onChange={(e) =>
@@ -208,7 +208,7 @@ export const ProductForm = ({
           <div>
             <label>Inventory: </label>
             <input
-              className="text-black"
+              className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-white"
               type="number"
               min="0"
               value={product.inventory}
@@ -226,7 +226,7 @@ export const ProductForm = ({
           <div>
             <label>SKU: </label>
             <input
-              className="text-black"
+              className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-white placeholder-gray-400"
               type="text"
               value={product.sku ?? ""}
               onChange={(e) =>
@@ -240,7 +240,7 @@ export const ProductForm = ({
           <div>
             <label>Category: </label>
             <select
-              className="text-black"
+              className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-white"
               value={product.category_id ?? ""}
               onChange={(e) =>
                 setProduct({
