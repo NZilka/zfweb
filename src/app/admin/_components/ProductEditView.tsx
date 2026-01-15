@@ -91,7 +91,7 @@ export default function ProductEditView({ product, categories = [] }: ProductEdi
   return (
     <div className="flex h-full w-full min-w-0">
       {/* Product image */}
-      <div className="flex h-auto w-auto flex-shrink items-center justify-center">
+      <div className="flex h-auto w-auto shrink items-center justify-center">
         {product.imgUrl[0] ? (
           <img
             src={product.imgUrl[0]}
@@ -106,7 +106,7 @@ export default function ProductEditView({ product, categories = [] }: ProductEdi
       </div>
 
       {/* Product details sidebar */}
-      <div className="flex w-48 flex-shrink-0 flex-col border-x border-white">
+      <div className="flex w-48 shrink-0 flex-col border-x border-white">
         {/* Title */}
         <div className="border-b border-white p-2 text-center text-lg">
           {product.title}
