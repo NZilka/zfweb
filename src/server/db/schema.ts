@@ -141,12 +141,18 @@ export const product_category = createTable("product_category", {
   ),
 });
 
+// Shopping session for cart persistence
+// Supports both guest sessions (via session_token) and authenticated users (via user_id)
 export const shopping_session = createTable("shopping_session", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
-  user_id: integer("user_id")
-    .references(() => customer.id)
-    .notNull(),
-  total: decimal("total").notNull(),
+  // Session token for guest identification (stored in HTTP-only cookie)
+  session_token: varchar("session_token", { length: 64 }).notNull().unique(),
+  // Optional user reference - null for guests, set when user logs in
+  user_id: integer("user_id").references(() => customer.id),
+  // Computed total (for quick access, recalculated on cart changes)
+  total: decimal("total").notNull().default("0"),
+  // Session expiry for cleanup of abandoned carts (30 days from last activity)
+  expires_at: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
