@@ -1,5 +1,7 @@
 # Implementation Plan: E-commerce Features
 
+> **STATUS: COMPLETE** ✓ All 10 PRs implemented and committed.
+
 This document outlines the implementation plan for three major features:
 1. Category Management
 2. Shopping Cart
@@ -14,12 +16,12 @@ Each feature is broken into small-to-medium PRs for incremental delivery.
 ### PR 1.1: Category CRUD Server Actions
 **Scope:** Backend infrastructure for category management
 
-- [ ] Add server actions in `db_connect.tsx`:
+- [x] Add server actions in `db_connect.tsx`:
   - `createCategory(name, description?)`
   - `updateCategory(id, name, description?)`
   - `deleteCategory(id)` - sets `category_id` to null for affected products
-- [ ] Add Zod validation schemas for category operations
-- [ ] Add `getCategoryById` query to `queries.ts`
+- [x] Add Zod validation schemas for category operations
+- [x] Add `getCategoryById` query to `queries.ts`
 
 **Files Modified:**
 - `src/app/admin/_components/db_connect.tsx`
@@ -30,13 +32,13 @@ Each feature is broken into small-to-medium PRs for incremental delivery.
 ### PR 1.2: Category Management UI in Admin
 **Scope:** Admin interface for managing categories
 
-- [ ] Create `CategoryManager.tsx` component with:
+- [x] Create `CategoryManager.tsx` component with:
   - List of existing categories with edit/delete buttons
   - Inline form to add new category
   - Edit mode for existing categories
   - Delete confirmation with product count warning
-- [ ] Integrate into admin page (either as tab/section or modal)
-- [ ] Update product form category dropdown to refresh when categories change
+- [x] Integrate into admin page (either as tab/section or modal)
+- [x] Update product form category dropdown to refresh when categories change
 
 **Files Modified:**
 - `src/app/admin/_components/CategoryManager.tsx` (new)
@@ -50,17 +52,17 @@ Each feature is broken into small-to-medium PRs for incremental delivery.
 ### PR 2.1: Cart Infrastructure & Context
 **Scope:** Foundation for cart functionality
 
-- [ ] Create `CartContext.tsx` with:
+- [x] Create `CartContext.tsx` with:
   - Cart state (items, totals, item count)
   - Guest session management (generate/persist session ID in cookie)
   - Functions: `addToCart`, `removeFromCart`, `updateQuantity`, `clearCart`
-- [ ] Add server actions for cart operations:
+- [x] Add server actions for cart operations:
   - `getOrCreateSession(sessionId?)` - returns session with cart items
   - `addItemToCart(sessionId, productId, quantity)`
   - `updateCartItem(cartItemId, quantity)`
   - `removeCartItem(cartItemId)`
   - `getCartItems(sessionId)`
-- [ ] Add cart queries to `queries.ts`
+- [x] Add cart queries to `queries.ts`
 
 **Files Modified:**
 - `src/app/_context/CartContext.tsx` (new)
@@ -72,10 +74,10 @@ Each feature is broken into small-to-medium PRs for incremental delivery.
 ### PR 2.2: Add to Cart Functionality
 **Scope:** Wire up "Add to Cart" buttons
 
-- [ ] Update shop product card with working "Add to Cart" button
-- [ ] Update product detail page/modal with quantity selector + "Add to Cart"
-- [ ] Add toast/notification feedback on add to cart
-- [ ] Add cart item count badge to header/nav
+- [x] Update shop product card with working "Add to Cart" button
+- [x] Update product detail page/modal with quantity selector + "Add to Cart"
+- [x] Add toast/notification feedback on add to cart
+- [x] Add cart item count badge to header/nav
 
 **Files Modified:**
 - `src/app/shop/page.tsx`
@@ -88,7 +90,7 @@ Each feature is broken into small-to-medium PRs for incremental delivery.
 ### PR 2.3: Cart Drawer UI
 **Scope:** Slide-out cart drawer component
 
-- [ ] Create `CartDrawer.tsx` component with:
+- [x] Create `CartDrawer.tsx` component with:
   - Slide-out animation from right
   - List of cart items with images, names, prices
   - Quantity adjustment (+/- buttons)
@@ -96,8 +98,8 @@ Each feature is broken into small-to-medium PRs for incremental delivery.
   - Subtotal display
   - Free shipping progress bar (optional)
   - "Continue Shopping" and "Checkout" CTAs
-- [ ] Add drawer trigger to shop topnav (cart icon)
-- [ ] Integrate CartContext for real-time updates
+- [x] Add drawer trigger to shop topnav (cart icon)
+- [x] Integrate CartContext for real-time updates
 
 **Files Modified:**
 - `src/components/ui/CartDrawer.tsx` (new)
@@ -109,13 +111,13 @@ Each feature is broken into small-to-medium PRs for incremental delivery.
 ### PR 2.4: Full Cart Page (Optional Review)
 **Scope:** Dedicated cart page for detailed review
 
-- [ ] Create `/shop/cart` page with:
+- [x] Create `/shop/cart` page with:
   - Full cart item list with larger images
   - Quantity editing
   - Item removal
   - Order summary sidebar
   - "Proceed to Checkout" button
-- [ ] Link from cart drawer "View Full Cart"
+- [x] Link from cart drawer "View Full Cart"
 
 **Files Modified:**
 - `src/app/shop/cart/page.tsx` (new)
@@ -128,10 +130,10 @@ Each feature is broken into small-to-medium PRs for incremental delivery.
 ### PR 3.1: Stripe Setup & Configuration
 **Scope:** Stripe integration foundation
 
-- [ ] Install Stripe packages (`stripe`, `@stripe/stripe-js`, `@stripe/react-stripe-js`)
-- [ ] Add Stripe environment variables to `env.js` schema
-- [ ] Create Stripe client utilities (`src/lib/stripe.ts`)
-- [ ] Create Stripe server utilities (`src/server/stripe.ts`)
+- [x] Install Stripe packages (`stripe`, `@stripe/stripe-js`, `@stripe/react-stripe-js`)
+- [x] Add Stripe environment variables to `env.js` schema
+- [x] Create Stripe client utilities (`src/lib/stripe.ts`)
+- [x] Create Stripe server utilities (`src/server/stripe.ts`)
 
 **Files Modified:**
 - `package.json`
@@ -144,13 +146,13 @@ Each feature is broken into small-to-medium PRs for incremental delivery.
 ### PR 3.2: Checkout Page UI
 **Scope:** Customer-facing checkout experience
 
-- [ ] Create `/shop/checkout` page with:
+- [x] Create `/shop/checkout` page with:
   - Order summary (readonly cart items)
   - Guest checkout form (email, shipping address)
   - Optional account creation checkbox
   - Stripe Elements for payment
-- [ ] Add checkout form validation with Zod
-- [ ] Create `CheckoutForm.tsx` client component
+- [x] Add checkout form validation with Zod
+- [x] Create `CheckoutForm.tsx` client component
 
 **Files Modified:**
 - `src/app/shop/checkout/page.tsx` (new)
@@ -161,12 +163,12 @@ Each feature is broken into small-to-medium PRs for incremental delivery.
 ### PR 3.3: Payment Processing
 **Scope:** Stripe payment flow
 
-- [ ] Create server action `createPaymentIntent(sessionId, customerInfo)`
-- [ ] Create API route for Stripe webhooks (`/api/stripe/webhook`)
-- [ ] Handle payment confirmation
-- [ ] Create order record on successful payment
-- [ ] Clear cart after successful order
-- [ ] Update product inventory on order completion
+- [x] Create server action `createPaymentIntent(sessionId, customerInfo)`
+- [x] Create API route for Stripe webhooks (`/api/stripe/webhook`)
+- [x] Handle payment confirmation
+- [x] Create order record on successful payment
+- [x] Clear cart after successful order
+- [x] Update product inventory on order completion
 
 **Files Modified:**
 - `src/server/stripe.ts`
@@ -178,10 +180,10 @@ Each feature is broken into small-to-medium PRs for incremental delivery.
 ### PR 3.4: Order Confirmation
 **Scope:** Post-purchase experience
 
-- [ ] Create `/shop/order/[id]` confirmation page
-- [ ] Display order details, shipping info, payment confirmation
-- [ ] Send confirmation email (optional - can be Stripe receipt)
-- [ ] Redirect to confirmation after successful checkout
+- [x] Create `/shop/order/[id]` confirmation page
+- [x] Display order details, shipping info, payment confirmation
+- [x] Send confirmation email (optional - can be Stripe receipt)
+- [x] Redirect to confirmation after successful checkout
 
 **Files Modified:**
 - `src/app/shop/order/[id]/page.tsx` (new)
@@ -237,3 +239,37 @@ Phase 3: Checkout
 - Server actions should validate inputs with Zod
 - UI components should follow existing patterns (Tailwind + CVA)
 - Each PR should be independently deployable when possible
+
+---
+
+## Completion Summary
+
+All 10 PRs have been implemented on branch `claude/review-architecture-QbvFw`:
+
+| PR | Description | Commit |
+|----|-------------|--------|
+| 1.1 | Category CRUD Server Actions | `2f51784` |
+| 1.2 | Category Management UI | `aa0f9c4` |
+| 2.1 | Cart Infrastructure & Context | `639d925` |
+| 2.2 | Add to Cart Functionality | `36012fd` |
+| 2.3 | Cart Drawer UI | `6aaae57` |
+| 2.4 | Full Cart Page | `5dece4a` |
+| 3.1 | Stripe Setup & Configuration | `42981fe` |
+| 3.2 | Checkout Page UI | `5f81c85` |
+| 3.3 | Payment Processing | `5e004d7` |
+| 3.4 | Order Confirmation | `7dc90c5` |
+
+### Environment Variables Required
+
+Add to `.env` for Stripe:
+```
+STRIPE_SECRET_KEY=sk_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_...
+```
+
+### Database Schema Changes
+
+Run `pnpm db:push` to apply schema changes:
+- `shopping_session`: Added `session_token`, made `user_id` nullable, added `expires_at`
+- `order`: Added `payment_intent_id`, `status`, `customer_email`, `customer_name`, `shipping_address`
