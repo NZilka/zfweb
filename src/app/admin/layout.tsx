@@ -6,7 +6,7 @@ export default function AdminLayout({
 }: Readonly<{ children: React.ReactNode; modal: React.ReactNode }>) {
   return (
     <>
-      <div className="grid h-screen grid-rows-[auto,1fr]">
+      <div className="grid h-screen grid-rows-[auto_1fr]">
         <TopNav />
         <main className="overflow-y-scroll">{children}</main>
       </div>

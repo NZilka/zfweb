@@ -37,7 +37,7 @@ const Products = async () => {
               </p>
               <a
                 href="#"
-                className="inline-flex items-center border-slate-300 bg-black px-3 py-2 text-center text-sm font-medium text-white hover:bg-zinc-700 focus:outline-none focus:ring-4 focus:ring-zinc-300 dark:bg-zinc-600 dark:hover:bg-black dark:focus:ring-zinc-800"
+                className="inline-flex items-center border-slate-300 bg-black px-3 py-2 text-center text-sm font-medium text-white hover:bg-zinc-700 focus:outline-hidden focus:ring-4 focus:ring-zinc-300 dark:bg-zinc-600 dark:hover:bg-black dark:focus:ring-zinc-800"
               >
                 Add to Cart
               </a>
