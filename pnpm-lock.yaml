@@ -29,9 +29,6 @@ importers:
       '@uploadthing/shared':
         specifier: ^7.1.5
         version: 7.1.10
-      '@vercel/postgres':
-        specifier: ^0.10.0
-        version: 0.10.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -53,9 +50,6 @@ importers:
       next:
         specifier: ^16.1.1
         version: 16.1.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      postgres:
-        specifier: ^3.4.4
-        version: 3.4.8
       react:
         specifier: ^19.2.3
         version: 19.2.3
@@ -74,9 +68,6 @@ importers:
       uploadthing:
         specifier: ^7.4.4
         version: 7.7.4(next@16.1.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(tailwindcss@3.4.19(tsx@4.21.0))
-      vs:
-        specifier: ^0.1.0
-        version: 0.1.0
       zod:
         specifier: ^3.23.3
         version: 3.25.76
@@ -93,9 +84,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.8)
-      '@types/ws':
-        specifier: ^8.5.13
-        version: 8.18.1
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.1.0
         version: 8.52.0(@typescript-eslint/parser@8.52.0(eslint@9.39.2(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.2(jiti@1.21.7))(typescript@5.9.3)
@@ -910,9 +898,6 @@ packages:
 
   '@types/react@19.2.8':
     resolution: {integrity: sha512-3MbSL37jEchWZz2p2mjntRZtPt837ij10ApxKfgmXCTuHWagYg7iA5bqPw6C8BMPfwidlvfPI/fxOc42HLhcyg==}
-
-  '@types/ws@8.18.1':
-    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@typescript-eslint/eslint-plugin@8.52.0':
     resolution: {integrity: sha512-okqtOgqu2qmZJ5iN4TWlgfF171dZmx2FzdOv2K/ixL2LZWDStL8+JgQerI2sa8eAEfoydG9+0V96m7V+P8yE1Q==}
@@ -2642,10 +2627,6 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
-  vs@0.1.0:
-    resolution: {integrity: sha512-1BDpm5U/cnOHRTCVpHyi/COvMVesm0Y7acrOI2Iu4Qh1xvi1CWDR+jJ72vnrYbsLMQ+5m+7vwyAxPtydtBZ9uQ==}
-    engines: {node: '>= 0.8.0'}
-
   which-boxed-primitive@1.1.1:
     resolution: {integrity: sha512-TbX3mj8n0odCBFVlY8AxkqcHASw3L60jIuF8jFP78az3C2YhmGvqbHBpAjTRH2/xqYunrJ9g1jSyjCjpoWzIAA==}
     engines: {node: '>= 0.4'}
@@ -3134,6 +3115,7 @@ snapshots:
   '@neondatabase/serverless@0.9.5':
     dependencies:
       '@types/pg': 8.11.6
+    optional: true
 
   '@next/env@16.1.1': {}
 
@@ -3254,10 +3236,6 @@ snapshots:
   '@types/react@19.2.8':
     dependencies:
       csstype: 3.2.3
-
-  '@types/ws@8.18.1':
-    dependencies:
-      '@types/node': 20.19.28
 
   '@typescript-eslint/eslint-plugin@8.52.0(@typescript-eslint/parser@8.52.0(eslint@9.39.2(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.2(jiti@1.21.7))(typescript@5.9.3)':
     dependencies:
@@ -3433,6 +3411,7 @@ snapshots:
       ws: 8.19.0(bufferutil@4.1.0)
     transitivePeerDependencies:
       - utf-8-validate
+    optional: true
 
   acorn-jsx@5.3.2(acorn@8.15.0):
     dependencies:
@@ -3567,6 +3546,7 @@ snapshots:
   bufferutil@4.1.0:
     dependencies:
       node-gyp-build: 4.8.4
+    optional: true
 
   call-bind-apply-helpers@1.0.2:
     dependencies:
@@ -4537,7 +4517,8 @@ snapshots:
       detect-libc: 2.1.2
     optional: true
 
-  node-gyp-build@4.8.4: {}
+  node-gyp-build@4.8.4:
+    optional: true
 
   normalize-path@3.0.0: {}
 
@@ -4704,7 +4685,8 @@ snapshots:
 
   postgres-range@1.1.4: {}
 
-  postgres@3.4.8: {}
+  postgres@3.4.8:
+    optional: true
 
   prelude-ls@1.2.1: {}
 
@@ -5172,8 +5154,6 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  vs@0.1.0: {}
-
   which-boxed-primitive@1.1.1:
     dependencies:
       is-bigint: 1.1.0
@@ -5224,6 +5204,7 @@ snapshots:
   ws@8.19.0(bufferutil@4.1.0):
     optionalDependencies:
       bufferutil: 4.1.0
+    optional: true
 
   yocto-queue@0.1.0: {}
 
