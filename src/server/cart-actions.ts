@@ -2,7 +2,7 @@
 
 import { db } from "~/server/db";
 import { shopping_session, cart_item, product } from "~/server/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gt, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 
 // Cookie name for session token
@@ -20,6 +20,43 @@ function generateSessionToken(): string {
 // Calculate session expiry date (30 days from now)
 function getExpiryDate(): Date {
   return new Date(Date.now() + SESSION_DURATION_MS);
+}
+
+// Get total quantity of a product reserved in all active carts (non-expired sessions)
+// Optionally exclude a specific session (for checking current user's available qty)
+async function getReservedQuantity(productId: number, excludeSessionId?: number): Promise<number> {
+  // Get all cart items for this product in non-expired sessions
+  const activeSessions = await db.query.shopping_session.findMany({
+    where: (model, { gt }) => gt(model.expires_at, new Date()),
+  });
+
+  const activeSessionIds = activeSessions
+    .filter(s => excludeSessionId ? s.id !== excludeSessionId : true)
+    .map(s => s.id);
+
+  if (activeSessionIds.length === 0) return 0;
+
+  const cartItems = await db.query.cart_item.findMany({
+    where: (model, { eq, and, inArray }) =>
+      and(
+        eq(model.product_id, productId),
+        inArray(model.session_id, activeSessionIds)
+      ),
+  });
+
+  return cartItems.reduce((sum, item) => sum + item.quantity, 0);
+}
+
+// Get available inventory for a product (total - reserved in other carts)
+export async function getAvailableInventory(productId: number, excludeSessionId?: number): Promise<number> {
+  const productData = await db.query.product.findFirst({
+    where: (model, { eq }) => eq(model.id, productId),
+  });
+
+  if (!productData) return 0;
+
+  const reserved = await getReservedQuantity(productId, excludeSessionId);
+  return Math.max(0, productData.inventory - reserved);
 }
 
 // Get or create a shopping session for the current user/guest
@@ -122,10 +159,11 @@ export async function getCartItems(): Promise<CartItemWithProduct[]> {
 }
 
 // Add item to cart (or increment quantity if already in cart)
+// Checks available inventory (total - reserved in other carts)
 export async function addToCart(productId: number, quantity: number = 1) {
   const session = await getOrCreateSession();
 
-  // Check if product exists and has inventory
+  // Check if product exists
   const productData = await db.query.product.findFirst({
     where: (model, { eq }) => eq(model.id, productId),
   });
@@ -134,21 +172,31 @@ export async function addToCart(productId: number, quantity: number = 1) {
     throw new Error("Product not found");
   }
 
-  if (productData.inventory < quantity) {
-    throw new Error("Not enough inventory");
-  }
-
   // Check if item already in cart
   const existingItem = await db.query.cart_item.findFirst({
     where: (model, { eq, and }) =>
       and(eq(model.session_id, session.id), eq(model.product_id, productId)),
   });
 
+  // Get available inventory (excludes items in OTHER carts, not ours)
+  const availableInventory = await getAvailableInventory(productId, session.id);
+
+  // Current quantity in our cart
+  const currentQtyInCart = existingItem?.quantity ?? 0;
+
+  // Check if we can add the requested quantity
+  if (quantity > availableInventory) {
+    if (availableInventory === 0) {
+      throw new Error("This item is no longer available");
+    }
+    throw new Error(`Only ${availableInventory} available`);
+  }
+
   if (existingItem) {
     // Update quantity
     const newQuantity = existingItem.quantity + quantity;
-    if (newQuantity > productData.inventory) {
-      throw new Error("Not enough inventory");
+    if (newQuantity > availableInventory + currentQtyInCart) {
+      throw new Error(`Only ${availableInventory} more available`);
     }
 
     await db
@@ -171,6 +219,7 @@ export async function addToCart(productId: number, quantity: number = 1) {
 }
 
 // Update cart item quantity
+// Checks available inventory (total - reserved in other carts)
 export async function updateCartItemQuantity(
   cartItemId: number,
   quantity: number
@@ -187,19 +236,29 @@ export async function updateCartItemQuantity(
     throw new Error("Cart item not found");
   }
 
-  // Check inventory
+  // Check product exists
   const productData = await db.query.product.findFirst({
     where: (model, { eq }) => eq(model.id, item.product_id),
   });
 
-  if (!productData || productData.inventory < quantity) {
-    throw new Error("Not enough inventory");
+  if (!productData) {
+    throw new Error("Product not found");
   }
 
   if (quantity <= 0) {
     // Remove item if quantity is 0 or less
     await db.delete(cart_item).where(eq(cart_item.id, cartItemId));
   } else {
+    // Get available inventory (excludes items in OTHER carts)
+    const availableInventory = await getAvailableInventory(item.product_id, session.id);
+
+    // Max we can have is: available + what we already have in cart
+    const maxQuantity = availableInventory + item.quantity;
+
+    if (quantity > maxQuantity) {
+      throw new Error(`Only ${maxQuantity} available`);
+    }
+
     // Update quantity
     await db
       .update(cart_item)
