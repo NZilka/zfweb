@@ -2,7 +2,9 @@ import { getPublicProductById } from "~/server/queries";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AddToCartButton } from "~/app/shop/_components/AddToCartButton";
 
+// Product detail page - shows full product info with quantity selector
 export default async function ProductPage({
   params,
 }: {
@@ -31,14 +33,22 @@ export default async function ProductPage({
       </Link>
 
       <div className="flex max-w-4xl flex-col gap-8 md:flex-row">
+        {/* Product images section */}
         <div className="flex-1">
-          <Image
-            src={product.imgUrl[0]!}
-            alt={product.title}
-            width={500}
-            height={500}
-            className="rounded-lg object-contain"
-          />
+          {product.imgUrl[0] ? (
+            <Image
+              src={product.imgUrl[0]}
+              alt={product.title}
+              width={500}
+              height={500}
+              className="rounded-lg object-contain"
+            />
+          ) : (
+            <div className="flex h-[500px] w-[500px] items-center justify-center rounded-lg bg-gray-200 text-gray-400">
+              No Image
+            </div>
+          )}
+          {/* Thumbnail gallery for additional images */}
           {product.imgUrl.length > 1 && (
             <div className="mt-4 flex gap-2">
               {product.imgUrl.map((url, index) => (
@@ -55,6 +65,7 @@ export default async function ProductPage({
           )}
         </div>
 
+        {/* Product details section */}
         <div className="flex flex-1 flex-col gap-4">
           <h1 className="text-3xl font-bold">{product.title}</h1>
           <p className="text-2xl font-semibold">${product.price}</p>
@@ -66,12 +77,16 @@ export default async function ProductPage({
               ? `${product.inventory} in stock`
               : "Out of stock"}
           </p>
-          <button
-            className="mt-4 inline-flex items-center justify-center bg-black px-6 py-3 text-white hover:bg-zinc-700 disabled:bg-gray-400"
-            disabled={product.inventory === 0}
-          >
-            Add to Cart
-          </button>
+          {/* Add to Cart with quantity selector */}
+          <div className="mt-4">
+            <AddToCartButton
+              productId={product.id}
+              disabled={product.inventory === 0}
+              variant="full"
+              showQuantity={true}
+              maxQuantity={product.inventory}
+            />
+          </div>
         </div>
       </div>
     </div>
