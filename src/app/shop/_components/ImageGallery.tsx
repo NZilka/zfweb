@@ -43,7 +43,7 @@ export function ImageGallery({ images, productTitle }: ImageGalleryProps) {
               type="button"
               onClick={() => setSelectedIndex(index)}
               // Highlight selected thumbnail with ring
-              className={`rounded border object-contain transition-all ${
+              className={`rounded border transition-all ${
                 index === selectedIndex
                   ? "ring-2 ring-blue-500 ring-offset-2"
                   : "hover:ring-2 hover:ring-gray-300 hover:ring-offset-1"
