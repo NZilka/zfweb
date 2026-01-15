@@ -12,10 +12,10 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-    // Stripe server-side secret key (starts with sk_)
-    STRIPE_SECRET_KEY: z.string().min(1),
-    // Stripe webhook signing secret (starts with whsec_)
-    STRIPE_WEBHOOK_SECRET: z.string().min(1),
+    // Stripe server-side secret key (starts with sk_) - optional until configured
+    STRIPE_SECRET_KEY: z.string().min(1).optional(),
+    // Stripe webhook signing secret (starts with whsec_) - optional until configured
+    STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
   },
 
   /**
@@ -25,7 +25,8 @@ export const env = createEnv({
    */
   client: {
     // Stripe publishable key (starts with pk_) - used client-side for Elements
-    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1),
+    // Optional until configured - checkout will show error if not set
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1).optional(),
   },
 
   /**

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { getStripe } from "~/lib/stripe";
+import { getStripe, isStripeConfigured } from "~/lib/stripe";
 import { Button } from "~/components/ui/button";
 import { z } from "zod";
+import Link from "next/link";
 
 // Customer info validation schema
 const customerInfoSchema = z.object({
@@ -41,6 +42,23 @@ export default function CheckoutForm() {
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>(initialCustomerInfo);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isCreatingIntent, setIsCreatingIntent] = useState(false);
+
+  // Show configuration message if Stripe is not set up
+  if (!isStripeConfigured()) {
+    return (
+      <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-6 text-center dark:border-yellow-800 dark:bg-yellow-900/20">
+        <h2 className="mb-2 text-xl font-semibold text-yellow-800 dark:text-yellow-200">
+          Checkout Not Available
+        </h2>
+        <p className="mb-4 text-yellow-700 dark:text-yellow-300">
+          Payment processing is not configured yet. Please contact the store owner.
+        </p>
+        <Link href="/shop/cart">
+          <Button variant="outline">Return to Cart</Button>
+        </Link>
+      </div>
+    );
+  }
 
   // Validate customer info before creating payment intent
   const validateAndCreateIntent = async () => {
