@@ -7,8 +7,8 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    //   POSTGRES_URL: z.string().url(),
-    DATABASE_URL: z.string().url(),
+    // Zod v4: Use top-level z.url() instead of z.string().url()
+    DATABASE_URL: z.url(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
