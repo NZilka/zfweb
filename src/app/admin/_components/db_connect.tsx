@@ -1,12 +1,22 @@
 "use server";
 
 import { db } from "~/server/db";
-import { product as dbProduct } from "~/server/db/schema";
+import { product as dbProduct, product_category } from "~/server/db/schema";
 import { type ProductType } from "~/app/_context/ProductContext";
 import { auth } from "@clerk/nextjs/server";
 import { utapi } from "~/server/uploadthing";
 import { eq } from "drizzle-orm";
 import { type OrderedImageRef } from "~/app/_context/EditImageContext";
+import { z } from "zod";
+
+// Zod schema for category validation
+const categorySchema = z.object({
+  name: z.string().min(1, "Category name is required").max(256),
+  description: z.string().max(1024).optional().default(""),
+});
+
+// Type for category input derived from Zod schema
+export type CategoryInput = z.infer<typeof categorySchema>;
 
 // Create a new product with images
 export const addProduct = async (
@@ -110,4 +120,75 @@ export const updateProduct = async (
 
   console.log("Product updated:", result);
   return JSON.stringify(result);
+};
+
+// Create a new product category
+export const createCategory = async (input: CategoryInput) => {
+  // Verify user is authenticated
+  const user = await auth();
+  if (!user.userId) throw new Error("Unauthorized");
+
+  // Validate input using Zod schema
+  const validated = categorySchema.parse(input);
+
+  const result = await db
+    .insert(product_category)
+    .values({
+      name: validated.name,
+      description: validated.description ?? "",
+    })
+    .returning({ id: product_category.id, name: product_category.name });
+
+  return result[0];
+};
+
+// Update an existing product category
+export const updateCategory = async (id: number, input: CategoryInput) => {
+  // Verify user is authenticated
+  const user = await auth();
+  if (!user.userId) throw new Error("Unauthorized");
+
+  // Validate input using Zod schema
+  const validated = categorySchema.parse(input);
+
+  // Verify category exists
+  const existing = await db.query.product_category.findFirst({
+    where: (model, { eq }) => eq(model.id, id),
+  });
+  if (!existing) throw new Error("Category not found");
+
+  const result = await db
+    .update(product_category)
+    .set({
+      name: validated.name,
+      description: validated.description ?? "",
+    })
+    .where(eq(product_category.id, id))
+    .returning({ id: product_category.id, name: product_category.name });
+
+  return result[0];
+};
+
+// Delete a product category and set affected products' category_id to null
+export const deleteCategory = async (id: number) => {
+  // Verify user is authenticated
+  const user = await auth();
+  if (!user.userId) throw new Error("Unauthorized");
+
+  // Verify category exists
+  const existing = await db.query.product_category.findFirst({
+    where: (model, { eq }) => eq(model.id, id),
+  });
+  if (!existing) throw new Error("Category not found");
+
+  // Set category_id to null for all products in this category
+  await db
+    .update(dbProduct)
+    .set({ category_id: null })
+    .where(eq(dbProduct.category_id, id));
+
+  // Delete the category
+  await db.delete(product_category).where(eq(product_category.id, id));
+
+  return { success: true, deletedId: id };
 };

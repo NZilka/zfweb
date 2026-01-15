@@ -1,0 +1,68 @@
+import "server-only";
+import Stripe from "stripe";
+import { env } from "~/env";
+
+// Lazy-loaded Stripe instance to avoid initialization errors when not configured
+let stripeInstance: Stripe | null = null;
+
+// Get or create the Stripe instance
+// Throws if Stripe is not configured
+function getStripeInstance(): Stripe {
+  if (!env.STRIPE_SECRET_KEY) {
+    throw new Error("Stripe is not configured. Set STRIPE_SECRET_KEY environment variable.");
+  }
+
+  if (!stripeInstance) {
+    stripeInstance = new Stripe(env.STRIPE_SECRET_KEY, {
+      apiVersion: "2025-12-15.clover",
+      typescript: true,
+    });
+  }
+
+  return stripeInstance;
+}
+
+// Check if Stripe is configured on server
+export function isStripeConfiguredServer(): boolean {
+  return !!env.STRIPE_SECRET_KEY && !!env.STRIPE_WEBHOOK_SECRET;
+}
+
+// Create a payment intent for checkout
+// Returns client secret for use with Stripe Elements
+export async function createPaymentIntent(
+  amount: number, // Amount in cents
+  metadata?: Record<string, string>
+) {
+  const stripe = getStripeInstance();
+
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount,
+    currency: "usd",
+    automatic_payment_methods: {
+      enabled: true,
+    },
+    metadata,
+  });
+
+  return {
+    clientSecret: paymentIntent.client_secret,
+    paymentIntentId: paymentIntent.id,
+  };
+}
+
+// Verify webhook signature and parse event
+export function constructWebhookEvent(
+  payload: string | Buffer,
+  signature: string
+): Stripe.Event {
+  if (!env.STRIPE_WEBHOOK_SECRET) {
+    throw new Error("Stripe webhook secret not configured. Set STRIPE_WEBHOOK_SECRET environment variable.");
+  }
+
+  const stripe = getStripeInstance();
+  return stripe.webhooks.constructEvent(
+    payload,
+    signature,
+    env.STRIPE_WEBHOOK_SECRET
+  );
+}

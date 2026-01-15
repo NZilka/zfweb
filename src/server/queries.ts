@@ -71,3 +71,22 @@ export async function getCategories() {
   });
   return categories;
 }
+
+// Fetch a single category by ID for editing
+export async function getCategoryById(id: number) {
+  const user = await auth();
+  if (!user.userId) throw new Error("Unauthorized");
+
+  const category = await db.query.product_category.findFirst({
+    where: (model, { eq }) => eq(model.id, id),
+  });
+  return category;
+}
+
+// Count products in a category (for delete confirmation warning)
+export async function getProductCountByCategory(categoryId: number) {
+  const products = await db.query.product.findMany({
+    where: (model, { eq }) => eq(model.category_id, categoryId),
+  });
+  return products.length;
+}

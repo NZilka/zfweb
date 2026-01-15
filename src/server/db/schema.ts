@@ -55,11 +55,21 @@ export const product = createTable(
   }),
 );
 
+// Order table - supports both guest and registered customer orders
 export const order = createTable("order", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
-  user_id: integer("user_id")
-    .references(() => customer.id)
-    .notNull(),
+  // Optional user reference - null for guest orders
+  user_id: integer("user_id").references(() => customer.id),
+  // Stripe payment intent ID for reference
+  payment_intent_id: varchar("payment_intent_id", { length: 256 }).notNull().unique(),
+  // Order status tracking
+  status: varchar("status", { length: 64 }).notNull().default("pending"),
+  // Guest customer info (stored even for registered users for order history)
+  customer_email: varchar("customer_email", { length: 256 }).notNull(),
+  customer_name: varchar("customer_name", { length: 256 }).notNull(),
+  // Shipping address as JSON string
+  shipping_address: text("shipping_address").notNull(),
+  // Legacy products array - keeping for backwards compatibility
   products: integer("products")
     .references(() => product.id)
     .array()
@@ -141,12 +151,18 @@ export const product_category = createTable("product_category", {
   ),
 });
 
+// Shopping session for cart persistence
+// Supports both guest sessions (via session_token) and authenticated users (via user_id)
 export const shopping_session = createTable("shopping_session", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
-  user_id: integer("user_id")
-    .references(() => customer.id)
-    .notNull(),
-  total: decimal("total").notNull(),
+  // Session token for guest identification (stored in HTTP-only cookie)
+  session_token: varchar("session_token", { length: 64 }).notNull().unique(),
+  // Optional user reference - null for guests, set when user logs in
+  user_id: integer("user_id").references(() => customer.id),
+  // Computed total (for quick access, recalculated on cart changes)
+  total: decimal("total").notNull().default("0"),
+  // Session expiry for cleanup of abandoned carts (30 days from last activity)
+  expires_at: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
