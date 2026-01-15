@@ -8,6 +8,7 @@ import { EditImageProvider } from "~/app/_context/EditImageContext";
 import { deleteProductAction } from "./deleteAction";
 import { Button } from "~/components/ui/button";
 import Image from "next/image";
+import CategoryManager from "./CategoryManager";
 
 // Product data type from database
 interface ProductData {
@@ -77,6 +78,11 @@ export default function AdminPageClient({ products, categories }: AdminPageClien
   return (
     <div className="flex w-full flex-col items-center justify-center gap-16">
       <h1 className="text-4xl font-bold">Admin Page</h1>
+
+      {/* Category management section - collapsible */}
+      <div className="w-full max-w-2xl">
+        <CategoryManager categories={categories} />
+      </div>
 
       {/* Form section - switches between create and edit mode */}
       <div className="w-full max-w-2xl">
