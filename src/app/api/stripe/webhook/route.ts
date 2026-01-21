@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { constructWebhookEvent } from "~/server/stripe";
+import { constructWebhookEvent, retrievePaymentIntent } from "~/server/stripe";
 import { createOrderFromPayment } from "~/server/order-actions";
 import type Stripe from "stripe";
 
@@ -30,21 +30,26 @@ export async function POST(request: Request) {
     );
   }
 
-  // Handle the event
+  // Handle the event using thin payloads - fetch fresh data from Stripe API
+  // This prevents issues with stale/replayed webhook data
   try {
     switch (event.type) {
       case "payment_intent.succeeded": {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        // Extract ID from webhook payload, then fetch fresh data from API
+        const { id } = event.data.object as { id: string };
+        const paymentIntent = await retrievePaymentIntent(id);
         console.log("Payment succeeded:", paymentIntent.id);
 
-        // Create order from successful payment
+        // Create order from successful payment using fresh data
         await createOrderFromPayment(paymentIntent);
         break;
       }
 
       case "payment_intent.payment_failed": {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        console.log("Payment failed:", paymentIntent.id);
+        // Extract ID and fetch fresh data for logging/notification
+        const { id } = event.data.object as { id: string };
+        const paymentIntent = await retrievePaymentIntent(id);
+        console.log("Payment failed:", paymentIntent.id, paymentIntent.last_payment_error?.message);
         // Could notify customer, log error, etc.
         break;
       }

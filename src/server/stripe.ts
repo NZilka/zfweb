@@ -66,3 +66,12 @@ export function constructWebhookEvent(
     env.STRIPE_WEBHOOK_SECRET
   );
 }
+
+// Retrieve a PaymentIntent by ID (for thin webhook payloads)
+// Fetches fresh data from Stripe API instead of using stale webhook payload
+export async function retrievePaymentIntent(
+  paymentIntentId: string
+): Promise<Stripe.PaymentIntent> {
+  const stripe = getStripeInstance();
+  return stripe.paymentIntents.retrieve(paymentIntentId);
+}
