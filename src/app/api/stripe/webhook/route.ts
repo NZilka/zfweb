@@ -4,6 +4,28 @@ import { constructWebhookEvent, retrievePaymentIntent } from "~/server/stripe";
 import { createOrderFromPayment } from "~/server/order-actions";
 import type Stripe from "stripe";
 
+// Check if PaymentIntent payload is a snapshot (has full data) or thin (just ID)
+// Snapshot payloads include metadata; thin payloads only have id and object type
+function isSnapshotPayload(obj: { id: string; metadata?: Record<string, string> }): obj is Stripe.PaymentIntent {
+  return obj.metadata !== undefined && Object.keys(obj).length > 2;
+}
+
+// Get PaymentIntent data - uses snapshot if available, otherwise fetches from API
+// This handles both payload types while preferring fresh data for security
+async function getPaymentIntent(
+  obj: { id: string; metadata?: Record<string, string> },
+  preferFresh: boolean = false
+): Promise<Stripe.PaymentIntent> {
+  // If we prefer fresh data or payload is thin, fetch from API
+  if (preferFresh || !isSnapshotPayload(obj)) {
+    console.log(`Fetching fresh PaymentIntent data for ${obj.id}`);
+    return retrievePaymentIntent(obj.id);
+  }
+  // Use snapshot data (already validated by webhook signature)
+  console.log(`Using snapshot PaymentIntent data for ${obj.id}`);
+  return obj;
+}
+
 // POST /api/stripe/webhook
 // Handles Stripe webhook events for payment processing
 export async function POST(request: Request) {
@@ -30,25 +52,25 @@ export async function POST(request: Request) {
     );
   }
 
-  // Handle the event using thin payloads - fetch fresh data from Stripe API
-  // This prevents issues with stale/replayed webhook data
+  // Handle the event - supports both snapshot and thin payloads
+  // For payment-critical events, we fetch fresh data to prevent replay attacks
   try {
     switch (event.type) {
       case "payment_intent.succeeded": {
-        // Extract ID from webhook payload, then fetch fresh data from API
-        const { id } = event.data.object as { id: string };
-        const paymentIntent = await retrievePaymentIntent(id);
+        // For payment success, always fetch fresh data for security
+        const obj = event.data.object as { id: string; metadata?: Record<string, string> };
+        const paymentIntent = await getPaymentIntent(obj, true);
         console.log("Payment succeeded:", paymentIntent.id);
 
-        // Create order from successful payment using fresh data
+        // Create order from successful payment
         await createOrderFromPayment(paymentIntent);
         break;
       }
 
       case "payment_intent.payment_failed": {
-        // Extract ID and fetch fresh data for logging/notification
-        const { id } = event.data.object as { id: string };
-        const paymentIntent = await retrievePaymentIntent(id);
+        // For failures, snapshot data is fine for logging
+        const obj = event.data.object as { id: string; metadata?: Record<string, string> };
+        const paymentIntent = await getPaymentIntent(obj, false);
         console.log("Payment failed:", paymentIntent.id, paymentIntent.last_payment_error?.message);
         // Could notify customer, log error, etc.
         break;
