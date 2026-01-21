@@ -1,8 +1,30 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { constructWebhookEvent } from "~/server/stripe";
+import { constructWebhookEvent, retrievePaymentIntent } from "~/server/stripe";
 import { createOrderFromPayment } from "~/server/order-actions";
 import type Stripe from "stripe";
+
+// Check if PaymentIntent payload is a snapshot (has full data) or thin (just ID)
+// Snapshot payloads include metadata; thin payloads only have id and object type
+function isSnapshotPayload(obj: { id: string; metadata?: Record<string, string> }): obj is Stripe.PaymentIntent {
+  return obj.metadata !== undefined && Object.keys(obj).length > 2;
+}
+
+// Get PaymentIntent data - uses snapshot if available, otherwise fetches from API
+// This handles both payload types while preferring fresh data for security
+async function getPaymentIntent(
+  obj: { id: string; metadata?: Record<string, string> },
+  preferFresh: boolean = false
+): Promise<Stripe.PaymentIntent> {
+  // If we prefer fresh data or payload is thin, fetch from API
+  if (preferFresh || !isSnapshotPayload(obj)) {
+    console.log(`Fetching fresh PaymentIntent data for ${obj.id}`);
+    return retrievePaymentIntent(obj.id);
+  }
+  // Use snapshot data (already validated by webhook signature)
+  console.log(`Using snapshot PaymentIntent data for ${obj.id}`);
+  return obj;
+}
 
 // POST /api/stripe/webhook
 // Handles Stripe webhook events for payment processing
@@ -30,11 +52,14 @@ export async function POST(request: Request) {
     );
   }
 
-  // Handle the event
+  // Handle the event - supports both snapshot and thin payloads
+  // For payment-critical events, we fetch fresh data to prevent replay attacks
   try {
     switch (event.type) {
       case "payment_intent.succeeded": {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        // For payment success, always fetch fresh data for security
+        const obj = event.data.object as { id: string; metadata?: Record<string, string> };
+        const paymentIntent = await getPaymentIntent(obj, true);
         console.log("Payment succeeded:", paymentIntent.id);
 
         // Create order from successful payment
@@ -43,8 +68,10 @@ export async function POST(request: Request) {
       }
 
       case "payment_intent.payment_failed": {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        console.log("Payment failed:", paymentIntent.id);
+        // For failures, snapshot data is fine for logging
+        const obj = event.data.object as { id: string; metadata?: Record<string, string> };
+        const paymentIntent = await getPaymentIntent(obj, false);
+        console.log("Payment failed:", paymentIntent.id, paymentIntent.last_payment_error?.message);
         // Could notify customer, log error, etc.
         break;
       }

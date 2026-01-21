@@ -193,10 +193,12 @@ export async function addToCart(productId: number, quantity: number = 1) {
   }
 
   if (existingItem) {
-    // Update quantity
+    // Update quantity - availableInventory already excludes our cart,
+    // so it represents the max we can have total
     const newQuantity = existingItem.quantity + quantity;
-    if (newQuantity > availableInventory + currentQtyInCart) {
-      throw new Error(`Only ${availableInventory} more available`);
+    if (newQuantity > availableInventory) {
+      const canAdd = availableInventory - existingItem.quantity;
+      throw new Error(canAdd > 0 ? `Only ${canAdd} more available` : "No more available");
     }
 
     await db
