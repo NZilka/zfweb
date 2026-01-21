@@ -2,13 +2,17 @@
 
 E-commerce platform for Zilka Forgewerks (bespoke jewelry/tools) built with Next.js 16.
 
-Use the context from PROJECT.md in all understanding and decision making
+Use the context from PROJECT.md in all understanding and decision making.
 
-After completing a task that involves tool use, provide a quick summary of the work you've done
+After completing a task that involves tool use, provide a quick summary of the work you've done.
 
-Always use the design skill when changing the UI
+Always use the design skill when changing the UI.
 
 Comment all code that is added, changed, or deleted explaining the change and reasoning. Be concise.
+
+Keep this and all other reliant markdown files up to date to match the state of the project.
+
+Create or use current markdown files such as CLAUDE.md or PROJECT.md to store context so there is continuity between sessions.
 
 <use_parallel_tool_calls>
 If you intend to call multiple tools and there are no dependencies
