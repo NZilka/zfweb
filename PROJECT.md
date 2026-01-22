@@ -47,8 +47,18 @@
 - Product listings with filtering
 - Individual product pages
 - Shopping cart
-- Checkout flow
+- Checkout flow with Stripe integration
 - Order confirmation
+- Customer accounts with order history
+
+## Payment & Checkout
+
+- Stripe PaymentElement for secure card collection
+- Guest checkout (no account required)
+- Saved payment methods for logged-in users
+- Stripe Customer created before payment for consistency
+- Webhook handling for payment events
+- KV caching for fast payment state lookups
 
 # Design Direction
 
