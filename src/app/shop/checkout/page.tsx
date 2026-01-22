@@ -3,6 +3,7 @@ import { getCartItems, getCartSummary } from "~/server/cart-actions";
 import CheckoutForm from "./CheckoutForm";
 import Image from "next/image";
 import Link from "next/link";
+import { ScrollToTop } from "~/components/ui/ScrollToTop";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,8 @@ export default async function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-6xl p-4 md:p-8">
+      {/* Scroll to top when page loads */}
+      <ScrollToTop />
       {/* Header */}
       <div className="mb-8">
         <Link

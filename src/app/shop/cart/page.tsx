@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from "lucide-react";
 import { useCart } from "~/app/_context/CartContext";
 import { Button } from "~/components/ui/button";
+import { ScrollToTop } from "~/components/ui/ScrollToTop";
 
 // Full cart page for detailed cart review
 // Provides larger view of cart items with full controls
@@ -71,6 +72,8 @@ export default function CartPage() {
 
   return (
     <div className="mx-auto max-w-6xl p-4 md:p-8">
+      {/* Scroll to top when page loads */}
+      <ScrollToTop />
       {/* Header */}
       <div className="mb-8">
         <button

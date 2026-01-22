@@ -152,8 +152,8 @@ export default function CheckoutForm() {
           customerInfo: result.data,
           // Only save if using new card and checkbox is checked
           savePaymentMethod: selectedMethodId === null && saveCard,
-          // Pass selected payment method ID if using saved card
-          savedPaymentMethodId: selectedMethodId,
+          // Pass selected payment method ID if using saved card (omit if null)
+          ...(selectedMethodId && { savedPaymentMethodId: selectedMethodId }),
         }),
       });
 
