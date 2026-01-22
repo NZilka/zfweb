@@ -154,7 +154,8 @@ export default async function OrderConfirmationPage({
       {/* Actions */}
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
         <Link href="/shop">
-          <Button>Continue Shopping</Button>
+          {/* Primary action with visible border for definition */}
+          <Button className="border border-primary">Continue Shopping</Button>
         </Link>
         <PrintButton />
       </div>
