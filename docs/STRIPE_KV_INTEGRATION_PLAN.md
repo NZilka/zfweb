@@ -255,8 +255,8 @@ UPSTASH_REDIS_REST_TOKEN=...
 
 1. ✅ Should we use Clerk's user ID directly or create our own customer table link? → Use Clerk's user ID with mapping in KV
 2. ✅ Guest checkout priority? → Yes, guest checkout remains primary flow
-3. ⬜ Should guests be able to view order status without account? → Need email-based order lookup?
-4. ⬜ Cart merge strategy when guest logs into existing account with items? → Merge or replace?
+3. ✅ Should guests be able to view order status without account? → No, guests receive email confirmation only, no order lookup
+4. ✅ Cart merge strategy when guest logs into existing account with items? → Ask user which cart to keep (modal prompt)
 
 ---
 
