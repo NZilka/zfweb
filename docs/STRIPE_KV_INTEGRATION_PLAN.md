@@ -238,9 +238,9 @@ UPSTASH_REDIS_REST_TOKEN=...
 | 1 | 1.3 Schema Update | ✅ Complete | Added clerk_user_id, stripe_customer_id |
 | 2 | 2.1 Stripe Customer Utils | ✅ Complete | getOrCreateStripeCustomer for user/guest |
 | 2 | 2.2 Checkout Update | ✅ Complete | Customer created before PaymentIntent |
-| 3 | 3.1 Sync Function | ⬜ Pending | |
-| 3 | 3.2 Success Page | ⬜ Pending | |
-| 3 | 3.3 Webhook Update | ⬜ Pending | |
+| 3 | 3.1 Sync Function | ✅ Complete | syncPaymentStateToKV + helpers (11 tests) |
+| 3 | 3.2 Success Page | ✅ Complete | Eager sync on page load |
+| 3 | 3.3 Webhook Update | ✅ Complete | Added processing/canceled events, KV sync |
 | 4 | 4.1 Account Page | ⬜ Pending | |
 | 4 | 4.2 Cart Merge | ⬜ Pending | |
 | 4 | 4.3 Post-Checkout Account | ⬜ Pending | |

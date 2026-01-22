@@ -104,7 +104,8 @@ export async function syncPaymentStateToKV(
     return emptyState;
   }
 
-  const latestPaymentIntent = paymentIntents.data[0];
+  // We've already checked length > 0 above, so this is safe
+  const latestPaymentIntent = paymentIntents.data[0]!;
 
   // Try to find associated order in our database
   let orderId: number | null = null;
