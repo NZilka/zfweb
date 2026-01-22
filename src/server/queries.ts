@@ -90,3 +90,73 @@ export async function getProductCountByCategory(categoryId: number) {
   });
   return products.length;
 }
+
+// Fetch orders for a user by their email address
+// Used in account page to show order history
+export async function getOrdersByEmail(email: string) {
+  const orders = await db.query.order.findMany({
+    where: (model, { eq }) => eq(model.customer_email, email),
+    orderBy: (model, { desc }) => desc(model.createdAt),
+  });
+  return orders;
+}
+
+// Fetch customer record by Clerk user ID
+// Returns customer with Stripe info if linked
+export async function getCustomerByClerkId(clerkUserId: string) {
+  const customer = await db.query.customer.findFirst({
+    where: (model, { eq }) => eq(model.clerk_user_id, clerkUserId),
+  });
+  return customer;
+}
+
+// Link guest orders to a newly created user account
+// Called when user creates account after guest checkout
+// Finds orders by email and updates them to link to the user
+export async function linkGuestOrdersToUser(
+  clerkUserId: string,
+  email: string
+): Promise<number> {
+  // Import here to avoid circular dependencies
+  const { customer, order } = await import("~/server/db/schema");
+  const { eq, and, isNull } = await import("drizzle-orm");
+
+  // Find or create customer record for this user
+  let customerRecord = await db.query.customer.findFirst({
+    where: (model, { eq }) => eq(model.clerk_user_id, clerkUserId),
+  });
+
+  if (!customerRecord) {
+    // Check if there's a customer with this email but no clerk_user_id
+    customerRecord = await db.query.customer.findFirst({
+      where: (model, { eq, isNull, and }) =>
+        and(eq(model.email, email), isNull(model.clerk_user_id)),
+    });
+
+    if (customerRecord) {
+      // Link existing customer to Clerk user
+      await db
+        .update(customer)
+        .set({ clerk_user_id: clerkUserId, isUser: true })
+        .where(eq(customer.id, customerRecord.id));
+    }
+  }
+
+  if (!customerRecord) return 0;
+
+  // Find orders with this email that aren't linked to a user
+  const guestOrders = await db.query.order.findMany({
+    where: (model, { eq, isNull, and }) =>
+      and(eq(model.customer_email, email), isNull(model.user_id)),
+  });
+
+  // Link each order to the customer
+  for (const guestOrder of guestOrders) {
+    await db
+      .update(order)
+      .set({ user_id: customerRecord.id })
+      .where(eq(order.id, guestOrder.id));
+  }
+
+  return guestOrders.length;
+}

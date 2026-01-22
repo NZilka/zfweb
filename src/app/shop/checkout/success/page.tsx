@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import { getOrderByPaymentIntent } from "~/server/order-actions";
+import { syncPaymentStateByPaymentIntent } from "~/server/stripe-sync";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { OrderPolling } from "./OrderPolling";
 
 // This page is the return_url from Stripe after successful payment
 // It looks up the order by payment_intent and redirects to order confirmation
+// Per stripe-recommendations: eagerly sync state here before webhooks arrive
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
@@ -13,6 +15,16 @@ export default async function CheckoutSuccessPage({
 }) {
   const params = await searchParams;
   const { payment_intent, redirect_status } = params;
+
+  // Eager sync: Update KV state immediately when user returns from Stripe
+  // This prevents race conditions where user returns before webhook arrives
+  // The sync function handles the case where KV isn't configured
+  if (payment_intent) {
+    await syncPaymentStateByPaymentIntent(payment_intent).catch((err) => {
+      // Log but don't block - webhook will sync eventually
+      console.error("[CheckoutSuccess] Eager sync failed:", err.message);
+    });
+  }
 
   // Check if payment was successful
   if (redirect_status !== "succeeded") {

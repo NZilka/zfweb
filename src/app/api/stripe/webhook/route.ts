@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { constructWebhookEvent, retrievePaymentIntent } from "~/server/stripe";
 import { createOrderFromPayment } from "~/server/order-actions";
+import {
+  syncPaymentStateByPaymentIntent,
+  syncOrderStateToKV,
+} from "~/server/stripe-sync";
 import type Stripe from "stripe";
 
 // Check if PaymentIntent payload is a snapshot (has full data) or thin (just ID)
@@ -63,7 +67,35 @@ export async function POST(request: Request) {
         console.log("Payment succeeded:", paymentIntent.id);
 
         // Create order from successful payment
-        await createOrderFromPayment(paymentIntent);
+        const order = await createOrderFromPayment(paymentIntent);
+
+        // Sync state to KV after order creation (per stripe-recommendations pattern)
+        // Get customer ID from payment intent for sync
+        const customerId =
+          typeof paymentIntent.customer === "string"
+            ? paymentIntent.customer
+            : paymentIntent.customer?.id;
+
+        if (customerId && order) {
+          // Get item count from order products array
+          const itemCount = Array.isArray(order.products) ? order.products.length : 0;
+
+          // Sync order state to KV for quick lookups
+          await syncOrderStateToKV(paymentIntent.id, order, itemCount, customerId);
+
+          // Sync payment state to update lastOrderId
+          await syncPaymentStateByPaymentIntent(paymentIntent.id);
+        }
+        break;
+      }
+
+      case "payment_intent.processing": {
+        // Payment is processing (e.g., bank transfer pending)
+        const obj = event.data.object as { id: string; metadata?: Record<string, string> };
+        console.log("Payment processing:", obj.id);
+
+        // Sync payment state to KV to reflect processing status
+        await syncPaymentStateByPaymentIntent(obj.id);
         break;
       }
 
@@ -71,8 +103,24 @@ export async function POST(request: Request) {
         // For failures, snapshot data is fine for logging
         const obj = event.data.object as { id: string; metadata?: Record<string, string> };
         const paymentIntent = await getPaymentIntent(obj, false);
-        console.log("Payment failed:", paymentIntent.id, paymentIntent.last_payment_error?.message);
-        // Could notify customer, log error, etc.
+        console.log(
+          "Payment failed:",
+          paymentIntent.id,
+          paymentIntent.last_payment_error?.message
+        );
+
+        // Sync payment state to KV to reflect failed status
+        await syncPaymentStateByPaymentIntent(paymentIntent.id);
+        break;
+      }
+
+      case "payment_intent.canceled": {
+        // Payment was canceled
+        const obj = event.data.object as { id: string };
+        console.log("Payment canceled:", obj.id);
+
+        // Sync payment state to KV to reflect canceled status
+        await syncPaymentStateByPaymentIntent(obj.id);
         break;
       }
 
