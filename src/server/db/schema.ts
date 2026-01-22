@@ -107,21 +107,37 @@ export const address = createTable("address", {
   ),
 });
 
-export const customer = createTable("customer", {
-  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
-  firstName: varchar("first_name", { length: 256 }).notNull(),
-  middleName: varchar("middle_name", { length: 256 }).notNull(),
-  last_name: varchar("last_name", { length: 256 }).notNull(),
-  email: varchar("email", { length: 1024 }).notNull(),
-  phone: integer("ph").notNull(),
-  isUser: boolean("is_user").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
-    () => new Date(),
-  ),
-});
+// Customer table - stores customer profiles for registered users
+// Links to Clerk auth via clerk_user_id and to Stripe via stripe_customer_id
+export const customer = createTable(
+  "customer",
+  {
+    id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+    // Clerk user ID - links to Clerk authentication (null for legacy/guest customers)
+    clerk_user_id: varchar("clerk_user_id", { length: 256 }).unique(),
+    // Stripe customer ID - links to Stripe for payments (null until first payment)
+    stripe_customer_id: varchar("stripe_customer_id", { length: 256 }).unique(),
+    firstName: varchar("first_name", { length: 256 }).notNull(),
+    middleName: varchar("middle_name", { length: 256 }),
+    last_name: varchar("last_name", { length: 256 }).notNull(),
+    email: varchar("email", { length: 1024 }).notNull(),
+    phone: varchar("phone", { length: 32 }),
+    // Whether this customer has a linked Clerk account
+    isUser: boolean("is_user").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+      () => new Date(),
+    ),
+  },
+  (table) => ({
+    // Index for looking up customers by email
+    emailIndex: index("customer_email_idx").on(table.email),
+    // Index for looking up customers by Clerk user ID
+    clerkUserIdIndex: index("customer_clerk_user_id_idx").on(table.clerk_user_id),
+  }),
+);
 
 export const discount = createTable("discount", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
