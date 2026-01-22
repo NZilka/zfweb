@@ -27,13 +27,22 @@ export function isStripeConfiguredServer(): boolean {
   return !!env.STRIPE_SECRET_KEY && !!env.STRIPE_WEBHOOK_SECRET;
 }
 
+// Options for creating a payment intent
+export type CreatePaymentIntentOptions = {
+  amount: number; // Amount in cents
+  metadata?: Record<string, string>;
+  // Stripe customer ID - links payment to customer for saved methods
+  customerId?: string;
+  // Whether to save payment method for future use (requires customerId)
+  setupFutureUsage?: "off_session" | "on_session";
+};
+
 // Create a payment intent for checkout
 // Returns client secret for use with Stripe Elements
-export async function createPaymentIntent(
-  amount: number, // Amount in cents
-  metadata?: Record<string, string>
-) {
+export async function createPaymentIntent(options: CreatePaymentIntentOptions) {
   const stripe = getStripeInstance();
+
+  const { amount, metadata, customerId, setupFutureUsage } = options;
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount,
@@ -42,6 +51,10 @@ export async function createPaymentIntent(
       enabled: true,
     },
     metadata,
+    // Link payment to Stripe customer if provided
+    ...(customerId && { customer: customerId }),
+    // Enable saving payment method for future use if requested
+    ...(setupFutureUsage && { setup_future_usage: setupFutureUsage }),
   });
 
   return {
