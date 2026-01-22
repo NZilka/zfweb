@@ -118,4 +118,5 @@ Check these files for detailed patterns and conventions:
 
 | Document                                 | When to Reference                                                                                            |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `.claude/docs/development_workflow.md`   | **Start here for any feature work.** Phased development, branching, testing, PR creation                    |
 | `.claude/docs/architectural_patterns.md` | Adding features, understanding code organization, server/client patterns, modal implementation, file uploads |
