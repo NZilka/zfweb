@@ -1,7 +1,7 @@
 // Tests for Stripe saved payment methods functionality
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock payment methods data for testing
+// Mock payment methods data for testing - complete card data
 const mockPaymentMethods = vi.hoisted(() => [
   {
     id: "pm_visa_saved",
@@ -22,6 +22,22 @@ const mockPaymentMethods = vi.hoisted(() => [
       exp_month: 6,
       exp_year: 2026,
     },
+  },
+]);
+
+// Mock payment methods with missing fields to test fallback logic
+const mockIncompletePaymentMethods = vi.hoisted(() => [
+  {
+    id: "pm_incomplete",
+    type: "card",
+    card: {
+      // Missing brand, last4, exp_month, exp_year - tests fallback defaults
+    },
+  },
+  {
+    id: "pm_no_card",
+    type: "card",
+    // Missing card object entirely
   },
 ]);
 
@@ -50,9 +66,13 @@ vi.mock("stripe", () => {
       // Mock paymentMethods.list for fetching saved cards
       paymentMethods = {
         list: vi.fn(async ({ customer, type }: { customer: string; type: string }) => {
-          // Return mock payment methods for test customer
+          // Return mock payment methods for test customer with complete data
           if (customer === "cus_with_cards" && type === "card") {
             return { data: mockPaymentMethods };
+          }
+          // Return incomplete payment methods to test fallback logic
+          if (customer === "cus_with_incomplete_cards" && type === "card") {
+            return { data: mockIncompletePaymentMethods };
           }
           // Return empty for customers without saved cards
           return { data: [] };
@@ -151,16 +171,27 @@ describe("Stripe Saved Payment Methods", () => {
     });
 
     it("should handle cards with missing fields gracefully", async () => {
-      // The function should use defaults for missing fields
-      const result = await getSavedPaymentMethods("cus_with_cards");
+      // Use customer with incomplete card data to test fallback logic
+      const result = await getSavedPaymentMethods("cus_with_incomplete_cards");
 
-      // Verify all required fields are present
-      result.forEach((method) => {
-        expect(method).toHaveProperty("id");
-        expect(method).toHaveProperty("brand");
-        expect(method).toHaveProperty("last4");
-        expect(method).toHaveProperty("expMonth");
-        expect(method).toHaveProperty("expYear");
+      expect(result).toHaveLength(2);
+
+      // Verify fallback values for card with empty card object
+      expect(result[0]).toEqual({
+        id: "pm_incomplete",
+        brand: "unknown", // Fallback for missing brand
+        last4: "****", // Fallback for missing last4
+        expMonth: 0, // Fallback for missing exp_month
+        expYear: 0, // Fallback for missing exp_year
+      });
+
+      // Verify fallback values for card with no card object at all
+      expect(result[1]).toEqual({
+        id: "pm_no_card",
+        brand: "unknown",
+        last4: "****",
+        expMonth: 0,
+        expYear: 0,
       });
     });
   });
