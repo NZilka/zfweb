@@ -126,3 +126,112 @@ updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(() => new D
 - Remote pattern for UploadThing: `utfs.io` in `next.config.js:31-38`
 - Always specify `width` and `height` props
 - Used consistently in product displays and admin views
+
+## Stripe Customer Management
+
+**Pattern:** Create Stripe Customer BEFORE PaymentIntent for consistent state.
+
+- Customers created before payment to enable saved cards and better tracking
+- Separate flows for authenticated users vs guests
+- KV cache used for fast customer ID lookups
+
+**Key files:**
+- Customer creation: `src/server/stripe-customer.ts`
+- Stripe API wrappers: `src/server/stripe.ts`
+- KV caching: `src/server/kv.ts`
+
+**Flow for authenticated users:**
+1. Check KV cache for Stripe customer ID
+2. Fall back to database lookup
+3. Create new Stripe customer if needed
+4. Cache customer ID in KV for future requests
+
+**Flow for guests:**
+1. Check KV cache using session token
+2. Create new Stripe customer with guest metadata
+3. Cache using session token
+
+**Guest-to-user conversion:**
+When a guest creates an account, their Stripe customer is linked:
+- `linkStripeCustomerToUser()` updates metadata and KV cache
+- Guest orders remain associated with the same customer
+
+## KV State Sync Pattern
+
+**Pattern:** Single sync function updates payment state to KV cache.
+
+- Central sync function prevents duplicate logic
+- Called from webhooks and success page for consistency
+- Prevents race conditions with eager sync on success page
+
+**Key file:** `src/server/stripe-sync.ts`
+
+**Sync functions:**
+| Function | Purpose |
+|----------|---------|
+| `syncPaymentStateToKV` | Core sync using PaymentIntent data |
+| `syncPaymentStateByPaymentIntent` | Sync by payment intent ID |
+| `syncOrderStateToKV` | Cache order ID for payment intent |
+| `syncPaymentStateForUser` | Sync for authenticated user |
+| `syncPaymentStateForSession` | Sync for guest session |
+
+**Webhook integration:**
+- Webhook handler calls `syncPaymentStateToKV` after processing
+- Success page also syncs to prevent webhook delay issues
+- KV entries expire after 24 hours (configurable)
+
+## Saved Payment Methods
+
+**Pattern:** Fetch and display saved cards for logged-in users at checkout.
+
+- Only authenticated users can save payment methods
+- Cards saved with `setup_future_usage: 'on_session'`
+- Saved methods displayed with radio button selection
+
+**Key files:**
+- API endpoint: `src/app/api/checkout/payment-methods/route.ts`
+- Stripe functions: `src/server/stripe.ts` (`getSavedPaymentMethods`, `createPaymentIntentWithSavedMethod`)
+- Checkout form: `src/app/shop/checkout/CheckoutForm.tsx`
+
+**Flow:**
+1. CheckoutForm fetches saved methods on mount for signed-in users
+2. User selects saved card or "Use new card"
+3. If saved card selected, PaymentIntent created with method attached
+4. If new card + "Save" checked, `setup_future_usage` set on intent
+
+## Cart Merge Pattern
+
+**Pattern:** Handle cart conflicts when guests log in with existing cart.
+
+When a guest has items in cart and logs in to an account that also has cart items:
+1. Detect conflict by comparing guest session cart with user's saved cart
+2. Show modal presenting both carts with item details
+3. User chooses: Keep guest cart, Keep saved cart, or Merge both
+4. Update session and cart accordingly
+
+**Key files:**
+- Modal component: `src/app/shop/_components/CartMergeModal.tsx`
+- Cart actions: `src/server/cart-actions.ts` (`getCartConflict`, `mergeGuestCart`, `keepGuestCart`, `keepSavedCart`)
+- Session management: `src/server/session.ts`
+
+## Checkout Flow
+
+**Pattern:** Two-phase checkout with customer info then payment.
+
+**Phase 1 - Customer Info:**
+1. User enters email, shipping address
+2. For signed-in users, email pre-filled
+3. Saved payment methods shown if available
+4. Form validated with Zod schema
+5. PaymentIntent created on submit
+
+**Phase 2 - Payment:**
+1. Stripe Elements displays PaymentElement
+2. Customer info shown as summary (readonly)
+3. Payment confirmed via Stripe
+4. Redirect to success page
+
+**API endpoints:**
+- `POST /api/checkout/create-intent` - Create PaymentIntent
+- `GET /api/checkout/payment-methods` - Fetch saved cards
+- `POST /api/stripe/webhook` - Handle Stripe events
