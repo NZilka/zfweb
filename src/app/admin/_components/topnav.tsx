@@ -16,7 +16,7 @@ export const TopNav = () => {
           </SignedOut>
         </div>
       </nav>
-      <div className="flex w-full items-center justify-center p-4">
+      <div className="flex w-full items-center justify-center px-4 py-8">
         <div className="w-1/5"></div>
         <div className="flex w-3/5 max-w-sm items-center justify-center">
           <Image
