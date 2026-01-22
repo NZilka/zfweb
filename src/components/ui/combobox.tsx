@@ -32,7 +32,8 @@ export function Combobox({
 }: ComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  // -1 means no keyboard selection; first ArrowDown will select index 0
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -47,13 +48,14 @@ export function Combobox({
   );
 
   // Reset highlighted index when filtered options change
+  // -1 means user is typing; ArrowDown will start selection at index 0
   useEffect(() => {
-    setHighlightedIndex(0);
+    setHighlightedIndex(-1);
   }, [searchTerm]);
 
-  // Scroll highlighted item into view
+  // Scroll highlighted item into view (only when an item is selected)
   useEffect(() => {
-    if (isOpen && listRef.current) {
+    if (isOpen && listRef.current && highlightedIndex >= 0) {
       const highlightedEl = listRef.current.children[highlightedIndex] as HTMLElement;
       highlightedEl?.scrollIntoView({ block: "nearest" });
     }
@@ -92,21 +94,24 @@ export function Combobox({
         e.preventDefault();
         if (!isOpen) {
           setIsOpen(true);
-        } else {
+        } else if (filteredOptions.length > 0) {
+          // First ArrowDown selects index 0, then increment from there
           setHighlightedIndex((prev) =>
-            prev < filteredOptions.length - 1 ? prev + 1 : prev
+            prev < 0 ? 0 : prev < filteredOptions.length - 1 ? prev + 1 : prev
           );
         }
         break;
       case "ArrowUp":
         e.preventDefault();
-        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+        // Move up, but don't go below 0 once keyboard nav has started
+        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : prev < 0 ? 0 : prev));
         break;
       case "Enter":
         e.preventDefault();
-        if (isOpen && filteredOptions[highlightedIndex]) {
+        // Only select if an item is highlighted (index >= 0)
+        if (isOpen && highlightedIndex >= 0 && filteredOptions[highlightedIndex]) {
           selectOption(filteredOptions[highlightedIndex].value);
-        } else {
+        } else if (!isOpen) {
           setIsOpen(true);
         }
         break;
@@ -202,8 +207,10 @@ export function Combobox({
                 onMouseEnter={() => setHighlightedIndex(index)}
                 className={cn(
                   "cursor-pointer px-3 py-2 text-sm",
-                  // Highlighted state (keyboard nav or hover)
-                  index === highlightedIndex && "bg-gray-100 dark:bg-gray-700",
+                  // Highlighted state (keyboard nav or hover) - only when index >= 0
+                  highlightedIndex >= 0 &&
+                    index === highlightedIndex &&
+                    "bg-gray-100 dark:bg-gray-700",
                   // Selected state
                   option.value === value && "font-medium text-primary"
                 )}

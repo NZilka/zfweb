@@ -1,4 +1,5 @@
 import { getPublicProductById } from "~/server/queries";
+import { getAvailableInventory } from "~/server/cart-actions";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "~/app/shop/_components/AddToCartButton";
@@ -23,6 +24,9 @@ export default async function ProductPage({
     notFound();
   }
 
+  // Get actual available inventory (total minus reserved in other carts)
+  const availableInventory = await getAvailableInventory(productId);
+
   return (
     <div className="flex min-h-screen flex-col items-center gap-8 p-8">
       <Link
@@ -45,19 +49,20 @@ export default async function ProductPage({
           <p className="text-gray-600 dark:text-gray-400">
             {product.description}
           </p>
+          {/* Show available inventory (accounts for items reserved in other carts) */}
           <p className="text-sm text-gray-500">
-            {product.inventory > 0
-              ? `${product.inventory} in stock`
+            {availableInventory > 0
+              ? `${availableInventory} in stock`
               : "Out of stock"}
           </p>
           {/* Add to Cart with quantity selector */}
           <div className="mt-4">
             <AddToCartButton
               productId={product.id}
-              disabled={product.inventory === 0}
+              disabled={availableInventory === 0}
               variant="full"
               showQuantity={true}
-              maxQuantity={product.inventory}
+              maxQuantity={availableInventory}
             />
           </div>
         </div>

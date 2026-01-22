@@ -1,4 +1,5 @@
 import { getPublicProductById } from "~/server/queries";
+import { getAvailableInventory } from "~/server/cart-actions";
 import { notFound } from "next/navigation";
 import { ProductModal } from "./modal";
 import { ImageGallery } from "~/app/shop/_components/ImageGallery";
@@ -25,6 +26,9 @@ export default async function ProductModalPage({
     notFound();
   }
 
+  // Get actual available inventory (total minus reserved in other carts)
+  const availableInventory = await getAvailableInventory(productId);
+
   return (
     <ProductModal>
       <div className="p-6 md:p-8">
@@ -41,9 +45,10 @@ export default async function ProductModalPage({
             <p className="text-gray-600 dark:text-gray-400">
               {product.description}
             </p>
+            {/* Show available inventory (accounts for items reserved in other carts) */}
             <p className="text-sm text-gray-500">
-              {product.inventory > 0
-                ? `${product.inventory} in stock`
+              {availableInventory > 0
+                ? `${availableInventory} in stock`
                 : "Out of stock"}
             </p>
 
@@ -51,10 +56,10 @@ export default async function ProductModalPage({
             <div className="mt-4">
               <AddToCartButton
                 productId={product.id}
-                disabled={product.inventory === 0}
+                disabled={availableInventory === 0}
                 variant="full"
                 showQuantity={true}
-                maxQuantity={product.inventory}
+                maxQuantity={availableInventory}
               />
             </div>
           </div>
