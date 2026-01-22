@@ -11,6 +11,13 @@ import {
 } from "@stripe/react-stripe-js";
 import { getStripe, isStripeConfigured } from "~/lib/stripe";
 import { Button } from "~/components/ui/button";
+import { Combobox, type ComboboxOption } from "~/components/ui/combobox";
+import {
+  COUNTRIES,
+  getSubdivisionsForCountry,
+  getSubdivisionLabel,
+  getPostalCodeLabel,
+} from "~/lib/countries";
 import { z } from "zod";
 import Link from "next/link";
 import { CreditCard, Plus } from "lucide-react";
@@ -278,7 +285,26 @@ export default function CheckoutForm() {
         />
       </div>
 
-      {/* City, State, ZIP */}
+      {/* Country - placed before state so state options update accordingly */}
+      <div>
+        <label className="mb-1 block text-sm font-medium">Country *</label>
+        <Combobox
+          options={COUNTRIES.map((c) => ({ value: c.code, label: c.name }))}
+          value={customerInfo.country}
+          onChange={(value) => {
+            // When country changes, reset state since subdivisions differ
+            handleInputChange("country", value);
+            if (value !== customerInfo.country) {
+              handleInputChange("state", "");
+            }
+          }}
+          placeholder="Select country..."
+          aria-label="Country"
+        />
+        {errors.country && <p className="mt-1 text-sm text-red-500">{errors.country}</p>}
+      </div>
+
+      {/* City, State/Province, ZIP/Postal Code */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <label className="mb-1 block text-sm font-medium">City *</label>
@@ -291,17 +317,27 @@ export default function CheckoutForm() {
           {errors.city && <p className="mt-1 text-sm text-red-500">{errors.city}</p>}
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">State *</label>
-          <input
-            type="text"
+          {/* Label changes based on country (State vs Province) */}
+          <label className="mb-1 block text-sm font-medium">
+            {getSubdivisionLabel(customerInfo.country)} *
+          </label>
+          <Combobox
+            options={getSubdivisionsForCountry(customerInfo.country).map((s) => ({
+              value: s.code,
+              label: s.name,
+            }))}
             value={customerInfo.state}
-            onChange={(e) => handleInputChange("state", e.target.value)}
-            className="w-full rounded border px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
+            onChange={(value) => handleInputChange("state", value)}
+            placeholder={`Select ${getSubdivisionLabel(customerInfo.country).toLowerCase()}...`}
+            aria-label={getSubdivisionLabel(customerInfo.country)}
           />
           {errors.state && <p className="mt-1 text-sm text-red-500">{errors.state}</p>}
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">ZIP Code *</label>
+          {/* Label changes based on country (ZIP Code vs Postal Code) */}
+          <label className="mb-1 block text-sm font-medium">
+            {getPostalCodeLabel(customerInfo.country)} *
+          </label>
           <input
             type="text"
             value={customerInfo.zipCode}
@@ -310,20 +346,6 @@ export default function CheckoutForm() {
           />
           {errors.zipCode && <p className="mt-1 text-sm text-red-500">{errors.zipCode}</p>}
         </div>
-      </div>
-
-      {/* Country */}
-      <div>
-        <label className="mb-1 block text-sm font-medium">Country *</label>
-        <select
-          value={customerInfo.country}
-          onChange={(e) => handleInputChange("country", e.target.value)}
-          className="w-full rounded border px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
-        >
-          <option value="US">United States</option>
-          <option value="CA">Canada</option>
-        </select>
-        {errors.country && <p className="mt-1 text-sm text-red-500">{errors.country}</p>}
       </div>
 
       {/* Payment Method Selection (for signed-in users with saved cards) */}
