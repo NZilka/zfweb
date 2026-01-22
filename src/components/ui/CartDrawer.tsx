@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { X, Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "~/app/_context/CartContext";
 import { Button } from "./button";
@@ -10,6 +11,7 @@ import { Button } from "./button";
 // Slide-out cart drawer component
 // Shows cart contents with quantity controls and checkout CTA
 export function CartDrawer() {
+  const router = useRouter();
   const {
     items,
     itemCount,
@@ -20,6 +22,13 @@ export function CartDrawer() {
     updateQuantity,
     removeItem,
   } = useCart();
+
+  // Navigate to shop and close cart - does full navigation to refresh page
+  const handleContinueShopping = () => {
+    closeCart();
+    router.push("/shop");
+    router.refresh();
+  };
 
   // Close drawer on escape key
   useEffect(() => {
@@ -94,7 +103,7 @@ export function CartDrawer() {
             <div className="flex h-full flex-col items-center justify-center gap-4">
               <ShoppingBag className="h-16 w-16 text-gray-300" />
               <p className="text-gray-500">Your cart is empty</p>
-              <Button onClick={closeCart}>Continue Shopping</Button>
+              <Button onClick={handleContinueShopping}>Continue Shopping</Button>
             </div>
           ) : (
             <ul className="space-y-4">

@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
 import { getOrderByPaymentIntent } from "~/server/order-actions";
 import Image from "next/image";
-import Link from "next/link";
-import { Button } from "~/components/ui/button";
 import { CheckCircle } from "lucide-react";
 import { PrintButton } from "../../[id]/PrintButton";
 import { CreateAccountPrompt } from "./CreateAccountPrompt";
+import { ContinueShoppingButton } from "~/components/ui/ContinueShoppingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -153,10 +152,8 @@ export default async function OrderConfirmationPage({
 
       {/* Actions */}
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-        <Link href="/shop">
-          {/* Primary action with visible border for definition */}
-          <Button className="border border-primary">Continue Shopping</Button>
-        </Link>
+        {/* Primary action - navigates to shop with refresh for fresh data */}
+        <ContinueShoppingButton className="border border-primary" />
         <PrintButton />
       </div>
     </div>
