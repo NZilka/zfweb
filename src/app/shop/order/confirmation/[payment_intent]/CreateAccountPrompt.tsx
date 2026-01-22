@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser, SignUpButton } from "@clerk/nextjs";
 import { Button } from "~/components/ui/button";
 import { UserPlus, Check } from "lucide-react";
@@ -15,6 +15,13 @@ interface CreateAccountPromptProps {
 export function CreateAccountPrompt({ customerEmail }: CreateAccountPromptProps) {
   const { isSignedIn, isLoaded } = useUser();
   const [isDismissed, setIsDismissed] = useState(false);
+  // Store redirect URL in state to avoid SSR window access error
+  const [redirectUrl, setRedirectUrl] = useState("");
+
+  // Set redirect URL on client-side only (window not available during SSR)
+  useEffect(() => {
+    setRedirectUrl(window.location.href);
+  }, []);
 
   // Don't show if user is already signed in or dismissed
   if (!isLoaded || isSignedIn || isDismissed) {
@@ -54,7 +61,7 @@ export function CreateAccountPrompt({ customerEmail }: CreateAccountPromptProps)
           <div className="mt-4 flex gap-3">
             <SignUpButton
               mode="modal"
-              forceRedirectUrl={window.location.href}
+              forceRedirectUrl={redirectUrl || undefined}
             >
               <Button size="sm">Create Account</Button>
             </SignUpButton>

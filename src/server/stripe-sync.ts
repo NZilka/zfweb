@@ -31,6 +31,8 @@ function getStripe(): Stripe {
 }
 
 // Map Stripe PaymentIntent status to our simplified status
+// requires_capture = payment authorized, awaiting manual capture (processing)
+// canceled = explicitly canceled (failed)
 function mapPaymentStatus(
   status: Stripe.PaymentIntent.Status
 ): PaymentStateCache["lastPaymentStatus"] {
@@ -41,9 +43,9 @@ function mapPaymentStatus(
     case "requires_action":
     case "requires_confirmation":
     case "requires_payment_method":
+    case "requires_capture": // Payment authorized, awaiting capture
       return "processing";
     case "canceled":
-    case "requires_capture":
     default:
       return "failed";
   }

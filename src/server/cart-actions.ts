@@ -506,6 +506,10 @@ export async function resolveCartMergeConflict(keepGuest: boolean): Promise<void
         expires: userSession.expires_at,
         path: "/",
       });
+    } else {
+      // Edge case: userSession doesn't exist (shouldn't happen in normal flow)
+      // Delete the cookie so a new session is created on next cart access
+      cookieStore.delete(SESSION_COOKIE);
     }
   }
 }
