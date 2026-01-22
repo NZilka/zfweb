@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createPaymentIntent } from "~/server/stripe";
+// Import both payment intent creation functions - one for new cards, one for saved
+import {
+  createPaymentIntent,
+  createPaymentIntentWithSavedMethod,
+} from "~/server/stripe";
 import { getCartItems, getCartSummary } from "~/server/cart-actions";
 import { getOrCreateStripeCustomer } from "~/server/stripe-customer";
 import { z } from "zod";
@@ -24,6 +28,8 @@ const requestBodySchema = z.object({
   customerInfo: customerInfoSchema,
   // Whether user wants to save payment method for future use (only for logged-in users)
   savePaymentMethod: z.boolean().optional().default(false),
+  // ID of saved payment method to use (if user selected a saved card)
+  savedPaymentMethodId: z.string().optional(),
 });
 
 // POST /api/checkout/create-intent
@@ -42,7 +48,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const { customerInfo, savePaymentMethod } = bodyResult.data;
+    // Extract validated fields including optional saved payment method ID
+    const { customerInfo, savePaymentMethod, savedPaymentMethodId } =
+      bodyResult.data;
     const customerName = `${customerInfo.firstName} ${customerInfo.lastName}`;
 
     // Get cart items and verify cart is not empty
@@ -97,39 +105,60 @@ export async function POST(request: Request) {
       });
     }
 
-    // Step 2: Create payment intent with customer attached
-    const { clientSecret, paymentIntentId } = await createPaymentIntent({
-      amount: amountInCents,
-      customerId: stripeCustomer.customerId,
-      // Only save payment method if user is logged in and requested it
-      setupFutureUsage:
-        clerkUserId && savePaymentMethod ? "on_session" : undefined,
-      metadata: {
-        // Store customer and cart info for webhook processing
-        customerEmail: customerInfo.email,
-        customerName,
-        shippingAddress: JSON.stringify({
-          address1: customerInfo.address1,
-          address2: customerInfo.address2,
-          city: customerInfo.city,
-          state: customerInfo.state,
-          zipCode: customerInfo.zipCode,
-          country: customerInfo.country,
-        }),
-        cartSessionToken: sessionToken,
-        itemCount: String(summary.itemCount),
-        // Include customer type for webhook processing
-        checkoutType: clerkUserId ? "registered" : "guest",
-        // Store Stripe customer ID for reference
-        stripeCustomerId: stripeCustomer.customerId,
-      },
-    });
+    // Metadata for webhook processing - shared between new and saved payment flows
+    const paymentMetadata = {
+      customerEmail: customerInfo.email,
+      customerName,
+      shippingAddress: JSON.stringify({
+        address1: customerInfo.address1,
+        address2: customerInfo.address2,
+        city: customerInfo.city,
+        state: customerInfo.state,
+        zipCode: customerInfo.zipCode,
+        country: customerInfo.country,
+      }),
+      cartSessionToken: sessionToken,
+      itemCount: String(summary.itemCount),
+      checkoutType: clerkUserId ? "registered" : "guest",
+      stripeCustomerId: stripeCustomer.customerId,
+    };
+
+    // Step 2: Create payment intent - different flow for saved vs new payment method
+    let clientSecret: string | null;
+    let paymentIntentId: string;
+
+    if (savedPaymentMethodId && clerkUserId) {
+      // User selected a saved payment method - attach it to the intent
+      // Only allowed for logged-in users (guests don't have saved methods)
+      const result = await createPaymentIntentWithSavedMethod({
+        amount: amountInCents,
+        customerId: stripeCustomer.customerId,
+        paymentMethodId: savedPaymentMethodId,
+        metadata: paymentMetadata,
+      });
+      clientSecret = result.clientSecret;
+      paymentIntentId = result.paymentIntentId;
+    } else {
+      // New payment method flow - collect card details via Stripe Elements
+      const result = await createPaymentIntent({
+        amount: amountInCents,
+        customerId: stripeCustomer.customerId,
+        // Only save payment method if user is logged in and requested it
+        setupFutureUsage:
+          clerkUserId && savePaymentMethod ? "on_session" : undefined,
+        metadata: paymentMetadata,
+      });
+      clientSecret = result.clientSecret;
+      paymentIntentId = result.paymentIntentId;
+    }
 
     return NextResponse.json({
       clientSecret,
       paymentIntentId,
       // Return whether this is a new customer (for analytics/tracking)
       isNewCustomer: stripeCustomer.isNew,
+      // Indicate if using saved payment method (affects confirmation flow)
+      usingSavedMethod: !!savedPaymentMethodId,
     });
   } catch (error: any) {
     console.error("Error creating payment intent:", error);

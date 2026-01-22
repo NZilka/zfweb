@@ -88,3 +88,61 @@ export async function retrievePaymentIntent(
   const stripe = getStripeInstance();
   return stripe.paymentIntents.retrieve(paymentIntentId);
 }
+
+// Saved payment method info returned to client
+export type SavedPaymentMethod = {
+  id: string;
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+};
+
+// Fetch saved payment methods for a Stripe customer
+// Returns card payment methods attached to the customer
+export async function getSavedPaymentMethods(
+  stripeCustomerId: string
+): Promise<SavedPaymentMethod[]> {
+  const stripe = getStripeInstance();
+
+  const paymentMethods = await stripe.paymentMethods.list({
+    customer: stripeCustomerId,
+    type: "card",
+  });
+
+  return paymentMethods.data.map((pm) => ({
+    id: pm.id,
+    brand: pm.card?.brand ?? "unknown",
+    last4: pm.card?.last4 ?? "****",
+    expMonth: pm.card?.exp_month ?? 0,
+    expYear: pm.card?.exp_year ?? 0,
+  }));
+}
+
+// Create a PaymentIntent using a saved payment method
+// Used when customer selects a previously saved card
+export async function createPaymentIntentWithSavedMethod(options: {
+  amount: number;
+  customerId: string;
+  paymentMethodId: string;
+  metadata?: Record<string, string>;
+}) {
+  const stripe = getStripeInstance();
+
+  const { amount, customerId, paymentMethodId, metadata } = options;
+
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount,
+    currency: "usd",
+    customer: customerId,
+    payment_method: paymentMethodId,
+    // Don't confirm yet - let client-side handle confirmation for 3DS
+    confirm: false,
+    metadata,
+  });
+
+  return {
+    clientSecret: paymentIntent.client_secret,
+    paymentIntentId: paymentIntent.id,
+  };
+}
