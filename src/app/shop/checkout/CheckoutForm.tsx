@@ -1,12 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { useUser } from "@clerk/nextjs";
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 import { getStripe, isStripeConfigured } from "~/lib/stripe";
 import { Button } from "~/components/ui/button";
 import { z } from "zod";
 import Link from "next/link";
+import { CreditCard, Plus } from "lucide-react";
+
+// Saved payment method type from API
+type SavedPaymentMethod = {
+  id: string;
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+};
 
 // Customer info validation schema
 const customerInfoSchema = z.object({
@@ -38,10 +54,52 @@ const initialCustomerInfo: CustomerInfo = {
 
 // Main checkout form component - wraps payment form with Stripe Elements
 export default function CheckoutForm() {
+  const { isSignedIn, user } = useUser();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>(initialCustomerInfo);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isCreatingIntent, setIsCreatingIntent] = useState(false);
+
+  // Saved payment methods state
+  const [savedMethods, setSavedMethods] = useState<SavedPaymentMethod[]>([]);
+  const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
+  const [isLoadingMethods, setIsLoadingMethods] = useState(false);
+
+  // Save card checkbox state (only for new cards)
+  const [saveCard, setSaveCard] = useState(false);
+
+  // Pre-fill email for signed-in users
+  useEffect(() => {
+    const primaryEmail = user?.emailAddresses?.[0]?.emailAddress;
+    if (isSignedIn && primaryEmail) {
+      setCustomerInfo((prev) => ({
+        ...prev,
+        email: primaryEmail,
+      }));
+    }
+  }, [isSignedIn, user]);
+
+  // Fetch saved payment methods for signed-in users
+  useEffect(() => {
+    async function fetchSavedMethods() {
+      if (!isSignedIn) return;
+
+      setIsLoadingMethods(true);
+      try {
+        const response = await fetch("/api/checkout/payment-methods");
+        if (response.ok) {
+          const data = await response.json();
+          setSavedMethods(data.paymentMethods || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch saved payment methods:", error);
+      } finally {
+        setIsLoadingMethods(false);
+      }
+    }
+
+    fetchSavedMethods();
+  }, [isSignedIn]);
 
   // Show configuration message if Stripe is not set up
   if (!isStripeConfigured()) {
@@ -65,7 +123,6 @@ export default function CheckoutForm() {
     // Validate form
     const result = customerInfoSchema.safeParse(customerInfo);
     if (!result.success) {
-      // Zod v4: Use issues array instead of errors
       const fieldErrors: Record<string, string> = {};
       for (const issue of result.error.issues) {
         if (issue.path[0]) {
@@ -84,7 +141,13 @@ export default function CheckoutForm() {
       const response = await fetch("/api/checkout/create-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerInfo: result.data }),
+        body: JSON.stringify({
+          customerInfo: result.data,
+          // Only save if using new card and checkbox is checked
+          savePaymentMethod: selectedMethodId === null && saveCard,
+          // Pass selected payment method ID if using saved card
+          savedPaymentMethodId: selectedMethodId,
+        }),
       });
 
       if (!response.ok) {
@@ -104,7 +167,6 @@ export default function CheckoutForm() {
   // Handle input change
   const handleInputChange = (field: keyof CustomerInfo, value: string) => {
     setCustomerInfo((prev) => ({ ...prev, [field]: value }));
-    // Clear field error on change
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -112,6 +174,17 @@ export default function CheckoutForm() {
         return newErrors;
       });
     }
+  };
+
+  // Format card brand for display
+  const formatBrand = (brand: string) => {
+    const brands: Record<string, string> = {
+      visa: "Visa",
+      mastercard: "Mastercard",
+      amex: "American Express",
+      discover: "Discover",
+    };
+    return brands[brand.toLowerCase()] || brand.charAt(0).toUpperCase() + brand.slice(1);
   };
 
   // If we have a client secret, show the Stripe payment form
@@ -129,7 +202,10 @@ export default function CheckoutForm() {
           },
         }}
       >
-        <PaymentForm customerInfo={customerInfo} />
+        <PaymentForm
+          customerInfo={customerInfo}
+          usingSavedMethod={selectedMethodId !== null}
+        />
       </Elements>
     );
   }
@@ -250,6 +326,80 @@ export default function CheckoutForm() {
         {errors.country && <p className="mt-1 text-sm text-red-500">{errors.country}</p>}
       </div>
 
+      {/* Payment Method Selection (for signed-in users with saved cards) */}
+      {isSignedIn && (savedMethods.length > 0 || isLoadingMethods) && (
+        <div>
+          <h2 className="mb-3 text-xl font-semibold">Payment Method</h2>
+
+          {isLoadingMethods ? (
+            <p className="text-sm text-gray-500">Loading saved cards...</p>
+          ) : (
+            <div className="space-y-2">
+              {/* Saved payment methods */}
+              {savedMethods.map((method) => (
+                <label
+                  key={method.id}
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors ${
+                    selectedMethodId === method.id
+                      ? "border-black bg-gray-50 dark:border-white dark:bg-gray-800"
+                      : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    checked={selectedMethodId === method.id}
+                    onChange={() => setSelectedMethodId(method.id)}
+                    className="h-4 w-4"
+                  />
+                  <CreditCard className="h-5 w-5 text-gray-400" />
+                  <div className="flex-1">
+                    <p className="font-medium">
+                      {formatBrand(method.brand)} ending in {method.last4}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Expires {method.expMonth}/{method.expYear}
+                    </p>
+                  </div>
+                </label>
+              ))}
+
+              {/* Use new card option */}
+              <label
+                className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors ${
+                  selectedMethodId === null
+                    ? "border-black bg-gray-50 dark:border-white dark:bg-gray-800"
+                    : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  checked={selectedMethodId === null}
+                  onChange={() => setSelectedMethodId(null)}
+                  className="h-4 w-4"
+                />
+                <Plus className="h-5 w-5 text-gray-400" />
+                <span className="font-medium">Use a new card</span>
+              </label>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Save card checkbox (only for signed-in users using new card) */}
+      {isSignedIn && selectedMethodId === null && (
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={saveCard}
+            onChange={(e) => setSaveCard(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          <span className="text-sm">Save this card for future purchases</span>
+        </label>
+      )}
+
       {/* Submit error */}
       {errors.submit && (
         <div className="rounded border border-red-300 bg-red-50 p-3 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
@@ -271,7 +421,13 @@ export default function CheckoutForm() {
 }
 
 // Inner payment form component - uses Stripe Elements context
-function PaymentForm({ customerInfo }: { customerInfo: CustomerInfo }) {
+function PaymentForm({
+  customerInfo,
+  usingSavedMethod,
+}: {
+  customerInfo: CustomerInfo;
+  usingSavedMethod: boolean;
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -312,7 +468,9 @@ function PaymentForm({ customerInfo }: { customerInfo: CustomerInfo }) {
 
       {/* Customer info summary (readonly) */}
       <div className="rounded border bg-gray-50 p-4 text-sm dark:border-gray-700 dark:bg-gray-800">
-        <p className="font-medium">{customerInfo.firstName} {customerInfo.lastName}</p>
+        <p className="font-medium">
+          {customerInfo.firstName} {customerInfo.lastName}
+        </p>
         <p className="text-gray-600 dark:text-gray-400">{customerInfo.email}</p>
         <p className="text-gray-600 dark:text-gray-400">
           {customerInfo.address1}
@@ -323,7 +481,7 @@ function PaymentForm({ customerInfo }: { customerInfo: CustomerInfo }) {
         </p>
       </div>
 
-      {/* Stripe Payment Element */}
+      {/* Stripe Payment Element - handles both new and saved methods */}
       <PaymentElement />
 
       {/* Error display */}
