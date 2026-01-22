@@ -42,8 +42,15 @@ export async function POST(request: Request) {
     const bodyResult = requestBodySchema.safeParse(body);
 
     if (!bodyResult.success) {
+      // Log validation errors for debugging
+      console.error("Checkout validation errors:", bodyResult.error.flatten());
+      // Return specific field errors to help diagnose issues
+      const fieldErrors = bodyResult.error.flatten().fieldErrors;
+      const errorMessages = Object.entries(fieldErrors)
+        .map(([field, errors]) => `${field}: ${errors?.join(", ")}`)
+        .join("; ");
       return NextResponse.json(
-        { message: "Invalid request body" },
+        { message: `Invalid request: ${errorMessages || "validation failed"}` },
         { status: 400 }
       );
     }
