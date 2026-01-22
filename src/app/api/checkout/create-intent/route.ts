@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { createPaymentIntent } from "~/server/stripe";
 import { getCartItems, getCartSummary } from "~/server/cart-actions";
+import { getOrCreateStripeCustomer } from "~/server/stripe-customer";
 import { z } from "zod";
 import { cookies } from "next/headers";
 
@@ -17,22 +19,31 @@ const customerInfoSchema = z.object({
   country: z.string().min(1),
 });
 
+// Request body schema - includes optional savePaymentMethod flag
+const requestBodySchema = z.object({
+  customerInfo: customerInfoSchema,
+  // Whether user wants to save payment method for future use (only for logged-in users)
+  savePaymentMethod: z.boolean().optional().default(false),
+});
+
 // POST /api/checkout/create-intent
 // Creates a Stripe payment intent for the current cart
+// Per stripe-recommendations: creates Stripe Customer BEFORE payment intent
 export async function POST(request: Request) {
   try {
     // Parse and validate request body
     const body = await request.json();
-    const customerInfoResult = customerInfoSchema.safeParse(body.customerInfo);
+    const bodyResult = requestBodySchema.safeParse(body);
 
-    if (!customerInfoResult.success) {
+    if (!bodyResult.success) {
       return NextResponse.json(
-        { message: "Invalid customer information" },
+        { message: "Invalid request body" },
         { status: 400 }
       );
     }
 
-    const customerInfo = customerInfoResult.data;
+    const { customerInfo, savePaymentMethod } = bodyResult.data;
+    const customerName = `${customerInfo.firstName} ${customerInfo.lastName}`;
 
     // Get cart items and verify cart is not empty
     const [items, summary] = await Promise.all([
@@ -58,17 +69,45 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get session token for order association
+    // Get session token for order association and guest checkout
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get("cart_session")?.value ?? "";
 
-    // Create payment intent with metadata for order fulfillment
-    const { clientSecret, paymentIntentId } = await createPaymentIntent(
-      amountInCents,
-      {
+    // Check if user is authenticated via Clerk
+    const { userId: clerkUserId } = await auth();
+
+    // Step 1: Create or retrieve Stripe Customer BEFORE creating payment intent
+    // This follows the stripe-recommendations pattern for state consistency
+    let stripeCustomer;
+    if (clerkUserId) {
+      // Authenticated user - link to Clerk account
+      stripeCustomer = await getOrCreateStripeCustomer({
+        type: "user",
+        clerkUserId,
+        email: customerInfo.email,
+        name: customerName,
+      });
+    } else {
+      // Guest checkout - link to session token
+      stripeCustomer = await getOrCreateStripeCustomer({
+        type: "guest",
+        sessionToken,
+        email: customerInfo.email,
+        name: customerName,
+      });
+    }
+
+    // Step 2: Create payment intent with customer attached
+    const { clientSecret, paymentIntentId } = await createPaymentIntent({
+      amount: amountInCents,
+      customerId: stripeCustomer.customerId,
+      // Only save payment method if user is logged in and requested it
+      setupFutureUsage:
+        clerkUserId && savePaymentMethod ? "on_session" : undefined,
+      metadata: {
         // Store customer and cart info for webhook processing
         customerEmail: customerInfo.email,
-        customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+        customerName,
         shippingAddress: JSON.stringify({
           address1: customerInfo.address1,
           address2: customerInfo.address2,
@@ -79,10 +118,19 @@ export async function POST(request: Request) {
         }),
         cartSessionToken: sessionToken,
         itemCount: String(summary.itemCount),
-      }
-    );
+        // Include customer type for webhook processing
+        checkoutType: clerkUserId ? "registered" : "guest",
+        // Store Stripe customer ID for reference
+        stripeCustomerId: stripeCustomer.customerId,
+      },
+    });
 
-    return NextResponse.json({ clientSecret, paymentIntentId });
+    return NextResponse.json({
+      clientSecret,
+      paymentIntentId,
+      // Return whether this is a new customer (for analytics/tracking)
+      isNewCustomer: stripeCustomer.isNew,
+    });
   } catch (error: any) {
     console.error("Error creating payment intent:", error);
     return NextResponse.json(
