@@ -1,0 +1,173 @@
+import "server-only";
+import { Redis } from "@upstash/redis";
+import { env } from "~/env";
+
+// Singleton Redis client instance
+// Lazy-loaded to avoid initialization errors during build
+let redisInstance: Redis | null = null;
+
+// Get or create the Redis client instance
+// Uses Upstash REST API for serverless-friendly access
+function getRedis(): Redis {
+  if (!redisInstance) {
+    redisInstance = new Redis({
+      url: env.UPSTASH_REDIS_REST_URL,
+      token: env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  }
+  return redisInstance;
+}
+
+// KV key prefixes for different data types
+// Centralizing prefixes prevents key collisions and aids debugging
+export const KV_PREFIXES = {
+  // Maps Clerk userId to Stripe customerId (permanent)
+  STRIPE_USER: "stripe:user:",
+  // Maps cart session token to Stripe customerId (temporary, for guests)
+  STRIPE_SESSION: "stripe:session:",
+  // Stores payment state cache for a Stripe customer
+  STRIPE_CUSTOMER: "stripe:customer:",
+  // Stores order state cache by payment intent ID
+  ORDER_PAYMENT: "order:payment:",
+} as const;
+
+// Type definitions for cached data structures
+// These match the stripe-recommendations patterns adapted for e-commerce
+
+// Cached payment state for a Stripe Customer
+export type PaymentStateCache = {
+  lastPaymentIntentId: string | null;
+  lastPaymentStatus: "succeeded" | "processing" | "failed" | null;
+  lastOrderId: number | null;
+  paymentMethod: {
+    brand: string | null;
+    last4: string | null;
+  } | null;
+  updatedAt: number; // Unix timestamp
+};
+
+// Cached order state (for quick lookups)
+export type OrderStateCache = {
+  orderId: number;
+  status: string;
+  total: string;
+  itemCount: number;
+  customerId: string; // Stripe customer ID
+  createdAt: number;
+};
+
+// Default TTL for cached data (30 days in seconds)
+const DEFAULT_TTL = 30 * 24 * 60 * 60;
+
+// Generic get function with type safety
+export async function kvGet<T>(key: string): Promise<T | null> {
+  const redis = getRedis();
+  return redis.get<T>(key);
+}
+
+// Generic set function with optional TTL
+export async function kvSet<T>(
+  key: string,
+  value: T,
+  ttlSeconds?: number
+): Promise<void> {
+  const redis = getRedis();
+  if (ttlSeconds) {
+    await redis.set(key, value, { ex: ttlSeconds });
+  } else {
+    await redis.set(key, value);
+  }
+}
+
+// Delete a key
+export async function kvDelete(key: string): Promise<void> {
+  const redis = getRedis();
+  await redis.del(key);
+}
+
+// Check if a key exists
+export async function kvExists(key: string): Promise<boolean> {
+  const redis = getRedis();
+  const result = await redis.exists(key);
+  return result === 1;
+}
+
+// Stripe user mapping functions
+// Maps Clerk user ID to Stripe customer ID (permanent mapping)
+export async function setStripeCustomerForUser(
+  clerkUserId: string,
+  stripeCustomerId: string
+): Promise<void> {
+  const key = `${KV_PREFIXES.STRIPE_USER}${clerkUserId}`;
+  await kvSet(key, stripeCustomerId);
+}
+
+export async function getStripeCustomerForUser(
+  clerkUserId: string
+): Promise<string | null> {
+  const key = `${KV_PREFIXES.STRIPE_USER}${clerkUserId}`;
+  return kvGet<string>(key);
+}
+
+// Guest session mapping functions
+// Maps cart session token to Stripe customer ID (temporary, with TTL)
+export async function setStripeCustomerForSession(
+  sessionToken: string,
+  stripeCustomerId: string
+): Promise<void> {
+  const key = `${KV_PREFIXES.STRIPE_SESSION}${sessionToken}`;
+  // Guest session mappings expire after 30 days
+  await kvSet(key, stripeCustomerId, DEFAULT_TTL);
+}
+
+export async function getStripeCustomerForSession(
+  sessionToken: string
+): Promise<string | null> {
+  const key = `${KV_PREFIXES.STRIPE_SESSION}${sessionToken}`;
+  return kvGet<string>(key);
+}
+
+// Payment state cache functions
+// Stores the latest payment state for a Stripe customer
+export async function setPaymentStateCache(
+  stripeCustomerId: string,
+  state: PaymentStateCache
+): Promise<void> {
+  const key = `${KV_PREFIXES.STRIPE_CUSTOMER}${stripeCustomerId}`;
+  await kvSet(key, state, DEFAULT_TTL);
+}
+
+export async function getPaymentStateCache(
+  stripeCustomerId: string
+): Promise<PaymentStateCache | null> {
+  const key = `${KV_PREFIXES.STRIPE_CUSTOMER}${stripeCustomerId}`;
+  return kvGet<PaymentStateCache>(key);
+}
+
+// Order state cache functions
+// Stores order state by payment intent ID for quick lookups
+export async function setOrderStateCache(
+  paymentIntentId: string,
+  state: OrderStateCache
+): Promise<void> {
+  const key = `${KV_PREFIXES.ORDER_PAYMENT}${paymentIntentId}`;
+  await kvSet(key, state, DEFAULT_TTL);
+}
+
+export async function getOrderStateCache(
+  paymentIntentId: string
+): Promise<OrderStateCache | null> {
+  const key = `${KV_PREFIXES.ORDER_PAYMENT}${paymentIntentId}`;
+  return kvGet<OrderStateCache>(key);
+}
+
+// Utility to check KV connection health
+export async function checkKvConnection(): Promise<boolean> {
+  try {
+    const redis = getRedis();
+    const result = await redis.ping();
+    return result === "PONG";
+  } catch {
+    return false;
+  }
+}
