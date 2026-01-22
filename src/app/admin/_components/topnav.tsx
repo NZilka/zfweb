@@ -21,7 +21,7 @@ export const TopNav = () => {
         <div className="flex w-3/5 max-w-sm items-center justify-center">
           <Image
             priority={true}
-            src="https://utfs.io/f/CP1vGQdmthxyPSxgXafaQqdfG2FMOt1A6sEkLVNghCU7nyxm"
+            src="/logo.png"
             width={3333}
             height={1304}
             alt="Zilka Forgewerks Logo"

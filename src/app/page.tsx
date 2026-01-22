@@ -12,7 +12,7 @@ export default function HomePage() {
     <FileProvider>
       <main className="flex min-h-screen flex-col items-center justify-center gap-4">
         <Image
-          src="https://utfs.io/f/CP1vGQdmthxyPSxgXafaQqdfG2FMOt1A6sEkLVNghCU7nyxm"
+          src="/logo.png"
           width={3333}
           height={1304}
           alt="Zilka Forgewerks Logo"
