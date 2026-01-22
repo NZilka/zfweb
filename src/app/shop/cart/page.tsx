@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from "lucide-react";
 import { useCart } from "~/app/_context/CartContext";
 import { Button } from "~/components/ui/button";
@@ -9,6 +10,7 @@ import { Button } from "~/components/ui/button";
 // Full cart page for detailed cart review
 // Provides larger view of cart items with full controls
 export default function CartPage() {
+  const router = useRouter();
   const {
     items,
     itemCount,
@@ -18,6 +20,12 @@ export default function CartPage() {
     removeItem,
     clearCart,
   } = useCart();
+
+  // Navigate to shop with refresh to ensure fresh product data
+  const goToShop = () => {
+    router.push("/shop");
+    router.refresh();
+  };
 
   // Handle quantity update
   const handleQuantityChange = async (cartItemId: number, newQuantity: number) => {
@@ -65,13 +73,13 @@ export default function CartPage() {
     <div className="mx-auto max-w-6xl p-4 md:p-8">
       {/* Header */}
       <div className="mb-8">
-        <Link
-          href="/shop"
+        <button
+          onClick={goToShop}
           className="mb-4 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
           Continue Shopping
-        </Link>
+        </button>
         <h1 className="text-3xl font-bold">Shopping Cart</h1>
         <p className="text-gray-500">
           {itemCount} {itemCount === 1 ? "item" : "items"} in your cart
@@ -88,9 +96,7 @@ export default function CartPage() {
               Looks like you haven&apos;t added any items yet.
             </p>
           </div>
-          <Link href="/shop">
-            <Button size="lg">Start Shopping</Button>
-          </Link>
+          <Button size="lg" onClick={goToShop}>Start Shopping</Button>
         </div>
       ) : (
         <div className="grid gap-8 lg:grid-cols-3">
@@ -216,12 +222,12 @@ export default function CartPage() {
               </Link>
 
               {/* Continue shopping link */}
-              <Link
-                href="/shop"
-                className="mt-4 block text-center text-sm text-gray-500 hover:text-gray-700"
+              <button
+                onClick={goToShop}
+                className="mt-4 block w-full text-center text-sm text-gray-500 hover:text-gray-700"
               >
                 Continue Shopping
-              </Link>
+              </button>
             </div>
           </div>
         </div>

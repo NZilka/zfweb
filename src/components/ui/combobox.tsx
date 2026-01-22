@@ -156,8 +156,8 @@ export function Combobox({
           aria-expanded={isOpen}
           aria-haspopup="listbox"
           className={cn(
-            "w-full rounded border px-3 py-2 pr-8",
-            "dark:border-gray-600 dark:bg-gray-800",
+            "w-full rounded border bg-white px-3 py-2 pr-8 text-gray-900",
+            "dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100",
             "focus:outline-none focus:ring-2 focus:ring-primary/20",
             disabled && "cursor-not-allowed opacity-50"
           )}
@@ -186,7 +186,8 @@ export function Combobox({
           role="listbox"
           className={cn(
             "absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded border",
-            "bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800"
+            "bg-white text-gray-900 shadow-lg",
+            "dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           )}
         >
           {filteredOptions.length === 0 ? (
