@@ -233,11 +233,11 @@ UPSTASH_REDIS_REST_TOKEN=...
 
 | Phase | Step | Status | Notes |
 |-------|------|--------|-------|
-| 1 | 1.1 Testing Framework | ⬜ Pending | |
-| 1 | 1.2 Upstash KV | ⬜ Pending | |
-| 1 | 1.3 Schema Update | ⬜ Pending | |
-| 2 | 2.1 Stripe Customer Utils | ⬜ Pending | |
-| 2 | 2.2 Checkout Update | ⬜ Pending | |
+| 1 | 1.1 Testing Framework | ✅ Complete | vitest + happy-dom + testing-library |
+| 1 | 1.2 Upstash KV | ✅ Complete | KV client with typed helpers |
+| 1 | 1.3 Schema Update | ✅ Complete | Added clerk_user_id, stripe_customer_id |
+| 2 | 2.1 Stripe Customer Utils | ✅ Complete | getOrCreateStripeCustomer for user/guest |
+| 2 | 2.2 Checkout Update | ✅ Complete | Customer created before PaymentIntent |
 | 3 | 3.1 Sync Function | ⬜ Pending | |
 | 3 | 3.2 Success Page | ⬜ Pending | |
 | 3 | 3.3 Webhook Update | ⬜ Pending | |
