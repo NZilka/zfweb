@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { CheckCircle } from "lucide-react";
 import { PrintButton } from "../../[id]/PrintButton";
+import { CreateAccountPrompt } from "./CreateAccountPrompt";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,9 @@ export default async function OrderConfirmationPage({
           A confirmation email has been sent to {order.customer_email}
         </p>
       </div>
+
+      {/* Account creation prompt for guest users */}
+      <CreateAccountPrompt customerEmail={order.customer_email} />
 
       {/* Order details card */}
       <div className="mb-8 rounded-lg border bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">

@@ -241,9 +241,9 @@ UPSTASH_REDIS_REST_TOKEN=...
 | 3 | 3.1 Sync Function | ✅ Complete | syncPaymentStateToKV + helpers (11 tests) |
 | 3 | 3.2 Success Page | ✅ Complete | Eager sync on page load |
 | 3 | 3.3 Webhook Update | ✅ Complete | Added processing/canceled events, KV sync |
-| 4 | 4.1 Account Page | ⬜ Pending | |
-| 4 | 4.2 Cart Merge | ⬜ Pending | |
-| 4 | 4.3 Post-Checkout Account | ⬜ Pending | |
+| 4 | 4.1 Account Page | ✅ Complete | /shop/account with order history + payment info |
+| 4 | 4.2 Cart Merge | ✅ Complete | Modal prompts user to choose cart on conflict |
+| 4 | 4.3 Post-Checkout Account | ✅ Complete | Prompt on confirmation page, auto-link orders |
 | 5 | 5.1 Saved Payment Display | ⬜ Pending | |
 | 5 | 5.2 Save Payment Option | ⬜ Pending | |
 | 6 | 6.1 Integration Tests | ⬜ Pending | |
