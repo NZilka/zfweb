@@ -6,9 +6,21 @@ import { env } from "~/env";
 // Lazy-loaded to avoid initialization errors during build
 let redisInstance: Redis | null = null;
 
+// Check if Upstash KV is configured
+export function isKvConfigured(): boolean {
+  return !!env.UPSTASH_REDIS_REST_URL && !!env.UPSTASH_REDIS_REST_TOKEN;
+}
+
 // Get or create the Redis client instance
 // Uses Upstash REST API for serverless-friendly access
+// Throws if KV is not configured
 function getRedis(): Redis {
+  if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
+    throw new Error(
+      "Upstash KV is not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables."
+    );
+  }
+
   if (!redisInstance) {
     redisInstance = new Redis({
       url: env.UPSTASH_REDIS_REST_URL,

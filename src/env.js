@@ -16,9 +16,9 @@ export const env = createEnv({
     STRIPE_SECRET_KEY: z.string().min(1).optional(),
     // Stripe webhook signing secret (starts with whsec_) - optional until configured
     STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
-    // Upstash Redis for KV storage (payment state caching)
-    UPSTASH_REDIS_REST_URL: z.url(),
-    UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
+    // Upstash Redis for KV storage (payment state caching) - optional until configured
+    UPSTASH_REDIS_REST_URL: z.url().optional(),
+    UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
   },
 
   /**
