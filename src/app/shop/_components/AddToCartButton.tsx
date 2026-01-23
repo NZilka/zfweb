@@ -12,6 +12,8 @@ interface AddToCartButtonProps {
   showQuantity?: boolean;
   // Maximum quantity (typically inventory count)
   maxQuantity?: number;
+  // Callback after successful add (e.g., to close modal)
+  onSuccess?: () => void;
 }
 
 // Reusable Add to Cart button with optional quantity selector
@@ -22,6 +24,7 @@ export function AddToCartButton({
   variant = "card",
   showQuantity = false,
   maxQuantity = 99,
+  onSuccess,
 }: AddToCartButtonProps) {
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
@@ -36,6 +39,8 @@ export function AddToCartButton({
       await addToCart(productId, quantity);
       // Reset quantity after successful add
       setQuantity(1);
+      // Call success callback (e.g., to close modal)
+      onSuccess?.();
     } catch (err: any) {
       setError(err.message ?? "Failed to add to cart");
     } finally {

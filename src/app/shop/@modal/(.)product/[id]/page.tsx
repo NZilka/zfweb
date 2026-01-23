@@ -3,7 +3,7 @@ import { getAvailableInventory } from "~/server/cart-actions";
 import { notFound } from "next/navigation";
 import { ProductModal } from "./modal";
 import { ImageGallery } from "~/app/shop/_components/ImageGallery";
-import { AddToCartButton } from "~/app/shop/_components/AddToCartButton";
+import { ModalAddToCart } from "./ModalAddToCart";
 
 // Intercepting route for product modal
 // Shows product in modal overlay when navigating from shop page
@@ -52,13 +52,11 @@ export default async function ProductModalPage({
                 : "Out of stock"}
             </p>
 
-            {/* Add to Cart with quantity selector */}
+            {/* Add to Cart - closes modal on success */}
             <div className="mt-4">
-              <AddToCartButton
+              <ModalAddToCart
                 productId={product.id}
                 disabled={availableInventory === 0}
-                variant="full"
-                showQuantity={true}
                 maxQuantity={availableInventory}
               />
             </div>
