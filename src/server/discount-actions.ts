@@ -6,7 +6,7 @@
 
 import { db } from "~/server/db";
 import { discount } from "~/server/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 // Discount input type for create/update
@@ -199,4 +199,114 @@ export async function toggleDiscountActive(
       error: error instanceof Error ? error.message : "Failed to toggle discount",
     };
   }
+}
+
+// Validated discount result
+export interface ValidatedDiscount {
+  id: number;
+  code: string;
+  name: string;
+  discount: number;
+  discountType: "percent" | "fixed";
+  freeShipping: boolean;
+}
+
+/**
+ * Validate a discount code for checkout
+ * Checks: exists, active, not expired, usage limit not reached
+ */
+export async function validateDiscountCode(
+  code: string
+): Promise<{ valid: boolean; error?: string; discount?: ValidatedDiscount }> {
+  if (!code || !code.trim()) {
+    return { valid: false, error: "No code provided" };
+  }
+
+  try {
+    const result = await db
+      .select()
+      .from(discount)
+      .where(eq(discount.code, code.toUpperCase()));
+
+    if (result.length === 0) {
+      return { valid: false, error: "Invalid discount code" };
+    }
+
+    const d = result[0]!;
+
+    // Check if active
+    if (!d.active) {
+      return { valid: false, error: "This code is no longer active" };
+    }
+
+    // Check if expired
+    if (d.expires_at && new Date(d.expires_at) < new Date()) {
+      return { valid: false, error: "This code has expired" };
+    }
+
+    // Check usage limit
+    if (d.max_uses && d.numberOfUses >= d.max_uses) {
+      return { valid: false, error: "This code has reached its usage limit" };
+    }
+
+    return {
+      valid: true,
+      discount: {
+        id: d.id,
+        code: d.code,
+        name: d.name,
+        discount: parseFloat(d.discount),
+        discountType: d.discount_type as "percent" | "fixed",
+        freeShipping: d.free_shipping,
+      },
+    };
+  } catch (error) {
+    console.error("Error validating discount:", error);
+    return { valid: false, error: "Failed to validate code" };
+  }
+}
+
+/**
+ * Increment usage counter for a discount code
+ * Called after successful order completion
+ */
+export async function incrementDiscountUsage(discountId: number): Promise<void> {
+  try {
+    await db
+      .update(discount)
+      .set({
+        numberOfUses: sql`${discount.numberOfUses} + 1`,
+      })
+      .where(eq(discount.id, discountId));
+  } catch (error) {
+    console.error("Error incrementing discount usage:", error);
+    // Don't throw - this is a non-critical operation
+  }
+}
+
+/**
+ * Calculate discounted total
+ */
+export function calculateDiscountedTotal(
+  subtotal: number,
+  discountValue: number,
+  discountType: "percent" | "fixed"
+): { discountAmount: number; finalTotal: number } {
+  let discountAmount: number;
+
+  if (discountType === "percent") {
+    discountAmount = subtotal * (discountValue / 100);
+  } else {
+    discountAmount = discountValue;
+  }
+
+  // Don't allow discount to exceed subtotal
+  discountAmount = Math.min(discountAmount, subtotal);
+
+  const finalTotal = Math.max(0, subtotal - discountAmount);
+
+  return {
+    discountAmount: Math.round(discountAmount * 100) / 100,
+    finalTotal: Math.round(finalTotal * 100) / 100,
+  };
 }
