@@ -12,19 +12,20 @@ interface RecentShipmentsProps {
 
 export function RecentShipments({ shipments }: RecentShipmentsProps) {
   return (
-    <Card>
+    // Card with white background and black text
+    <Card className="bg-white text-gray-900 border-gray-300">
       <CardHeader>
         <CardTitle>Recent Shipments</CardTitle>
       </CardHeader>
       <CardContent>
         {shipments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No shipments yet</p>
+          <p className="text-sm text-gray-500">No shipments yet</p>
         ) : (
           <div className="space-y-4">
             {shipments.map((shipment) => (
               <div
                 key={shipment.id}
-                className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                className="flex items-center justify-between border-b border-gray-200 pb-4 last:border-0 last:pb-0"
               >
                 <div className="space-y-1">
                   {/* Order ID and customer name */}
@@ -34,13 +35,13 @@ export function RecentShipments({ shipments }: RecentShipmentsProps) {
                       Shipped
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">{shipment.customerName}</p>
+                  <p className="text-xs text-gray-500">{shipment.customerName}</p>
                 </div>
                 <div className="text-right">
                   {/* Order total */}
                   <p className="text-sm font-medium">${shipment.total}</p>
                   {/* Ship date */}
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-gray-500">
                     {new Date(shipment.createdAt).toLocaleDateString()}
                   </p>
                 </div>

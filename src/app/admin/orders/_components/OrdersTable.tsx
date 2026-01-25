@@ -108,14 +108,16 @@ export function OrdersTable({
 
   if (orders.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-muted p-8 text-center">
-        <p className="text-muted-foreground">No orders in this category</p>
+      // Empty state with white background and gray text
+      <div className="rounded-lg border border-gray-300 bg-white p-8 text-center">
+        <p className="text-gray-500">No orders in this category</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card">
+    // Container with white background and black text for visibility
+    <div className="rounded-lg border border-gray-300 bg-white text-gray-900">
       <Table>
         <TableHeader>
           <TableRow>
@@ -141,8 +143,8 @@ export function OrdersTable({
         <TableBody>
           {orders.map((order) => (
             <>
-              {/* Main order row */}
-              <TableRow key={order.id} className="cursor-pointer hover:bg-muted/50">
+              {/* Main order row - hover uses light gray */}
+              <TableRow key={order.id} className="cursor-pointer hover:bg-gray-100">
                 {/* Selection checkbox */}
                 {showSelection && (
                   <TableCell onClick={(e) => e.stopPropagation()}>
@@ -171,7 +173,7 @@ export function OrdersTable({
                 <TableCell onClick={() => toggleExpanded(order.id)}>
                   <div>
                     <p className="font-medium">{order.customerName}</p>
-                    <p className="text-sm text-muted-foreground">{order.customerEmail}</p>
+                    <p className="text-sm text-gray-500">{order.customerEmail}</p>
                   </div>
                 </TableCell>
                 {/* Items count */}
@@ -192,19 +194,19 @@ export function OrdersTable({
                 </TableCell>
               </TableRow>
 
-              {/* Expanded items row */}
+              {/* Expanded items row - light gray background */}
               {expandedOrders.has(order.id) && (
-                <TableRow key={`${order.id}-items`} className="bg-muted/50">
+                <TableRow key={`${order.id}-items`} className="bg-gray-50">
                   <TableCell colSpan={showSelection ? 8 : 7} className="p-4">
                     <div className="grid gap-6 lg:grid-cols-3">
                       {/* Order Items */}
                       <div className="lg:col-span-2">
-                        <p className="mb-2 text-sm font-medium text-muted-foreground">Order Items</p>
+                        <p className="mb-2 text-sm font-medium text-gray-500">Order Items</p>
                         <div className="space-y-2">
                           {order.items.map((item) => (
                             <div
                               key={item.id}
-                              className="flex items-center justify-between rounded bg-card p-2"
+                              className="flex items-center justify-between rounded bg-white p-2 border border-gray-200"
                             >
                               <div className="flex items-center gap-3">
                                 {/* Product thumbnail */}
@@ -217,7 +219,7 @@ export function OrdersTable({
                                 )}
                                 <div>
                                   <p className="font-medium">{item.product.title}</p>
-                                  <p className="text-sm text-muted-foreground">
+                                  <p className="text-sm text-gray-500">
                                     Qty: {item.quantity} × ${item.product.price}
                                   </p>
                                 </div>
@@ -233,15 +235,15 @@ export function OrdersTable({
                       {/* Fulfillment Actions */}
                       <div className="space-y-4">
                         <div>
-                          <p className="mb-2 text-sm font-medium text-muted-foreground">Fulfillment</p>
-                          <div className="rounded bg-card p-3">
+                          <p className="mb-2 text-sm font-medium text-gray-500">Fulfillment</p>
+                          <div className="rounded bg-white p-3 border border-gray-200">
                             <OrderStatusActions order={order} />
                           </div>
                         </div>
 
                         {/* Packing Slip Print Button */}
                         <div>
-                          <p className="mb-2 text-sm font-medium text-muted-foreground">Actions</p>
+                          <p className="mb-2 text-sm font-medium text-gray-500">Actions</p>
                           <PackingSlip order={order} />
                         </div>
                       </div>

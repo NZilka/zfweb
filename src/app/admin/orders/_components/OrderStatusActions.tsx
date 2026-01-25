@@ -90,10 +90,10 @@ export function OrderStatusActions({ order }: OrderStatusActionsProps) {
           onCheckedChange={handlePackedChange}
           disabled={isUpdating}
         />
-        <Label htmlFor={`packed-${order.id}`} className="text-sm">
+        <Label htmlFor={`packed-${order.id}`} className="text-sm text-gray-900">
           Packed
           {order.packedAt && (
-            <span className="ml-2 text-xs text-muted-foreground">
+            <span className="ml-2 text-xs text-gray-500">
               ({new Date(order.packedAt).toLocaleDateString()})
             </span>
           )}
@@ -108,10 +108,10 @@ export function OrderStatusActions({ order }: OrderStatusActionsProps) {
           onCheckedChange={handleShippedChange}
           disabled={isUpdating}
         />
-        <Label htmlFor={`shipped-${order.id}`} className="text-sm">
+        <Label htmlFor={`shipped-${order.id}`} className="text-sm text-gray-900">
           Shipped
           {order.shippedAt && (
-            <span className="ml-2 text-xs text-muted-foreground">
+            <span className="ml-2 text-xs text-gray-500">
               ({new Date(order.shippedAt).toLocaleDateString()})
             </span>
           )}
@@ -121,7 +121,7 @@ export function OrderStatusActions({ order }: OrderStatusActionsProps) {
       {/* Tracking number input - shown when shipped or has tracking */}
       {(isShipped || trackingNumber) && (
         <div className="ml-6">
-          <Label htmlFor={`tracking-${order.id}`} className="text-xs text-muted-foreground">
+          <Label htmlFor={`tracking-${order.id}`} className="text-xs text-gray-500">
             Tracking Number
           </Label>
           <Input

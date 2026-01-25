@@ -14,18 +14,19 @@ interface MetricCardProps {
 
 export function MetricCard({ title, value, icon: Icon, description }: MetricCardProps) {
   return (
-    <Card>
+    // Card with white background and black text
+    <Card className="bg-white text-gray-900 border-gray-300">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {/* Icon displayed in muted color on the right */}
-        {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+        {/* Icon displayed in gray on the right */}
+        {Icon && <Icon className="h-4 w-4 text-gray-500" />}
       </CardHeader>
       <CardContent>
         {/* Large value display */}
         <div className="text-2xl font-bold">{value}</div>
         {/* Optional description/subtitle */}
         {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
+          <p className="text-xs text-gray-500">{description}</p>
         )}
       </CardContent>
     </Card>

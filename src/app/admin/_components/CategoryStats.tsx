@@ -28,21 +28,22 @@ export function CategoryStats({ stats, categoryViews }: CategoryStatsProps) {
   };
 
   return (
-    <Card>
+    // Card with white background and black text
+    <Card className="bg-white text-gray-900 border-gray-300">
       <CardHeader>
         <CardTitle>Category Performance</CardTitle>
       </CardHeader>
       <CardContent>
         {stats.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No category sales data available</p>
+          <p className="text-sm text-gray-500">No category sales data available</p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Views</TableHead>
-                <TableHead className="text-right">Sold</TableHead>
-                <TableHead className="text-right">Revenue</TableHead>
+                <TableHead className="text-gray-600">Category</TableHead>
+                <TableHead className="text-right text-gray-600">Views</TableHead>
+                <TableHead className="text-right text-gray-600">Sold</TableHead>
+                <TableHead className="text-right text-gray-600">Revenue</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -51,7 +52,7 @@ export function CategoryStats({ stats, categoryViews }: CategoryStatsProps) {
                   {/* Category name */}
                   <TableCell className="font-medium">{stat.categoryName}</TableCell>
                   {/* Views from PostHog, show dash if not available */}
-                  <TableCell className="text-right text-muted-foreground">
+                  <TableCell className="text-right text-gray-500">
                     {stat.categoryId && categoryViews?.get(stat.categoryId)
                       ? categoryViews.get(stat.categoryId)
                       : "-"}

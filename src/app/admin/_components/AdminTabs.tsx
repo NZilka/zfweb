@@ -43,7 +43,8 @@ export function AdminTabs() {
   };
 
   return (
-    <div className="border-b border-border bg-card">
+    // Tab bar with dark background to match admin theme
+    <div className="border-b border-gray-700 bg-gray-900">
       <div className="mx-auto max-w-7xl px-4">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="h-auto gap-2 bg-transparent p-0">
@@ -51,7 +52,8 @@ export function AdminTabs() {
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}
-                className="rounded-none border-b-2 border-transparent px-4 py-3 text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                // White text on dark background, underline when active
+                className="rounded-none border-b-2 border-transparent px-4 py-3 text-white data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:shadow-none"
               >
                 {tab.label}
               </TabsTrigger>

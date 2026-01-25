@@ -13,30 +13,31 @@ interface RecentOrdersProps {
 
 export function RecentOrders({ orders, title = "Recent Orders" }: RecentOrdersProps) {
   return (
-    <Card>
+    // Card with white background and black text
+    <Card className="bg-white text-gray-900 border-gray-300">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
         {orders.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No orders yet</p>
+          <p className="text-sm text-gray-500">No orders yet</p>
         ) : (
           <div className="space-y-4">
             {orders.map((order) => (
               <div
                 key={order.id}
-                className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                className="flex items-center justify-between border-b border-gray-200 pb-4 last:border-0 last:pb-0"
               >
                 <div className="space-y-1">
                   {/* Order ID and customer name */}
                   <p className="text-sm font-medium">Order #{order.id}</p>
-                  <p className="text-xs text-muted-foreground">{order.customerName}</p>
+                  <p className="text-xs text-gray-500">{order.customerName}</p>
                 </div>
                 <div className="text-right">
                   {/* Order total */}
                   <p className="text-sm font-medium">${order.total}</p>
                   {/* Date formatted */}
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-gray-500">
                     {new Date(order.createdAt).toLocaleDateString()}
                   </p>
                 </div>
