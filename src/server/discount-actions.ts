@@ -284,29 +284,5 @@ export async function incrementDiscountUsage(discountId: number): Promise<void> 
   }
 }
 
-/**
- * Calculate discounted total
- */
-export function calculateDiscountedTotal(
-  subtotal: number,
-  discountValue: number,
-  discountType: "percent" | "fixed"
-): { discountAmount: number; finalTotal: number } {
-  let discountAmount: number;
-
-  if (discountType === "percent") {
-    discountAmount = subtotal * (discountValue / 100);
-  } else {
-    discountAmount = discountValue;
-  }
-
-  // Don't allow discount to exceed subtotal
-  discountAmount = Math.min(discountAmount, subtotal);
-
-  const finalTotal = Math.max(0, subtotal - discountAmount);
-
-  return {
-    discountAmount: Math.round(discountAmount * 100) / 100,
-    finalTotal: Math.round(finalTotal * 100) / 100,
-  };
-}
+// Note: calculateDiscountedTotal is in ~/lib/discount-utils
+// Moved there because "use server" files require all exports to be async

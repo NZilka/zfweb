@@ -7,10 +7,9 @@ import {
 } from "~/server/stripe";
 import { getCartItems, getCartSummary } from "~/server/cart-actions";
 import { getOrCreateStripeCustomer } from "~/server/stripe-customer";
-import {
-  validateDiscountCode,
-  calculateDiscountedTotal,
-} from "~/server/discount-actions";
+import { validateDiscountCode } from "~/server/discount-actions";
+// Import pure discount calculation from lib (not server action)
+import { calculateDiscountedTotal } from "~/lib/discount-utils";
 import { z } from "zod";
 import { cookies } from "next/headers";
 

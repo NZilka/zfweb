@@ -108,14 +108,14 @@ export function OrdersTable({
 
   if (orders.length === 0) {
     return (
-      <div className="rounded-lg border bg-gray-50 p-8 text-center dark:border-gray-800 dark:bg-gray-900">
-        <p className="text-gray-500">No orders in this category</p>
+      <div className="rounded-lg border border-border bg-muted p-8 text-center">
+        <p className="text-muted-foreground">No orders in this category</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border">
+    <div className="rounded-lg border border-border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
@@ -142,7 +142,7 @@ export function OrdersTable({
           {orders.map((order) => (
             <>
               {/* Main order row */}
-              <TableRow key={order.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+              <TableRow key={order.id} className="cursor-pointer hover:bg-muted/50">
                 {/* Selection checkbox */}
                 {showSelection && (
                   <TableCell onClick={(e) => e.stopPropagation()}>
@@ -194,7 +194,7 @@ export function OrdersTable({
 
               {/* Expanded items row */}
               {expandedOrders.has(order.id) && (
-                <TableRow key={`${order.id}-items`} className="bg-gray-50 dark:bg-gray-900">
+                <TableRow key={`${order.id}-items`} className="bg-muted/50">
                   <TableCell colSpan={showSelection ? 8 : 7} className="p-4">
                     <div className="grid gap-6 lg:grid-cols-3">
                       {/* Order Items */}
@@ -204,7 +204,7 @@ export function OrdersTable({
                           {order.items.map((item) => (
                             <div
                               key={item.id}
-                              className="flex items-center justify-between rounded bg-white p-2 dark:bg-gray-800"
+                              className="flex items-center justify-between rounded bg-card p-2"
                             >
                               <div className="flex items-center gap-3">
                                 {/* Product thumbnail */}
@@ -234,7 +234,7 @@ export function OrdersTable({
                       <div className="space-y-4">
                         <div>
                           <p className="mb-2 text-sm font-medium text-muted-foreground">Fulfillment</p>
-                          <div className="rounded bg-white p-3 dark:bg-gray-800">
+                          <div className="rounded bg-card p-3">
                             <OrderStatusActions order={order} />
                           </div>
                         </div>

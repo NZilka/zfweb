@@ -116,14 +116,14 @@ export function DiscountsClient({ discounts }: DiscountsClientProps) {
 
       {/* Discounts table */}
       {discounts.length === 0 ? (
-        <div className="rounded-lg border bg-gray-50 p-8 text-center dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-gray-500">No discount codes yet</p>
+        <div className="rounded-lg border border-border bg-muted p-8 text-center">
+          <p className="text-muted-foreground">No discount codes yet</p>
           <Button onClick={handleCreate} variant="outline" className="mt-4">
             Create your first discount
           </Button>
         </div>
       ) : (
-        <div className="rounded-lg border">
+        <div className="rounded-lg border border-border bg-card">
           <Table>
             <TableHeader>
               <TableRow>

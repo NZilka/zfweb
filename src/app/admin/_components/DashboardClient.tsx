@@ -20,7 +20,7 @@ export function DashboardClient({ currentRange, children }: DashboardClientProps
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         {/* Suspense needed for useSearchParams in DateRangeSelector */}
-        <Suspense fallback={<div className="h-10 w-[180px] animate-pulse rounded bg-gray-200" />}>
+        <Suspense fallback={<div className="h-10 w-[180px] animate-pulse rounded bg-muted" />}>
           <DateRangeSelector currentRange={currentRange} />
         </Suspense>
       </div>

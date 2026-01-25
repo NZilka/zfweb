@@ -42,8 +42,8 @@ vi.mock("drizzle-orm", () => ({
   sql: vi.fn(),
 }));
 
-// Import after mocks
-import { calculateDiscountedTotal } from "~/server/discount-actions";
+// Import pure function from lib (moved out of server actions file)
+import { calculateDiscountedTotal } from "~/lib/discount-utils";
 
 describe("Discount Calculation Utilities", () => {
   describe("calculateDiscountedTotal", () => {
