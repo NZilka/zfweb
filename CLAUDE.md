@@ -49,6 +49,63 @@ git checkout -b feature/your-feature-name
 git checkout -b fix/your-bug-fix
 ```
 
+## PR Completion Requirements
+
+**Every PR must include these steps before being considered complete:**
+
+### 1. Unit Tests
+
+Write unit tests for all new functionality. Tests go in `src/__tests__/` following existing patterns.
+
+```bash
+pnpm test:run    # Run all tests once
+pnpm test        # Run tests in watch mode (for development)
+```
+
+- Test files should be named `{feature}.test.ts` or `{component}.test.tsx`
+- Use Vitest with happy-dom for React component tests
+- Mock external services (database, Stripe, etc.) - see existing tests for patterns
+- All tests must pass before committing the PR
+
+### 2. Lesson Documentation
+
+After completing each PR, create a lesson file in `.claude/lessons/` that teaches what was done and why.
+
+**File naming:** `.claude/lessons/{pr-number}-{feature-name}.md`
+
+**Lesson structure:**
+```markdown
+# Lesson: {Feature Name}
+
+## What We Built
+Brief description of the feature/change.
+
+## Why This Approach
+Explanation of architectural decisions and trade-offs.
+
+## Key Concepts
+- Concept 1: explanation
+- Concept 2: explanation
+
+## Code Walkthrough
+Highlight important code patterns with explanations.
+
+## Testing Strategy
+How we tested this feature and why.
+
+## What You Learned
+Summary of new patterns, techniques, or knowledge.
+```
+
+### PR Checklist
+
+Before committing a PR, verify:
+- [ ] Unit tests written for new functionality
+- [ ] All tests pass (`pnpm test:run`)
+- [ ] Type check passes (`pnpm check`)
+- [ ] Lesson file created in `.claude/lessons/`
+- [ ] Code has explanatory comments
+
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router, Server Components)
@@ -61,13 +118,16 @@ git checkout -b fix/your-bug-fix
 ## Commands
 
 ```bash
-pnpm dev          # Start development server
-pnpm build        # Production build
-pnpm check        # Lint + typecheck
-pnpm db:studio    # Open Drizzle Studio (database GUI)
-pnpm db:push      # Push schema changes to database
-pnpm db:generate  # Generate migrations
-pnpm db:migrate   # Run migrations
+pnpm dev           # Start development server
+pnpm build         # Production build
+pnpm check         # Lint + typecheck
+pnpm test          # Run tests in watch mode
+pnpm test:run      # Run all tests once
+pnpm test:coverage # Run tests with coverage report
+pnpm db:studio     # Open Drizzle Studio (database GUI)
+pnpm db:push       # Push schema changes to database
+pnpm db:generate   # Generate migrations
+pnpm db:migrate    # Run migrations
 ```
 
 ## Project Structure
@@ -122,3 +182,5 @@ Check these files for detailed patterns and conventions:
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `.claude/docs/development_workflow.md`   | **Start here for any feature work.** Phased development, branching, testing, PR creation                     |
 | `.claude/docs/architectural_patterns.md` | Adding features, understanding code organization, server/client patterns, modal implementation, file uploads |
+| `.claude/lessons/`                       | Learning documentation - lessons created after each PR explaining what was built and why                     |
+| `src/__tests__/`                         | Unit tests - see existing tests for patterns on mocking and test structure                                   |
