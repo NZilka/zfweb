@@ -141,9 +141,8 @@ export default function AdminPageClient({ products, categories }: AdminPageClien
             <div
               key={product.id}
               onClick={() => handleProductSelect(product)}
-              // Product card uses theme muted colors for hover/selection states
-              className={`cursor-pointer rounded-lg p-2 transition-all hover:bg-muted ${
-                selectedProduct?.id === product.id ? "ring-2 ring-primary bg-muted" : ""
+              className={`cursor-pointer rounded-lg p-2 transition-all hover:bg-gray-700 ${
+                selectedProduct?.id === product.id ? "ring-2 ring-blue-500 bg-gray-700" : ""
               }`}
             >
               <div className="relative max-w-sm">
@@ -156,8 +155,7 @@ export default function AdminPageClient({ products, categories }: AdminPageClien
                     alt={`Image ${product.id}`}
                   />
                 ) : (
-                  // Placeholder uses muted background and foreground
-                  <div className="flex h-48 w-48 items-center justify-center bg-muted text-muted-foreground">
+                  <div className="flex h-48 w-48 items-center justify-center bg-gray-600 text-gray-400">
                     No Image
                   </div>
                 )}
@@ -172,16 +170,15 @@ export default function AdminPageClient({ products, categories }: AdminPageClien
                   )}
                 </div>
                 <div className="flex flex-col items-center p-5">
-                  {/* Title and price use theme foreground colors */}
-                  <h1 className="mb-2 text-xl font-bold tracking-tight text-foreground">
+                  <h1 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                     {product.title}
                   </h1>
-                  <p className="mb-1 text-xl font-normal text-muted-foreground">
+                  <p className="mb-1 text-xl font-normal text-gray-700 dark:text-gray-400">
                     ${product.price}
                   </p>
                   {/* Show SKU if available */}
                   {product.sku && (
-                    <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+                    <p className="text-xs text-gray-500">SKU: {product.sku}</p>
                   )}
                 </div>
               </div>

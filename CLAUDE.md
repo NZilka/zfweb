@@ -160,6 +160,17 @@ src/
 - **Force-Dynamic:** Add `export const dynamic = "force-dynamic"` for fresh DB queries
 - **Imports:** Use `~/` alias for src directory (e.g., `import { db } from "~/server/db"`)
 
+## UI Change Guidelines
+
+**Only modify the specific UI elements that are requested.** Do not make changes to surrounding or related elements to achieve the requested change.
+
+Examples:
+- If asked to make text visible: change the text color, NOT the background color
+- If asked to fix a button: change the button, NOT the container it's in
+- If asked to adjust spacing: change the spacing, NOT the element sizes
+
+This applies to all styling properties: colors, backgrounds, borders, sizes, fonts, spacing, etc. Stay focused on the exact element and property requested.
+
 ## Database
 
 Tables use `zfweb_` prefix. Key tables: `product`, `product_category`, `order`, `customer`, `cart_item`.

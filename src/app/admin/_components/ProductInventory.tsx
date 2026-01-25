@@ -28,13 +28,11 @@ export const ProductInventory = async () => {
             </Link>
             <div className="flex flex-col items-center p-5">
               <a href="#">
-                {/* Title uses theme foreground color */}
-                <h1 className="mb-2 text-xl font-bold tracking-tight text-foreground">
+                <h1 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                   {product.title}
                 </h1>
               </a>
-              {/* Price uses muted foreground for hierarchy */}
-              <p className="mb-3 text-xl font-normal text-muted-foreground">
+              <p className="mb-3 text-xl font-normal text-gray-700 dark:text-gray-400">
                 ${product.price}
               </p>
             </div>
