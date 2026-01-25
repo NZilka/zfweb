@@ -1,13 +1,13 @@
 /**
- * Dashboard tab - Admin analytics and overview
- * Shows key metrics, recent orders, and business insights
+ * Discounts tab - Admin discount code management
+ * Placeholder for discount CRUD operations
  */
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 
-// Force dynamic rendering for fresh analytics data
+// Force dynamic rendering for fresh discount data
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function DiscountsPage() {
   return (
     <main className="p-6">
       <SignedOut>
@@ -15,12 +15,12 @@ export default async function DashboardPage() {
       </SignedOut>
       <SignedIn>
         <div className="mx-auto max-w-7xl">
-          <h1 className="mb-6 text-2xl font-bold">Dashboard</h1>
-          {/* TODO: Add DashboardClient with date range selector and metrics */}
+          <h1 className="mb-6 text-2xl font-bold">Discounts</h1>
+          {/* TODO: Add DiscountsClient component with CRUD */}
           <div className="rounded-lg border bg-gray-50 p-8 text-center dark:border-gray-800 dark:bg-gray-900">
-            <p className="text-gray-500">Analytics dashboard coming soon</p>
+            <p className="text-gray-500">Discount code management coming soon</p>
             <p className="mt-2 text-sm text-gray-400">
-              Revenue, orders, visitors, and conversion metrics
+              Create and manage discount codes with expiration and usage limits
             </p>
           </div>
         </div>

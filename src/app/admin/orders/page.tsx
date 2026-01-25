@@ -1,13 +1,13 @@
 /**
- * Dashboard tab - Admin analytics and overview
- * Shows key metrics, recent orders, and business insights
+ * Orders tab - Admin order management and fulfillment
+ * Placeholder for order list with fulfillment workflow
  */
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 
-// Force dynamic rendering for fresh analytics data
+// Force dynamic rendering for fresh order data
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function OrdersPage() {
   return (
     <main className="p-6">
       <SignedOut>
@@ -15,12 +15,12 @@ export default async function DashboardPage() {
       </SignedOut>
       <SignedIn>
         <div className="mx-auto max-w-7xl">
-          <h1 className="mb-6 text-2xl font-bold">Dashboard</h1>
-          {/* TODO: Add DashboardClient with date range selector and metrics */}
+          <h1 className="mb-6 text-2xl font-bold">Orders</h1>
+          {/* TODO: Add OrdersClient component with sub-tabs */}
           <div className="rounded-lg border bg-gray-50 p-8 text-center dark:border-gray-800 dark:bg-gray-900">
-            <p className="text-gray-500">Analytics dashboard coming soon</p>
+            <p className="text-gray-500">Order management coming soon</p>
             <p className="mt-2 text-sm text-gray-400">
-              Revenue, orders, visitors, and conversion metrics
+              Sub-tabs: Unshipped, In Process, Shipped, All Orders
             </p>
           </div>
         </div>

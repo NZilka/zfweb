@@ -1,4 +1,5 @@
 import { TopNav } from "./_components/topnav";
+import { AdminTabs } from "./_components/AdminTabs";
 
 export default function AdminLayout({
   children,
@@ -6,8 +7,11 @@ export default function AdminLayout({
 }: Readonly<{ children: React.ReactNode; modal: React.ReactNode }>) {
   return (
     <>
-      <div className="grid h-screen grid-rows-[auto_1fr]">
+      {/* Layout with fixed header containing nav and tabs, scrollable content below */}
+      <div className="grid h-screen grid-rows-[auto_auto_1fr]">
         <TopNav />
+        {/* Tab navigation for admin sections */}
+        <AdminTabs />
         <main className="overflow-y-scroll">{children}</main>
       </div>
       {modal}
