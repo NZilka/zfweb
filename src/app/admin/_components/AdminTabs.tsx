@@ -52,8 +52,8 @@ export function AdminTabs() {
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}
-                // White text on dark background, underline when active
-                className="rounded-none border-b-2 border-transparent px-4 py-3 text-white data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                // White text on dark background, bold when active
+                className="rounded-none border-b-2 border-transparent px-4 py-3 text-white data-[state=active]:border-white data-[state=active]:font-bold data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-white"
               >
                 {tab.label}
               </TabsTrigger>
