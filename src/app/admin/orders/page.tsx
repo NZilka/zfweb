@@ -1,13 +1,35 @@
 /**
  * Orders tab - Admin order management and fulfillment
- * Placeholder for order list with fulfillment workflow
+ * Shows orders with sub-tabs for fulfillment workflow
  */
 import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { OrdersClient } from "./_components/OrdersClient";
+import { OrdersTable } from "./_components/OrdersTable";
+import {
+  getOrdersByFulfillmentStatus,
+  getOrderCounts,
+  type FulfillmentFilter,
+} from "~/server/admin-queries";
 
 // Force dynamic rendering for fresh order data
 export const dynamic = "force-dynamic";
 
-export default async function OrdersPage() {
+interface OrdersPageProps {
+  searchParams: Promise<{ tab?: string }>;
+}
+
+export default async function OrdersPage({ searchParams }: OrdersPageProps) {
+  // Get current tab from URL params, default to unshipped
+  const params = await searchParams;
+  const tabParam = params.tab as FulfillmentFilter | undefined;
+  const currentTab: FulfillmentFilter = tabParam ?? "unshipped";
+
+  // Fetch orders for current tab and counts for all tabs
+  const [orders, counts] = await Promise.all([
+    getOrdersByFulfillmentStatus(currentTab),
+    getOrderCounts(),
+  ]);
+
   return (
     <main className="p-6">
       <SignedOut>
@@ -15,14 +37,13 @@ export default async function OrdersPage() {
       </SignedOut>
       <SignedIn>
         <div className="mx-auto max-w-7xl">
-          <h1 className="mb-6 text-2xl font-bold">Orders</h1>
-          {/* TODO: Add OrdersClient component with sub-tabs */}
-          <div className="rounded-lg border bg-gray-50 p-8 text-center dark:border-gray-800 dark:bg-gray-900">
-            <p className="text-gray-500">Order management coming soon</p>
-            <p className="mt-2 text-sm text-gray-400">
-              Sub-tabs: Unshipped, In Process, Shipped, All Orders
-            </p>
-          </div>
+          <OrdersClient currentTab={currentTab} counts={counts}>
+            {/* Orders table with selection for unshipped tab */}
+            <OrdersTable
+              orders={orders}
+              showSelection={currentTab === "unshipped"}
+            />
+          </OrdersClient>
         </div>
       </SignedIn>
     </main>
