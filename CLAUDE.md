@@ -4,6 +4,8 @@ E-commerce platform for Zilka Forgewerks (bespoke jewelry/tools) built with Next
 
 Use the context from PROJECT.md in all understanding and decision making.
 
+Use MOTIVATION.md for project understanding
+
 After completing a task that involves tool use, provide a quick summary of the work you've done.
 
 Always use the design skill when changing the UI.
@@ -118,5 +120,5 @@ Check these files for detailed patterns and conventions:
 
 | Document                                 | When to Reference                                                                                            |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `.claude/docs/development_workflow.md`   | **Start here for any feature work.** Phased development, branching, testing, PR creation                    |
+| `.claude/docs/development_workflow.md`   | **Start here for any feature work.** Phased development, branching, testing, PR creation                     |
 | `.claude/docs/architectural_patterns.md` | Adding features, understanding code organization, server/client patterns, modal implementation, file uploads |
