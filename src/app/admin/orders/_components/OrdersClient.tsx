@@ -1,14 +1,16 @@
 /**
  * OrdersClient - Client wrapper for orders tab with sub-tabs
- * Handles tab navigation via URL params
+ * Handles tab navigation via URL params and order selection
  */
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { useState, Suspense } from "react";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from "~/components/ui/badge";
-import type { FulfillmentFilter } from "~/server/admin-queries";
+import { CsvExportButton } from "./CsvExportButton";
+import { OrdersTable } from "./OrdersTable";
+import type { FulfillmentFilter, OrderWithItems } from "~/server/admin-queries";
 
 interface OrderCounts {
   unshipped: number;
@@ -20,7 +22,7 @@ interface OrderCounts {
 interface OrdersClientProps {
   currentTab: FulfillmentFilter;
   counts: OrderCounts;
-  children: React.ReactNode;
+  orders: OrderWithItems[];
 }
 
 // Sub-tab configuration with labels and counts
@@ -31,21 +33,33 @@ const ORDER_TABS: { id: FulfillmentFilter; label: string; countKey: keyof OrderC
   { id: "all", label: "All Orders", countKey: "all" },
 ];
 
-function OrdersTabsContent({ currentTab, counts, children }: OrdersClientProps) {
+function OrdersTabsContent({ currentTab, counts, orders }: OrdersClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Track selected order IDs for CSV export
+  const [selectedOrders, setSelectedOrders] = useState<Set<number>>(new Set());
 
   // Navigate to tab by updating URL params
   const handleTabChange = (tabId: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tabId);
+    // Clear selection when changing tabs
+    setSelectedOrders(new Set());
     router.push(`/admin/orders?${params.toString()}`);
   };
 
+  // Only show selection on unshipped tab
+  const showSelection = currentTab === "unshipped";
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <h1 className="text-2xl font-bold">Orders</h1>
+      {/* Header with export button for unshipped tab */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Orders</h1>
+        {showSelection && (
+          <CsvExportButton selectedOrderIds={Array.from(selectedOrders)} />
+        )}
+      </div>
 
       {/* Sub-tabs for fulfillment status */}
       <Tabs value={currentTab} onValueChange={handleTabChange}>
@@ -62,8 +76,13 @@ function OrdersTabsContent({ currentTab, counts, children }: OrdersClientProps) 
         </TabsList>
       </Tabs>
 
-      {/* Orders content passed as children */}
-      {children}
+      {/* Orders table with selection for unshipped tab */}
+      <OrdersTable
+        orders={orders}
+        showSelection={showSelection}
+        selectedOrders={selectedOrders}
+        onSelectionChange={setSelectedOrders}
+      />
     </div>
   );
 }

@@ -4,7 +4,6 @@
  */
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { OrdersClient } from "./_components/OrdersClient";
-import { OrdersTable } from "./_components/OrdersTable";
 import {
   getOrdersByFulfillmentStatus,
   getOrderCounts,
@@ -37,13 +36,8 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       </SignedOut>
       <SignedIn>
         <div className="mx-auto max-w-7xl">
-          <OrdersClient currentTab={currentTab} counts={counts}>
-            {/* Orders table with selection for unshipped tab */}
-            <OrdersTable
-              orders={orders}
-              showSelection={currentTab === "unshipped"}
-            />
-          </OrdersClient>
+          {/* OrdersClient handles tabs, selection, export, and table rendering */}
+          <OrdersClient currentTab={currentTab} counts={counts} orders={orders} />
         </div>
       </SignedIn>
     </main>
