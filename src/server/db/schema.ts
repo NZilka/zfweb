@@ -76,6 +76,20 @@ export const order = createTable("order", {
     .notNull()
     .$default(() => []),
   total: decimal("total").notNull(),
+
+  // === Fulfillment workflow fields ===
+  // Track whether order CSV has been downloaded for shipping label creation
+  is_downloaded: boolean("is_downloaded").notNull().default(false),
+  downloaded_at: timestamp("downloaded_at", { withTimezone: true }),
+  // Track whether order has been physically packed
+  is_packed: boolean("is_packed").notNull().default(false),
+  packed_at: timestamp("packed_at", { withTimezone: true }),
+  // Track whether order has been shipped with carrier
+  is_shipped: boolean("is_shipped").notNull().default(false),
+  shipped_at: timestamp("shipped_at", { withTimezone: true }),
+  // Carrier tracking number for customer notification
+  tracking_number: varchar("tracking_number", { length: 256 }),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -141,12 +155,20 @@ export const customer = createTable(
 
 export const discount = createTable("discount", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  // Unique customer-facing discount code (e.g., "SUMMER20")
+  code: varchar("code", { length: 64 }).notNull().unique(),
   name: varchar("name", { length: 256 }).notNull(),
   description: varchar("description", { length: 1024 }).notNull(),
   discount: decimal("discount").notNull(),
+  // Type of discount: "percent" for percentage off, "fixed" for dollar amount off
+  discount_type: varchar("discount_type", { length: 16 }).notNull().default("percent"),
   free_shipping: boolean("free_shipping").notNull(),
   active: boolean("active").default(false),
-  numberOfUses: integer("number_of_uses").notNull(),
+  numberOfUses: integer("number_of_uses").notNull().default(0),
+  // Maximum times this code can be used (null = unlimited)
+  max_uses: integer("max_uses"),
+  // Expiration date for the discount code (null = never expires)
+  expires_at: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
