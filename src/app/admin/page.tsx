@@ -8,10 +8,14 @@ import { DashboardClient } from "./_components/DashboardClient";
 import { MetricCard } from "./_components/MetricCard";
 import { RecentOrders } from "./_components/RecentOrders";
 import { RecentShipments } from "./_components/RecentShipments";
+import { ProductStats } from "./_components/ProductStats";
+import { CategoryStats } from "./_components/CategoryStats";
 import {
   getSalesMetrics,
   getRecentOrders,
   getRecentShipments,
+  getProductSalesStats,
+  getCategorySalesStats,
   getDateRangeFromPreset,
   type DateRangePreset,
 } from "~/server/analytics-queries";
@@ -31,10 +35,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const { start, end } = getDateRangeFromPreset(currentRange);
 
   // Fetch all dashboard data in parallel
-  const [metrics, recentOrders, recentShipments] = await Promise.all([
+  const [metrics, recentOrders, recentShipments, productStats, categoryStats] = await Promise.all([
     getSalesMetrics(start, end),
     getRecentOrders(5),
     getRecentShipments(5),
+    getProductSalesStats(start, end),
+    getCategorySalesStats(start, end),
   ]);
 
   // Format currency for display
@@ -85,6 +91,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             <div className="grid gap-4 md:grid-cols-2">
               <RecentOrders orders={recentOrders} />
               <RecentShipments shipments={recentShipments} />
+            </div>
+
+            {/* Product and Category performance tables */}
+            <div className="grid gap-4 lg:grid-cols-2">
+              <ProductStats stats={productStats} />
+              <CategoryStats stats={categoryStats} />
             </div>
           </DashboardClient>
         </div>
