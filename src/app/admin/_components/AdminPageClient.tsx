@@ -7,8 +7,11 @@ import { ProductProvider, type ProductType } from "~/app/_context/ProductContext
 import { EditImageProvider } from "~/app/_context/EditImageContext";
 import { deleteProductAction } from "./deleteAction";
 import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
+import { toast } from "sonner";
 import Image from "next/image";
 import CategoryManager from "./CategoryManager";
+import { Plus } from "lucide-react";
 
 // Product data type from database
 interface ProductData {
@@ -53,8 +56,10 @@ export default function AdminPageClient({ products, categories }: AdminPageClien
     setSelectedProduct(product);
   };
 
-  // Handle successful save - clear selection and refresh
+  // Handle successful save - clear selection, refresh, and show toast
   const handleSaveSuccess = () => {
+    const message = selectedProduct ? "Product updated" : "Product created";
+    toast.success(message);
     setSelectedProduct(null);
     router.refresh();
   };
@@ -64,11 +69,14 @@ export default function AdminPageClient({ products, categories }: AdminPageClien
     setSelectedProduct(null);
   };
 
-  // Handle delete - uses server action
+  // Handle delete - uses server action with toast notification
   const handleDelete = async () => {
     if (!selectedProduct) return;
     if (confirm("Are you sure you want to delete this product?")) {
       await deleteProductAction(selectedProduct.id);
+      toast.success("Product deleted");
+      setSelectedProduct(null);
+      router.refresh();
     }
   };
 
@@ -115,7 +123,19 @@ export default function AdminPageClient({ products, categories }: AdminPageClien
 
       {/* Product inventory grid */}
       <div className="w-full">
-        <h2 className="mb-4 text-center text-2xl font-semibold">Product Inventory</h2>
+        <div className="mb-4 flex items-center justify-between px-4">
+          <h2 className="text-2xl font-semibold">Product Inventory</h2>
+          {/* Add Product button - scrolls to form in create mode */}
+          {!isEditMode && (
+            <Button
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Product
+            </Button>
+          )}
+        </div>
         <div className="flex flex-wrap items-center justify-center gap-4">
           {products.map((product) => (
             <div
@@ -139,13 +159,27 @@ export default function AdminPageClient({ products, categories }: AdminPageClien
                     No Image
                   </div>
                 )}
+                {/* Inventory status badge - top right corner */}
+                <div className="absolute right-2 top-2">
+                  {product.inventory > 0 ? (
+                    <Badge variant="default" className="bg-green-600 text-white">
+                      In Stock ({product.inventory})
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive">Sold Out</Badge>
+                  )}
+                </div>
                 <div className="flex flex-col items-center p-5">
                   <h1 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                     {product.title}
                   </h1>
-                  <p className="mb-3 text-xl font-normal text-gray-700 dark:text-gray-400">
+                  <p className="mb-1 text-xl font-normal text-gray-700 dark:text-gray-400">
                     ${product.price}
                   </p>
+                  {/* Show SKU if available */}
+                  {product.sku && (
+                    <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                  )}
                 </div>
               </div>
             </div>
