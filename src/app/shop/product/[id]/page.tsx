@@ -4,6 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "~/app/shop/_components/AddToCartButton";
 import { ImageGallery } from "~/app/shop/_components/ImageGallery";
+// Client component for PostHog product view tracking
+import { ProductViewTracker } from "~/app/shop/_components/ProductViewTracker";
 
 // Product detail page - shows full product info with quantity selector
 export default async function ProductPage({
@@ -29,6 +31,8 @@ export default async function ProductPage({
 
   return (
     <div className="flex min-h-screen flex-col items-center gap-8 p-8">
+      {/* Track product view for analytics (invisible component) */}
+      <ProductViewTracker productId={product.id} categoryId={product.category_id ?? undefined} />
       <Link
         href="/shop"
         className="self-start text-sm text-gray-500 hover:text-gray-700"

@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { ProductModal } from "./modal";
 import { ImageGallery } from "~/app/shop/_components/ImageGallery";
 import { ModalAddToCart } from "./ModalAddToCart";
+// Client component for PostHog product view tracking
+import { ProductViewTracker } from "~/app/shop/_components/ProductViewTracker";
 
 // Intercepting route for product modal
 // Shows product in modal overlay when navigating from shop page
@@ -31,6 +33,8 @@ export default async function ProductModalPage({
 
   return (
     <ProductModal>
+      {/* Track product view for analytics (invisible component) */}
+      <ProductViewTracker productId={product.id} categoryId={product.category_id ?? undefined} />
       <div className="p-6 md:p-8">
         <div className="flex flex-col gap-6 md:flex-row md:gap-8">
           {/* Product images - interactive gallery */}

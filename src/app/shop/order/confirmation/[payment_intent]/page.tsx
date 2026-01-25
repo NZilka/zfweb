@@ -5,6 +5,8 @@ import { CheckCircle } from "lucide-react";
 import { PrintButton } from "../../[id]/PrintButton";
 import { CreateAccountPrompt } from "./CreateAccountPrompt";
 import { ContinueShoppingButton } from "~/components/ui/ContinueShoppingButton";
+// Client component for PostHog order completion tracking
+import { OrderCompletedTracker } from "./OrderCompletedTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,8 @@ export default async function OrderConfirmationPage({
 
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-8">
+      {/* Track order completion for analytics */}
+      <OrderCompletedTracker orderId={order.id} orderTotal={parseFloat(order.total)} />
       {/* Success header */}
       <div className="mb-8 text-center">
         <div className="mb-4 flex justify-center">

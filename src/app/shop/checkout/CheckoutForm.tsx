@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import {
@@ -21,6 +21,8 @@ import {
 import { z } from "zod";
 import Link from "next/link";
 import { CreditCard, Plus } from "lucide-react";
+// PostHog event tracking for checkout analytics
+import { trackCheckoutStarted } from "~/lib/posthog";
 
 // Saved payment method type from API
 type SavedPaymentMethod = {

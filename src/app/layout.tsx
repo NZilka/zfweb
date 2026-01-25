@@ -5,6 +5,8 @@ import { type Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 // Sonner toast component for notifications across the app
 import { Toaster } from "~/components/ui/sonner";
+// Client-side providers including PostHog analytics
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "Zilka Forgewerks",
@@ -19,7 +21,10 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body className={`${GeistSans.variable} flex flex-col gap-4`}>
-          {children}
+          {/* Providers wrap app with client-side contexts (PostHog, etc.) */}
+          <Providers>
+            {children}
+          </Providers>
           {/* Toast notification container - positioned at bottom-right by default */}
           <Toaster />
         </body>
