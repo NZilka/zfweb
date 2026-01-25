@@ -154,17 +154,18 @@ export const ProductForm = ({
           <ImageSlot key={index} index={index} />
         ))}
       </div>
-      <p className="text-center text-sm text-gray-400">
+      {/* Instructions use muted foreground color */}
+      <p className="text-center text-sm text-muted-foreground">
         Drag images to reorder. Click + to add (max 5).
       </p>
 
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col gap-4">
-          {/* Title field */}
+          {/* Title field - uses theme input colors */}
           <div>
             <label>Title: </label>
             <input
-              className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-white"
+              className="rounded border border-input bg-background px-2 py-1 text-foreground"
               type="text"
               value={product.title}
               onChange={(e) =>
@@ -174,11 +175,11 @@ export const ProductForm = ({
             />
           </div>
 
-          {/* Price field */}
+          {/* Price field - uses theme input colors */}
           <div>
             <label>Price: </label>
             <input
-              className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-white"
+              className="rounded border border-input bg-background px-2 py-1 text-foreground"
               type="number"
               step="0.01"
               min="0"
@@ -190,11 +191,11 @@ export const ProductForm = ({
             />
           </div>
 
-          {/* Description field */}
+          {/* Description field - uses theme input colors */}
           <div>
             <label>Description: </label>
             <input
-              className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-white"
+              className="rounded border border-input bg-background px-2 py-1 text-foreground"
               type="text"
               value={product.description}
               onChange={(e) =>
@@ -204,11 +205,11 @@ export const ProductForm = ({
             />
           </div>
 
-          {/* Inventory field */}
+          {/* Inventory field - uses theme input colors */}
           <div>
             <label>Inventory: </label>
             <input
-              className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-white"
+              className="rounded border border-input bg-background px-2 py-1 text-foreground"
               type="number"
               min="0"
               value={product.inventory}
@@ -222,11 +223,11 @@ export const ProductForm = ({
             />
           </div>
 
-          {/* SKU field - optional */}
+          {/* SKU field - optional, uses theme input colors */}
           <div>
             <label>SKU: </label>
             <input
-              className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-white placeholder-gray-400"
+              className="rounded border border-input bg-background px-2 py-1 text-foreground placeholder:text-muted-foreground"
               type="text"
               value={product.sku ?? ""}
               onChange={(e) =>
@@ -236,11 +237,11 @@ export const ProductForm = ({
             />
           </div>
 
-          {/* Category dropdown - optional */}
+          {/* Category dropdown - optional, uses theme input colors */}
           <div>
             <label>Category: </label>
             <select
-              className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-white"
+              className="rounded border border-input bg-background px-2 py-1 text-foreground"
               value={product.category_id ?? ""}
               onChange={(e) =>
                 setProduct({
@@ -279,12 +280,12 @@ export const ProductForm = ({
                   : "Save Changes"}
             </button>
 
-            {/* Cancel button only shown in edit mode */}
+            {/* Cancel button only shown in edit mode - uses secondary theme colors */}
             {mode === "edit" && onCancel && (
               <button
                 type="button"
                 onClick={handleCancel}
-                className="rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
+                className="rounded bg-secondary px-4 py-2 text-secondary-foreground hover:bg-secondary/80"
               >
                 Cancel
               </button>

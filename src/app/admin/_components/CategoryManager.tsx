@@ -102,7 +102,8 @@ export default function CategoryManager({ categories }: CategoryManagerProps) {
   };
 
   return (
-    <div className="w-full rounded-lg border border-gray-700 bg-gray-800 p-4">
+    // Container uses theme card colors for consistent styling
+    <div className="w-full rounded-lg border border-border bg-card p-4">
       {/* Collapsible header */}
       <button
         type="button"
@@ -110,7 +111,7 @@ export default function CategoryManager({ categories }: CategoryManagerProps) {
         className="flex w-full items-center justify-between text-left"
       >
         <h3 className="text-lg font-semibold">Manage Categories</h3>
-        <span className="text-gray-400">{isExpanded ? "▼" : "▶"}</span>
+        <span className="text-muted-foreground">{isExpanded ? "▼" : "▶"}</span>
       </button>
 
       {isExpanded && (
@@ -119,16 +120,17 @@ export default function CategoryManager({ categories }: CategoryManagerProps) {
           {categories.length > 0 ? (
             <div className="space-y-2">
               {categories.map((category) => (
+                // Category row uses muted colors for selection state
                 <div
                   key={category.id}
                   className={`flex items-center justify-between rounded p-2 ${
-                    editingId === category.id ? "bg-gray-700" : "bg-gray-900"
+                    editingId === category.id ? "bg-muted" : "bg-muted/50"
                   }`}
                 >
                   <div>
                     <span className="font-medium">{category.name}</span>
                     {category.description && (
-                      <span className="ml-2 text-sm text-gray-400">
+                      <span className="ml-2 text-sm text-muted-foreground">
                         - {category.description}
                       </span>
                     )}
@@ -155,11 +157,11 @@ export default function CategoryManager({ categories }: CategoryManagerProps) {
               ))}
             </div>
           ) : (
-            <p className="text-gray-400">No categories yet. Add one below.</p>
+            <p className="text-muted-foreground">No categories yet. Add one below.</p>
           )}
 
-          {/* Add/Edit form */}
-          <form onSubmit={handleSubmit} className="space-y-3 border-t border-gray-700 pt-4">
+          {/* Add/Edit form - uses theme border and input colors */}
+          <form onSubmit={handleSubmit} className="space-y-3 border-t border-border pt-4">
             <h4 className="font-medium">
               {editingId ? "Edit Category" : "Add New Category"}
             </h4>
@@ -170,7 +172,7 @@ export default function CategoryManager({ categories }: CategoryManagerProps) {
                 placeholder="Category name *"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="rounded bg-gray-900 px-3 py-2 text-white placeholder-gray-500"
+                className="rounded border border-input bg-background px-3 py-2 text-foreground placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
               <input
@@ -178,7 +180,7 @@ export default function CategoryManager({ categories }: CategoryManagerProps) {
                 placeholder="Description (optional)"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="rounded bg-gray-900 px-3 py-2 text-white placeholder-gray-500"
+                className="rounded border border-input bg-background px-3 py-2 text-foreground placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
             </div>
