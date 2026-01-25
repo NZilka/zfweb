@@ -7,6 +7,9 @@ import {
 } from "~/server/stripe";
 import { getCartItems, getCartSummary } from "~/server/cart-actions";
 import { getOrCreateStripeCustomer } from "~/server/stripe-customer";
+import { validateDiscountCode } from "~/server/discount-actions";
+// Import pure discount calculation from lib (not server action)
+import { calculateDiscountedTotal } from "~/lib/discount-utils";
 import { z } from "zod";
 import { cookies } from "next/headers";
 
@@ -23,13 +26,15 @@ const customerInfoSchema = z.object({
   country: z.string().min(1),
 });
 
-// Request body schema - includes optional savePaymentMethod flag
+// Request body schema - includes optional savePaymentMethod flag and discount code
 const requestBodySchema = z.object({
   customerInfo: customerInfoSchema,
   // Whether user wants to save payment method for future use (only for logged-in users)
   savePaymentMethod: z.boolean().optional().default(false),
   // ID of saved payment method to use (if user selected a saved card)
   savedPaymentMethodId: z.string().optional(),
+  // Optional discount code to apply
+  discountCode: z.string().optional(),
 });
 
 // POST /api/checkout/create-intent
@@ -55,8 +60,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Extract validated fields including optional saved payment method ID
-    const { customerInfo, savePaymentMethod, savedPaymentMethodId } =
+    // Extract validated fields including optional saved payment method ID and discount
+    const { customerInfo, savePaymentMethod, savedPaymentMethodId, discountCode } =
       bodyResult.data;
     const customerName = `${customerInfo.firstName} ${customerInfo.lastName}`;
 
@@ -73,8 +78,41 @@ export async function POST(request: Request) {
       );
     }
 
-    // Calculate amount in cents for Stripe
-    const amountInCents = Math.round(parseFloat(summary.total) * 100);
+    // Validate and apply discount code if provided
+    let discountInfo: {
+      id: number;
+      code: string;
+      amount: number;
+    } | null = null;
+    let finalTotal = parseFloat(summary.total);
+
+    if (discountCode) {
+      const discountResult = await validateDiscountCode(discountCode);
+
+      if (!discountResult.valid || !discountResult.discount) {
+        return NextResponse.json(
+          { message: discountResult.error || "Invalid discount code" },
+          { status: 400 }
+        );
+      }
+
+      // Calculate discounted total
+      const { discountAmount, finalTotal: discounted } = calculateDiscountedTotal(
+        parseFloat(summary.total),
+        discountResult.discount.discount,
+        discountResult.discount.discountType
+      );
+
+      discountInfo = {
+        id: discountResult.discount.id,
+        code: discountResult.discount.code,
+        amount: discountAmount,
+      };
+      finalTotal = discounted;
+    }
+
+    // Calculate amount in cents for Stripe (using discounted total)
+    const amountInCents = Math.round(finalTotal * 100);
 
     if (amountInCents < 50) {
       // Stripe minimum is 50 cents
@@ -113,7 +151,7 @@ export async function POST(request: Request) {
     }
 
     // Metadata for webhook processing - shared between new and saved payment flows
-    const paymentMetadata = {
+    const paymentMetadata: Record<string, string> = {
       customerEmail: customerInfo.email,
       customerName,
       shippingAddress: JSON.stringify({
@@ -129,6 +167,13 @@ export async function POST(request: Request) {
       checkoutType: clerkUserId ? "registered" : "guest",
       stripeCustomerId: stripeCustomer.customerId,
     };
+
+    // Add discount info to metadata if discount applied
+    if (discountInfo) {
+      paymentMetadata.discountId = String(discountInfo.id);
+      paymentMetadata.discountCode = discountInfo.code;
+      paymentMetadata.discountAmount = String(discountInfo.amount);
+    }
 
     // Step 2: Create payment intent - different flow for saved vs new payment method
     let clientSecret: string | null;

@@ -6,6 +6,8 @@ import {
   syncPaymentStateByPaymentIntent,
   syncOrderStateToKV,
 } from "~/server/stripe-sync";
+// Import discount usage increment for successful payments
+import { incrementDiscountUsage } from "~/server/discount-actions";
 import type Stripe from "stripe";
 
 // Check if PaymentIntent payload is a snapshot (has full data) or thin (just ID)
@@ -68,6 +70,16 @@ export async function POST(request: Request) {
 
         // Create order from successful payment
         const order = await createOrderFromPayment(paymentIntent);
+
+        // Increment discount usage if a discount code was applied
+        // discountId is stored in metadata during payment intent creation
+        if (paymentIntent.metadata.discountId) {
+          const discountId = parseInt(paymentIntent.metadata.discountId, 10);
+          if (!isNaN(discountId)) {
+            await incrementDiscountUsage(discountId);
+            console.log(`Incremented usage for discount ID ${discountId}`);
+          }
+        }
 
         // Sync state to KV after order creation (per stripe-recommendations pattern)
         // Get customer ID from payment intent for sync

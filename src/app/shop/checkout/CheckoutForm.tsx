@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import {
@@ -21,6 +21,11 @@ import {
 import { z } from "zod";
 import Link from "next/link";
 import { CreditCard, Plus } from "lucide-react";
+// PostHog event tracking for checkout analytics
+import { trackCheckoutStarted } from "~/lib/posthog";
+// Discount code input component
+import { DiscountCodeInput } from "./DiscountCodeInput";
+import type { ValidatedDiscount } from "~/server/discount-actions";
 
 // Saved payment method type from API
 type SavedPaymentMethod = {
@@ -74,6 +79,9 @@ export default function CheckoutForm() {
 
   // Save card checkbox state (only for new cards)
   const [saveCard, setSaveCard] = useState(false);
+
+  // Discount code state
+  const [appliedDiscount, setAppliedDiscount] = useState<ValidatedDiscount | null>(null);
 
   // Pre-fill email for signed-in users
   useEffect(() => {
@@ -154,6 +162,8 @@ export default function CheckoutForm() {
           savePaymentMethod: selectedMethodId === null && saveCard,
           // Pass selected payment method ID if using saved card (omit if null)
           ...(selectedMethodId && { savedPaymentMethodId: selectedMethodId }),
+          // Pass discount code if applied
+          ...(appliedDiscount && { discountCode: appliedDiscount.code }),
         }),
       });
 
@@ -421,6 +431,15 @@ export default function CheckoutForm() {
           <span className="text-sm">Save this card for future purchases</span>
         </label>
       )}
+
+      {/* Discount code input */}
+      <div>
+        <h2 className="mb-3 text-xl font-semibold">Discount Code</h2>
+        <DiscountCodeInput
+          onDiscountApplied={setAppliedDiscount}
+          appliedDiscount={appliedDiscount}
+        />
+      </div>
 
       {/* Submit error */}
       {errors.submit && (

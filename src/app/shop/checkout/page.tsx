@@ -4,6 +4,8 @@ import CheckoutForm from "./CheckoutForm";
 import Image from "next/image";
 import Link from "next/link";
 import { ScrollToTop } from "~/components/ui/ScrollToTop";
+// Client component for PostHog checkout tracking
+import { CheckoutTracker } from "./CheckoutTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,8 @@ export default async function CheckoutPage() {
     <div className="mx-auto max-w-6xl p-4 md:p-8">
       {/* Scroll to top when page loads */}
       <ScrollToTop />
+      {/* Track checkout started event for analytics */}
+      <CheckoutTracker cartValue={parseFloat(summary.total)} />
       {/* Header */}
       <div className="mb-8">
         <Link

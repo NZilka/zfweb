@@ -8,6 +8,13 @@
       "when": 1769048030973,
       "tag": "0000_aspiring_lilandra",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1769373362448,
+      "tag": "0001_greedy_supernaut",
+      "breakpoints": true
     }
   ]
 }
