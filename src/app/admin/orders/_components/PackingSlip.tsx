@@ -1,0 +1,128 @@
+/**
+ * PackingSlip - Print-optimized packing slip for orders
+ * Displays order details and items for fulfillment
+ */
+"use client";
+
+import { Button } from "~/components/ui/button";
+import { Printer } from "lucide-react";
+import type { OrderWithItems } from "~/server/admin-queries";
+
+interface PackingSlipProps {
+  order: OrderWithItems;
+}
+
+// Parse shipping address from JSON string
+interface ShippingAddress {
+  firstName?: string;
+  lastName?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+}
+
+export function PackingSlip({ order }: PackingSlipProps) {
+  // Parse shipping address
+  let address: ShippingAddress = {};
+  try {
+    address = JSON.parse(order.shippingAddress) as ShippingAddress;
+  } catch {
+    // Use empty address if parse fails
+  }
+
+  // Format date
+  const orderDate = new Date(order.createdAt).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // Print handler - opens print dialog
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <>
+      {/* Print button - hidden when printing */}
+      <Button onClick={handlePrint} variant="outline" size="sm" className="gap-2 print:hidden">
+        <Printer className="h-4 w-4" />
+        Print Packing Slip
+      </Button>
+
+      {/* Packing slip content - only visible when printing */}
+      <div className="hidden print:block">
+        <style jsx>{`
+          @media print {
+            @page {
+              margin: 0.5in;
+            }
+          }
+        `}</style>
+
+        <div className="packing-slip p-4">
+          {/* Header */}
+          <div className="mb-6 border-b pb-4">
+            <h1 className="text-2xl font-bold">Zilka Forgewerks</h1>
+            <p className="text-sm text-gray-500">Packing Slip</p>
+          </div>
+
+          {/* Order info */}
+          <div className="mb-6 grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-500">Order Number</p>
+              <p className="font-bold">#{order.id}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Order Date</p>
+              <p className="font-bold">{orderDate}</p>
+            </div>
+          </div>
+
+          {/* Ship to */}
+          <div className="mb-6">
+            <p className="mb-2 text-sm font-medium text-gray-500">SHIP TO:</p>
+            <div className="rounded border p-3">
+              <p className="font-bold">{order.customerName}</p>
+              <p>{address.address1}</p>
+              {address.address2 && <p>{address.address2}</p>}
+              <p>
+                {address.city}, {address.state} {address.zipCode}
+              </p>
+              <p>{address.country}</p>
+            </div>
+          </div>
+
+          {/* Items table */}
+          <div className="mb-6">
+            <p className="mb-2 text-sm font-medium text-gray-500">ITEMS:</p>
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b">
+                  <th className="py-2 text-left">Product</th>
+                  <th className="py-2 text-right">Qty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {order.items.map((item) => (
+                  <tr key={item.id} className="border-b">
+                    <td className="py-2">{item.product.title}</td>
+                    <td className="py-2 text-right">{item.quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-8 text-center text-sm text-gray-500">
+            <p>Thank you for your order!</p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

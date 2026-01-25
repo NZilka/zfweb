@@ -1,6 +1,6 @@
 /**
  * OrdersTable - Display table of orders with expandable rows
- * Shows order details and line items
+ * Shows order details, line items, and fulfillment controls
  */
 "use client";
 
@@ -17,6 +17,8 @@ import { Badge } from "~/components/ui/badge";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Button } from "~/components/ui/button";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { PackingSlip } from "./PackingSlip";
+import { OrderStatusActions } from "./OrderStatusActions";
 import type { OrderWithItems } from "~/server/admin-queries";
 
 interface OrdersTableProps {
@@ -194,35 +196,54 @@ export function OrdersTable({
               {expandedOrders.has(order.id) && (
                 <TableRow key={`${order.id}-items`} className="bg-gray-50 dark:bg-gray-900">
                   <TableCell colSpan={showSelection ? 8 : 7} className="p-4">
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">Order Items</p>
-                      <div className="space-y-2">
-                        {order.items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between rounded bg-white p-2 dark:bg-gray-800"
-                          >
-                            <div className="flex items-center gap-3">
-                              {/* Product thumbnail */}
-                              {item.product.imgUrl[0] && (
-                                <img
-                                  src={item.product.imgUrl[0]}
-                                  alt={item.product.title}
-                                  className="h-10 w-10 rounded object-cover"
-                                />
-                              )}
-                              <div>
-                                <p className="font-medium">{item.product.title}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  Qty: {item.quantity} × ${item.product.price}
-                                </p>
+                    <div className="grid gap-6 lg:grid-cols-3">
+                      {/* Order Items */}
+                      <div className="lg:col-span-2">
+                        <p className="mb-2 text-sm font-medium text-muted-foreground">Order Items</p>
+                        <div className="space-y-2">
+                          {order.items.map((item) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center justify-between rounded bg-white p-2 dark:bg-gray-800"
+                            >
+                              <div className="flex items-center gap-3">
+                                {/* Product thumbnail */}
+                                {item.product.imgUrl[0] && (
+                                  <img
+                                    src={item.product.imgUrl[0]}
+                                    alt={item.product.title}
+                                    className="h-10 w-10 rounded object-cover"
+                                  />
+                                )}
+                                <div>
+                                  <p className="font-medium">{item.product.title}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Qty: {item.quantity} × ${item.product.price}
+                                  </p>
+                                </div>
                               </div>
+                              <p className="font-medium">
+                                ${(parseFloat(item.product.price) * item.quantity).toFixed(2)}
+                              </p>
                             </div>
-                            <p className="font-medium">
-                              ${(parseFloat(item.product.price) * item.quantity).toFixed(2)}
-                            </p>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Fulfillment Actions */}
+                      <div className="space-y-4">
+                        <div>
+                          <p className="mb-2 text-sm font-medium text-muted-foreground">Fulfillment</p>
+                          <div className="rounded bg-white p-3 dark:bg-gray-800">
+                            <OrderStatusActions order={order} />
                           </div>
-                        ))}
+                        </div>
+
+                        {/* Packing Slip Print Button */}
+                        <div>
+                          <p className="mb-2 text-sm font-medium text-muted-foreground">Actions</p>
+                          <PackingSlip order={order} />
+                        </div>
                       </div>
                     </div>
                   </TableCell>
