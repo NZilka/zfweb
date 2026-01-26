@@ -20,7 +20,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={`${GeistSans.variable} flex flex-col gap-4`}>
+        <body className={`${GeistSans.variable} flex flex-col gap-4 overflow-x-hidden`}>
           {/* Providers wrap app with client-side contexts (PostHog, etc.) */}
           <Providers>
             {children}
