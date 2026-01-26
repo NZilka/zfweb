@@ -258,3 +258,67 @@ export const order_items = createTable("order_items", {
 //     () => new Date(),
 //   ),
 // });
+
+// === Shipping System Tables ===
+
+// Shipping zones group countries/regions with similar shipping rates
+// Examples: "Domestic", "Europe", "International", "Everywhere Else"
+export const shipping_zone = createTable("shipping_zone", {
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  // Display name for the zone (e.g., "United States", "Europe")
+  name: varchar("name", { length: 256 }).notNull(),
+  // Optional description for admin reference
+  description: varchar("description", { length: 1024 }),
+  // Whether this is the default "rest of world" zone
+  is_default: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+    () => new Date(),
+  ),
+});
+
+// Maps countries to shipping zones using ISO 3166-1 alpha-2 codes
+// A country can only belong to one zone
+export const shipping_zone_country = createTable(
+  "shipping_zone_country",
+  {
+    id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+    zone_id: integer("zone_id")
+      .references(() => shipping_zone.id, { onDelete: "cascade" })
+      .notNull(),
+    // ISO 3166-1 alpha-2 country code (e.g., "US", "GB", "DE")
+    country_code: varchar("country_code", { length: 2 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (table) => ({
+    // Ensure each country only appears once across all zones
+    uniqueCountry: index("shipping_zone_country_unique").on(table.country_code),
+  }),
+);
+
+// Shipping rates define pricing for a zone
+// Each zone can have multiple rates (e.g., "Standard", "Express")
+export const shipping_rate = createTable("shipping_rate", {
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  zone_id: integer("zone_id")
+    .references(() => shipping_zone.id, { onDelete: "cascade" })
+    .notNull(),
+  // Rate name (e.g., "Standard Shipping", "Express")
+  name: varchar("name", { length: 256 }).notNull(),
+  // Price when this is the only item in the order
+  price_alone: decimal("price_alone", { precision: 10, scale: 2 }).notNull(),
+  // Price when shipped with other items (for combined shipping discounts)
+  price_with_others: decimal("price_with_others", { precision: 10, scale: 2 }).notNull(),
+  // Estimated delivery time for display (e.g., "3-5 business days")
+  delivery_estimate: varchar("delivery_estimate", { length: 256 }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+    () => new Date(),
+  ),
+});

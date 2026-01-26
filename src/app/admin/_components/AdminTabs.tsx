@@ -13,6 +13,7 @@ const ADMIN_TABS = [
   { id: "orders", label: "Orders", path: "/admin/orders" },
   { id: "products", label: "Products", path: "/admin/products" },
   { id: "discounts", label: "Discounts", path: "/admin/discounts" },
+  { id: "shipping", label: "Shipping", path: "/admin/shipping" },
 ] as const;
 
 export function AdminTabs() {

@@ -23,6 +23,7 @@ import {
 } from "~/components/ui/select";
 import { toast } from "sonner";
 import { ImageGalleryEditor } from "./ImageGalleryEditor";
+import { ShippingEditor } from "./ShippingEditor";
 import type { ProductData } from "./ProductsClient";
 import type { CategoryType } from "~/app/admin/_components/ProductForm";
 
@@ -305,18 +306,10 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
             </div>
           </section>
 
-          {/* Shipping Section - placeholder for PR 3 */}
+          {/* Shipping Section - displays available shipping zones and rates */}
           <section className="rounded-lg border bg-white p-4">
             <h3 className="mb-4 font-medium text-gray-900">Shipping</h3>
-            <p className="text-sm text-gray-500">
-              Shipping options will be configured in the shipping settings.
-            </p>
-            <button
-              type="button"
-              className="mt-2 text-sm text-blue-600 hover:text-blue-700"
-            >
-              Manage shipping options
-            </button>
+            <ShippingEditor />
           </section>
 
           {/* Categories Section */}
