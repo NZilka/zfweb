@@ -11,6 +11,7 @@ import { Button } from "~/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from "~/components/ui/dialog";
 import { toast } from "sonner";
 import { ProductProvider, type ProductType } from "~/app/_context/ProductContext";
@@ -145,6 +146,9 @@ export function ProductEditModal({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0">
+        {/* Accessible title for screen readers - visually hidden */}
+        <DialogTitle className="sr-only">{modalTitle}</DialogTitle>
+
         {/* Modal Header with action buttons */}
         <div className="flex items-center justify-between border-b px-6 py-4">
           {/* Left side: Back arrow and title */}
@@ -157,7 +161,7 @@ export function ProductEditModal({
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h2 className="text-lg font-semibold">{modalTitle}</h2>
+            <span className="text-lg font-semibold">{modalTitle}</span>
           </div>
 
           {/* Right side: Action buttons */}
