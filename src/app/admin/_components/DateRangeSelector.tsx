@@ -40,7 +40,7 @@ export function DateRangeSelector({ currentRange }: DateRangeSelectorProps) {
 
   return (
     <Select value={currentRange} onValueChange={handleRangeChange}>
-      <SelectTrigger className="w-[180px]">
+      <SelectTrigger className="w-[140px] sm:w-[180px]">
         <SelectValue placeholder="Select range" />
       </SelectTrigger>
       <SelectContent>
