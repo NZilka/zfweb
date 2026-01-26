@@ -45,8 +45,9 @@ export function AdminTabs() {
 
   return (
     // Tab bar with dark background, scrollable tabs on mobile
-    <div className="border-b border-gray-700 bg-gray-900">
-      <div className="overflow-x-auto">
+    // min-w-0 prevents flexbox/grid implicit minimum width overflow
+    <div className="border-b border-gray-700 bg-gray-900 min-w-0">
+      <div className="overflow-x-auto min-w-0">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="h-auto gap-0.5 sm:gap-2 bg-transparent p-0 px-2 sm:px-4 inline-flex">
             {ADMIN_TABS.map((tab) => (
