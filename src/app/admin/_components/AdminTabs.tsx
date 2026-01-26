@@ -45,10 +45,10 @@ export function AdminTabs() {
 
   return (
     // Tab bar with dark background, scrollable tabs on mobile
-    <div className="border-b border-gray-700 bg-gray-900 w-full">
-      <div className="w-full px-2 sm:px-4 overflow-x-auto">
+    <div className="border-b border-gray-700 bg-gray-900">
+      <div className="overflow-x-auto">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="h-auto gap-0.5 sm:gap-2 bg-transparent p-0 flex w-max">
+          <TabsList className="h-auto gap-0.5 sm:gap-2 bg-transparent p-0 px-2 sm:px-4 inline-flex">
             {ADMIN_TABS.map((tab) => (
               <TabsTrigger
                 key={tab.id}
