@@ -8,12 +8,11 @@ export default function AdminLayout({
   return (
     <>
       {/* Layout with fixed header containing nav and tabs, scrollable content below */}
-      {/* w-screen and overflow-x-clip constrain width to viewport */}
-      <div className="grid h-screen w-screen max-w-[100vw] overflow-x-clip grid-rows-[auto_auto_1fr]">
+      <div className="grid h-dvh w-full grid-rows-[auto_auto_1fr]">
         <TopNav />
         {/* Tab navigation for admin sections - scrolls horizontally on mobile */}
         <AdminTabs />
-        <main className="overflow-y-auto overflow-x-auto">{children}</main>
+        <main className="overflow-y-auto overflow-x-hidden">{children}</main>
       </div>
       {modal}
       <div id="modal-root" />
