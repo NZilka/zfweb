@@ -157,9 +157,9 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
     };
 
     return (
-      <div className="flex gap-6 p-6">
-        {/* Left Column - Main form content */}
-        <div className="flex-1 space-y-6">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 p-4 lg:p-6">
+        {/* Left Column - Main form content (full width on mobile) */}
+        <div className="flex-1 space-y-4 lg:space-y-6">
           {/* Image Gallery Section */}
           <section className="rounded-lg border bg-white p-4">
             <div className="mb-4 flex items-center justify-between">
@@ -339,8 +339,8 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
           </section>
         </div>
 
-        {/* Right Column - Status Sidebar */}
-        <div className="w-64 shrink-0 space-y-6">
+        {/* Right Column - Status Sidebar (full width on mobile, fixed width on desktop) */}
+        <div className="w-full lg:w-64 shrink-0 space-y-4 lg:space-y-6">
           {/* Status Section */}
           <section className="rounded-lg border bg-white p-4">
             <h3 className="mb-4 font-medium text-gray-900">Status</h3>

@@ -145,12 +145,12 @@ export function ProductEditModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0">
+      <DialogContent className="w-full max-w-5xl max-h-[90vh] overflow-hidden p-0">
         {/* Accessible title for screen readers - visually hidden */}
         <DialogTitle className="sr-only">{modalTitle}</DialogTitle>
 
-        {/* Modal Header with action buttons */}
-        <div className="flex items-center justify-between border-b px-6 py-4">
+        {/* Modal Header with action buttons - stacks on mobile */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b px-4 sm:px-6 py-3 sm:py-4">
           {/* Left side: Back arrow and title */}
           <div className="flex items-center gap-3">
             <Button
@@ -161,11 +161,11 @@ export function ProductEditModal({
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <span className="text-lg font-semibold">{modalTitle}</span>
+            <span className="text-base sm:text-lg font-semibold">{modalTitle}</span>
           </div>
 
-          {/* Right side: Action buttons */}
-          <div className="flex items-center gap-2">
+          {/* Right side: Action buttons - wrap on mobile */}
+          <div className="flex flex-wrap items-center gap-2">
             {/* Preview - only in edit mode */}
             {isEditMode && (
               <Button

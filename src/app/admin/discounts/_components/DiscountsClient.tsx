@@ -124,17 +124,20 @@ export function DiscountsClient({ discounts }: DiscountsClientProps) {
           </Button>
         </div>
       ) : (
-        // Table container with white background and black text
-        <div className="rounded-lg border border-gray-300 bg-white text-gray-900">
+        // Table container with white background, horizontal scroll on mobile
+        <div className="rounded-lg border border-gray-300 bg-white text-gray-900 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Code</TableHead>
-                <TableHead>Name</TableHead>
+                {/* Name - hidden on mobile */}
+                <TableHead className="hidden md:table-cell">Name</TableHead>
                 <TableHead className="text-right">Discount</TableHead>
-                <TableHead className="text-center">Free Ship</TableHead>
+                {/* Free Ship - hidden on mobile */}
+                <TableHead className="text-center hidden lg:table-cell">Free Ship</TableHead>
                 <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">Uses</TableHead>
+                {/* Uses - hidden on mobile */}
+                <TableHead className="text-right hidden sm:table-cell">Uses</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -142,21 +145,21 @@ export function DiscountsClient({ discounts }: DiscountsClientProps) {
               {discounts.map((discount) => (
                 <TableRow key={discount.id}>
                   {/* Code */}
-                  <TableCell className="font-mono font-medium">{discount.code}</TableCell>
-                  {/* Name */}
-                  <TableCell>{discount.name}</TableCell>
+                  <TableCell className="font-mono font-medium text-sm sm:text-base p-2 sm:p-4">{discount.code}</TableCell>
+                  {/* Name - hidden on mobile */}
+                  <TableCell className="hidden md:table-cell">{discount.name}</TableCell>
                   {/* Discount value */}
-                  <TableCell className="text-right font-medium">
+                  <TableCell className="text-right font-medium p-2 sm:p-4">
                     {formatDiscount(discount)}
                   </TableCell>
-                  {/* Free shipping */}
-                  <TableCell className="text-center">
+                  {/* Free shipping - hidden on mobile */}
+                  <TableCell className="text-center hidden lg:table-cell">
                     {discount.freeShipping && (
                       <Badge variant="secondary">Yes</Badge>
                     )}
                   </TableCell>
                   {/* Status */}
-                  <TableCell className="text-center">
+                  <TableCell className="text-center p-2 sm:p-4">
                     {isExpired(discount.expiresAt) ? (
                       <Badge variant="destructive">Expired</Badge>
                     ) : discount.active ? (
@@ -165,20 +168,21 @@ export function DiscountsClient({ discounts }: DiscountsClientProps) {
                       <Badge variant="secondary">Inactive</Badge>
                     )}
                   </TableCell>
-                  {/* Uses */}
-                  <TableCell className="text-right">
+                  {/* Uses - hidden on mobile */}
+                  <TableCell className="text-right hidden sm:table-cell">
                     {discount.numberOfUses}
                     {discount.maxUses && `/${discount.maxUses}`}
                   </TableCell>
-                  {/* Actions */}
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                  {/* Actions - compact on mobile */}
+                  <TableCell className="text-right p-2 sm:p-4">
+                    <div className="flex justify-end gap-1 sm:gap-2">
                       {/* Toggle active */}
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleToggle(discount.id)}
                         title={discount.active ? "Deactivate" : "Activate"}
+                        className="h-8 w-8 p-0"
                       >
                         {discount.active ? (
                           <ToggleRight className="h-4 w-4" />
@@ -191,6 +195,7 @@ export function DiscountsClient({ discounts }: DiscountsClientProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEdit(discount)}
+                        className="h-8 w-8 p-0"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -200,6 +205,7 @@ export function DiscountsClient({ discounts }: DiscountsClientProps) {
                         size="sm"
                         onClick={() => handleDelete(discount.id)}
                         disabled={isDeleting === discount.id}
+                        className="h-8 w-8 p-0"
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
