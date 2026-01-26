@@ -5,24 +5,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { Plus, Upload, Layout } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { toast } from "sonner";
 import { ProductsTable } from "./ProductsTable";
 import { ProductsGrid } from "./ProductsGrid";
 import { ProductFilters } from "./ProductFilters";
 import { ViewToggle } from "./ViewToggle";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog";
-import { ProductProvider } from "~/app/_context/ProductContext";
-import { EditImageProvider } from "~/app/_context/EditImageContext";
-import { ProductForm, type CategoryType } from "~/app/admin/_components/ProductForm";
-import { deleteProductAction } from "~/app/admin/_components/deleteAction";
+import { ProductEditModal } from "./ProductEditModal";
+import type { CategoryType } from "~/app/admin/_components/ProductForm";
 import { filterProducts } from "./filterProducts";
 
 // Product data type from database (matches schema)
@@ -59,8 +49,6 @@ interface ProductsClientProps {
  * Main products admin interface with list/grid views and filtering
  */
 export function ProductsClient({ products, categories }: ProductsClientProps) {
-  const router = useRouter();
-
   // View mode state (list vs grid)
   const [viewMode, setViewMode] = useState<ViewMode>("list");
 
@@ -98,24 +86,15 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
     setIsDialogOpen(true);
   };
 
-  // Handle form success - close dialog and refresh
-  const handleSuccess = () => {
-    const message = editingProduct ? "Product updated" : "Product created";
-    toast.success(message);
+  // Handle modal close - resets editing state
+  const handleModalClose = () => {
     setIsDialogOpen(false);
     setEditingProduct(undefined);
-    router.refresh();
   };
 
-  // Handle delete product
-  const handleDelete = async (product: ProductData) => {
-    if (!confirm(`Are you sure you want to delete "${product.title}"?`)) return;
-
-    await deleteProductAction(product.id);
-    toast.success("Product deleted");
-    setIsDialogOpen(false);
-    setEditingProduct(undefined);
-    router.refresh();
+  // Handle successful save/delete from modal
+  const handleSuccess = () => {
+    handleModalClose();
   };
 
   // Handle selection toggle for bulk actions
@@ -137,17 +116,6 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
       setSelectedProducts(new Set(filteredProducts.map((p) => p.id)));
     }
   };
-
-  // Convert ProductData to ProductType for form context
-  const getInitialProduct = (product: ProductData) => ({
-    id: product.id,
-    title: product.title,
-    description: product.description,
-    price: parseFloat(product.price),
-    inventory: product.inventory,
-    sku: product.sku ?? undefined,
-    category_id: product.category_id ?? undefined,
-  });
 
   // Get category name by ID for display
   const getCategoryName = (categoryId: number | null) => {
@@ -231,42 +199,17 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
         />
       )}
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingProduct ? "Edit Product" : "Create Product"}
-            </DialogTitle>
-          </DialogHeader>
-          {/* Key ensures fresh context state when switching products */}
-          <EditImageProvider key={editingProduct?.id ?? "create"}>
-            <ProductProvider
-              initialProduct={editingProduct ? getInitialProduct(editingProduct) : undefined}
-            >
-              <ProductForm
-                mode={editingProduct ? "edit" : "create"}
-                categories={categories}
-                initialImageUrls={editingProduct?.imgUrl ?? []}
-                initialImageKeys={editingProduct?.imgKey ?? []}
-                onCancel={() => setIsDialogOpen(false)}
-                onSuccess={handleSuccess}
-              />
-            </ProductProvider>
-          </EditImageProvider>
-          {/* Delete button shown only in edit mode */}
-          {editingProduct && (
-            <div className="mt-4 flex justify-end border-t pt-4">
-              <Button
-                variant="destructive"
-                onClick={() => handleDelete(editingProduct)}
-              >
-                Delete Product
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Create/Edit Modal - full-featured two-column layout */}
+      <ProductEditModal
+        isOpen={isDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) handleModalClose();
+          else setIsDialogOpen(open);
+        }}
+        product={editingProduct}
+        categories={categories}
+        onSuccess={handleSuccess}
+      />
     </div>
   );
 }
