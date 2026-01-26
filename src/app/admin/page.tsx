@@ -52,7 +52,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   };
 
   return (
-    <main className="p-6">
+    <main className="p-3 sm:p-4 md:p-6">
       <SignedOut>
         <div className="h-full w-full text-center text-2xl">Please sign in</div>
       </SignedOut>

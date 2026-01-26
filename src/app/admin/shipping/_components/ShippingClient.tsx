@@ -246,11 +246,11 @@ export function ShippingClient({ zones: initialZones }: ShippingClientProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Shipping</h1>
-        <Button onClick={handleCreateZone} className="gap-2">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header - stacks on mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold">Shipping</h1>
+        <Button onClick={handleCreateZone} className="gap-2 w-full sm:w-auto">
           <Plus className="h-4 w-4" />
           Add Zone
         </Button>
@@ -275,27 +275,28 @@ export function ShippingClient({ zones: initialZones }: ShippingClientProps) {
               key={zone.id}
               className="rounded-lg border border-gray-300 bg-white p-4"
             >
-              {/* Zone header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900">{zone.name}</h3>
+              {/* Zone header - stacks on mobile */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 mb-4">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{zone.name}</h3>
                       {zone.is_default && (
-                        <Badge variant="secondary">Default</Badge>
+                        <Badge variant="secondary" className="text-xs">Default</Badge>
                       )}
                     </div>
                     {zone.description && (
-                      <p className="text-sm text-gray-500">{zone.description}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 truncate">{zone.description}</p>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 ml-6 sm:ml-0">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleEditZone(zone)}
+                    className="h-8 w-8 p-0"
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -303,6 +304,7 @@ export function ShippingClient({ zones: initialZones }: ShippingClientProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDeleteZone(zone)}
+                    className="h-8 w-8 p-0"
                   >
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
@@ -342,20 +344,20 @@ export function ShippingClient({ zones: initialZones }: ShippingClientProps) {
                     {zone.rates.map((rate) => (
                       <div
                         key={rate.id}
-                        className="flex items-center justify-between rounded bg-gray-50 p-2"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded bg-gray-50 p-2"
                       >
-                        <div>
-                          <span className="font-medium text-gray-900">
+                        <div className="min-w-0">
+                          <span className="font-medium text-gray-900 text-sm">
                             {rate.name}
                           </span>
                           {rate.delivery_estimate && (
-                            <span className="ml-2 text-sm text-gray-500">
+                            <span className="ml-2 text-xs sm:text-sm text-gray-500">
                               ({rate.delivery_estimate})
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-sm">
+                        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
+                          <div className="text-xs sm:text-sm">
                             <span className="text-gray-900">
                               ${rate.price_alone}
                             </span>
@@ -370,6 +372,7 @@ export function ShippingClient({ zones: initialZones }: ShippingClientProps) {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEditRate(rate)}
+                              className="h-7 w-7 p-0"
                             >
                               <Pencil className="h-3 w-3" />
                             </Button>
@@ -377,6 +380,7 @@ export function ShippingClient({ zones: initialZones }: ShippingClientProps) {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDeleteRate(rate)}
+                              className="h-7 w-7 p-0"
                             >
                               <Trash2 className="h-3 w-3 text-red-500" />
                             </Button>
