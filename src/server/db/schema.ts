@@ -40,9 +40,12 @@ export const product = createTable(
     inventory: integer("inventory").notNull(),
     sku: varchar("sku", { length: 1024 }),
     category_id: integer("category_id").references(() => product_category.id),
-    // inventory_id: integer("inventory_id")
-    //   .references(() => product_inventory.id)
-    //   .notNull(),
+    // Product visibility status: active (visible), sold_out (shown but not purchasable), hidden (not shown)
+    status: varchar("status", { length: 32 }).notNull().default("active"),
+    // Whether product is marked as on sale (for promotional display)
+    on_sale: boolean("on_sale").notNull().default(false),
+    // URL-friendly slug for product page (e.g., "silver-ring-set")
+    url_handle: varchar("url_handle", { length: 256 }).unique(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -52,6 +55,8 @@ export const product = createTable(
   },
   (example) => ({
     titleIndex: index("title_idx").on(example.title),
+    // Index for URL handle lookups
+    urlHandleIndex: index("url_handle_idx").on(example.url_handle),
   }),
 );
 
