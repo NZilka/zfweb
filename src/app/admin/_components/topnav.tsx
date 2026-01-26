@@ -3,9 +3,10 @@ import { UserButton, SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
 
 export const TopNav = () => {
   return (
-    <div>
+    // min-w-0 prevents flexbox/grid implicit minimum width overflow
+    <div className="min-w-0">
       {/* Top nav bar with responsive padding */}
-      <nav className="flex w-full items-center justify-between gap-2 sm:gap-4 border-b px-3 py-2 sm:p-4 text-lg sm:text-xl font-semibold">
+      <nav className="flex w-full min-w-0 items-center justify-between gap-2 sm:gap-4 border-b px-3 py-2 sm:p-4 text-lg sm:text-xl font-semibold">
         <div>Admin</div>
         <div className="flex flex-row items-center gap-2 sm:gap-4">
           <SignedIn>
