@@ -53,14 +53,14 @@ export function ProductFilters({
         />
       </div>
 
-      {/* Filter dropdowns row */}
+      {/* Filter dropdowns row - wraps on mobile */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Status filter dropdown */}
         <Select
           value={statusFilter}
           onValueChange={(value) => onStatusChange(value as StatusFilter)}
         >
-          <SelectTrigger className="w-[140px] bg-white text-gray-900">
+          <SelectTrigger className="w-[120px] sm:w-[140px] bg-white text-gray-900">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -78,7 +78,7 @@ export function ProductFilters({
             onCategoryChange(value === "all" ? "all" : parseInt(value, 10))
           }
         >
-          <SelectTrigger className="w-[160px] bg-white text-gray-900">
+          <SelectTrigger className="w-[120px] sm:w-[160px] bg-white text-gray-900">
             <SelectValue placeholder="Categories" />
           </SelectTrigger>
           <SelectContent>
@@ -91,10 +91,10 @@ export function ProductFilters({
           </SelectContent>
         </Select>
 
-        {/* Extra filters button - placeholder for future advanced filtering */}
-        <Button variant="outline" className="gap-2 bg-white text-gray-900">
+        {/* Extra filters button - icon only on mobile */}
+        <Button variant="outline" className="gap-2 bg-white text-gray-900 px-2 sm:px-4">
           <SlidersHorizontal className="h-4 w-4" />
-          Extra filters
+          <span className="hidden sm:inline">Extra filters</span>
         </Button>
       </div>
     </div>

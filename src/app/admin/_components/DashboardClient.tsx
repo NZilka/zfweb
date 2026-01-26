@@ -15,12 +15,12 @@ interface DashboardClientProps {
 
 export function DashboardClient({ currentRange, children }: DashboardClientProps) {
   return (
-    <div className="space-y-6">
-      {/* Header with title and date range selector */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header with title and date range selector - stacks on mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold">Dashboard</h1>
         {/* Suspense needed for useSearchParams in DateRangeSelector */}
-        <Suspense fallback={<div className="h-10 w-[180px] animate-pulse rounded bg-gray-700" />}>
+        <Suspense fallback={<div className="h-10 w-[140px] sm:w-[180px] animate-pulse rounded bg-gray-700" />}>
           <DateRangeSelector currentRange={currentRange} />
         </Suspense>
       </div>
