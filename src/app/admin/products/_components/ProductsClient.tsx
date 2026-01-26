@@ -1,0 +1,215 @@
+/**
+ * ProductsClient - Main client component for admin products page
+ * Manages view mode, filters, selection, and edit modal state
+ */
+"use client";
+
+import { useState, useMemo } from "react";
+import { Plus, Upload, Layout } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { ProductsTable } from "./ProductsTable";
+import { ProductsGrid } from "./ProductsGrid";
+import { ProductFilters } from "./ProductFilters";
+import { ViewToggle } from "./ViewToggle";
+import { ProductEditModal } from "./ProductEditModal";
+import type { CategoryType } from "~/app/admin/_components/ProductForm";
+import { filterProducts } from "./filterProducts";
+
+// Product data type from database (matches schema)
+export interface ProductData {
+  id: number;
+  title: string;
+  description: string;
+  price: string;
+  inventory: number;
+  sku: string | null;
+  category_id: number | null;
+  imgUrl: string[];
+  imgKey: string[];
+  // New fields for redesign
+  status: string;
+  on_sale: boolean;
+  url_handle: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+}
+
+// View mode type for list/grid toggle
+export type ViewMode = "list" | "grid";
+
+// Status filter options
+export type StatusFilter = "all" | "active" | "sold_out" | "hidden";
+
+interface ProductsClientProps {
+  products: ProductData[];
+  categories: CategoryType[];
+}
+
+/**
+ * Main products admin interface with list/grid views and filtering
+ */
+export function ProductsClient({ products, categories }: ProductsClientProps) {
+  // View mode state (list vs grid)
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<number | "all">("all");
+
+  // Modal state for create/edit
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<ProductData | undefined>();
+
+  // Selection state for bulk actions (future use)
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
+
+  // Client-side filtering with useMemo for performance
+  // Uses extracted filterProducts function for testability
+  const filteredProducts = useMemo(() => {
+    return filterProducts(products, {
+      searchQuery,
+      statusFilter,
+      categoryFilter,
+    });
+  }, [products, searchQuery, statusFilter, categoryFilter]);
+
+  // Open dialog for creating new product
+  const handleCreate = () => {
+    setEditingProduct(undefined);
+    setIsDialogOpen(true);
+  };
+
+  // Open dialog for editing existing product
+  const handleEdit = (product: ProductData) => {
+    setEditingProduct(product);
+    setIsDialogOpen(true);
+  };
+
+  // Handle modal close - resets editing state
+  const handleModalClose = () => {
+    setIsDialogOpen(false);
+    setEditingProduct(undefined);
+  };
+
+  // Handle successful save/delete from modal
+  const handleSuccess = () => {
+    handleModalClose();
+  };
+
+  // Handle selection toggle for bulk actions
+  const handleSelectProduct = (id: number) => {
+    const newSelected = new Set(selectedProducts);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedProducts(newSelected);
+  };
+
+  // Handle select all toggle
+  const handleSelectAll = () => {
+    if (selectedProducts.size === filteredProducts.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(filteredProducts.map((p) => p.id)));
+    }
+  };
+
+  // Get category name by ID for display
+  const getCategoryName = (categoryId: number | null) => {
+    if (!categoryId) return null;
+    return categories.find((c) => c.id === categoryId)?.name ?? null;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header with title and action buttons */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Products</h1>
+        <div className="flex items-center gap-2">
+          {/* Import button - placeholder for future functionality */}
+          <Button variant="outline" className="gap-2">
+            <Upload className="h-4 w-4" />
+            Import
+          </Button>
+          {/* Arrange shop button - placeholder for future functionality */}
+          <Button variant="outline" className="gap-2">
+            <Layout className="h-4 w-4" />
+            Arrange shop
+          </Button>
+          {/* Create product button */}
+          <Button onClick={handleCreate} className="gap-2">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters and view toggle row */}
+      <div className="flex flex-col gap-4">
+        {/* Filter controls */}
+        <ProductFilters
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
+          categoryFilter={categoryFilter}
+          onCategoryChange={setCategoryFilter}
+          categories={categories}
+        />
+        {/* View toggle aligned right */}
+        <div className="flex justify-end">
+          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+        </div>
+      </div>
+
+      {/* Products display - table or grid based on viewMode */}
+      {filteredProducts.length === 0 ? (
+        // Empty state
+        <div className="rounded-lg border border-gray-300 bg-white p-8 text-center">
+          <p className="text-gray-500">
+            {products.length === 0
+              ? "No products yet"
+              : "No products match your filters"}
+          </p>
+          {products.length === 0 && (
+            <Button onClick={handleCreate} variant="outline" className="mt-4">
+              Create your first product
+            </Button>
+          )}
+        </div>
+      ) : viewMode === "list" ? (
+        // List view (table)
+        <ProductsTable
+          products={filteredProducts}
+          categories={categories}
+          selectedProducts={selectedProducts}
+          onSelectProduct={handleSelectProduct}
+          onSelectAll={handleSelectAll}
+          onEdit={handleEdit}
+          getCategoryName={getCategoryName}
+        />
+      ) : (
+        // Grid view (cards)
+        <ProductsGrid
+          products={filteredProducts}
+          onEdit={handleEdit}
+          getCategoryName={getCategoryName}
+        />
+      )}
+
+      {/* Create/Edit Modal - full-featured two-column layout */}
+      <ProductEditModal
+        isOpen={isDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) handleModalClose();
+          else setIsDialogOpen(open);
+        }}
+        product={editingProduct}
+        categories={categories}
+        onSuccess={handleSuccess}
+      />
+    </div>
+  );
+}
