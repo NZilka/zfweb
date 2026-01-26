@@ -124,23 +124,23 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header with title and action buttons */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Products</h1>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header with title and action buttons - stacks on mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold">Products</h1>
         <div className="flex items-center gap-2">
-          {/* Import button - placeholder for future functionality */}
-          <Button variant="outline" className="gap-2">
+          {/* Import button - icon only on mobile */}
+          <Button variant="outline" className="gap-2 px-2 sm:px-4">
             <Upload className="h-4 w-4" />
-            Import
+            <span className="hidden sm:inline">Import</span>
           </Button>
-          {/* Arrange shop button - placeholder for future functionality */}
-          <Button variant="outline" className="gap-2">
+          {/* Arrange shop button - icon only on mobile */}
+          <Button variant="outline" className="gap-2 px-2 sm:px-4">
             <Layout className="h-4 w-4" />
-            Arrange shop
+            <span className="hidden sm:inline">Arrange shop</span>
           </Button>
           {/* Create product button */}
-          <Button onClick={handleCreate} className="gap-2">
+          <Button onClick={handleCreate} className="gap-2 px-2 sm:px-4">
             <Plus className="h-4 w-4" />
           </Button>
         </div>

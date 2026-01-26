@@ -44,17 +44,17 @@ export function AdminTabs() {
   };
 
   return (
-    // Tab bar with dark background to match admin theme
+    // Tab bar with dark background, horizontal scroll on mobile
     <div className="border-b border-gray-700 bg-gray-900">
-      <div className="mx-auto max-w-7xl px-4">
+      <div className="mx-auto max-w-7xl px-4 overflow-x-auto">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="h-auto gap-2 bg-transparent p-0">
+          <TabsList className="h-auto gap-1 sm:gap-2 bg-transparent p-0 min-w-max">
             {ADMIN_TABS.map((tab) => (
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}
-                // White text on dark background, bold when active
-                className="rounded-none border-b-2 border-transparent px-4 py-3 text-white data-[state=active]:border-white data-[state=active]:font-bold data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-white"
+                // White text on dark background, bold when active, smaller padding on mobile
+                className="rounded-none border-b-2 border-transparent px-2 py-2 sm:px-4 sm:py-3 text-sm sm:text-base text-white data-[state=active]:border-white data-[state=active]:font-bold data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-white whitespace-nowrap"
               >
                 {tab.label}
               </TabsTrigger>

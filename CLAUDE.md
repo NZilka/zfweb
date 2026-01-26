@@ -171,6 +171,60 @@ Examples:
 
 This applies to all styling properties: colors, backgrounds, borders, sizes, fonts, spacing, etc. Stay focused on the exact element and property requested.
 
+## Mobile-First Design
+
+**All UI must be designed mobile-first.** No horizontal scrolling should be required on mobile devices.
+
+### Responsive Patterns
+
+1. **Start with mobile layout**, then add breakpoints for larger screens:
+   ```tsx
+   // Mobile-first: base styles are for mobile, sm/md/lg add desktop features
+   className="flex flex-col lg:flex-row gap-4 lg:gap-6 p-4 lg:p-6"
+   ```
+
+2. **Hide non-essential columns on mobile** using responsive display utilities:
+   ```tsx
+   // Show on tablet and up
+   className="hidden md:table-cell"
+   // Show on desktop only
+   className="hidden lg:table-cell"
+   ```
+
+3. **Stack layouts vertically on mobile**, side-by-side on desktop:
+   ```tsx
+   className="flex flex-col sm:flex-row"
+   ```
+
+4. **Use icon-only buttons on mobile**, show labels on larger screens:
+   ```tsx
+   <Button className="gap-2 px-2 sm:px-4">
+     <Icon className="h-4 w-4" />
+     <span className="hidden sm:inline">Label</span>
+   </Button>
+   ```
+
+5. **Add horizontal scroll as fallback** for wide content (tables):
+   ```tsx
+   className="overflow-x-auto"
+   ```
+
+### Tailwind Breakpoints
+
+- `sm:` - 640px+ (large phones, small tablets)
+- `md:` - 768px+ (tablets)
+- `lg:` - 1024px+ (laptops, small desktops)
+- `xl:` - 1280px+ (desktops)
+
+### Checklist for New UI
+
+- [ ] Renders without horizontal scroll on 320px width
+- [ ] Tables hide non-essential columns on mobile
+- [ ] Two-column layouts stack to single column on mobile
+- [ ] Buttons use icons-only or wrap appropriately on mobile
+- [ ] Modals are full-width or appropriately sized on mobile
+- [ ] Text is readable (min 14px) and not truncated excessively
+
 ## Database
 
 Tables use `zfweb_` prefix. Key tables: `product`, `product_category`, `order`, `customer`, `cart_item`.

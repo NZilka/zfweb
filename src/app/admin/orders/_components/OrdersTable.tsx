@@ -116,14 +116,14 @@ export function OrdersTable({
   }
 
   return (
-    // Container with white background and black text for visibility
-    <div className="rounded-lg border border-gray-300 bg-white text-gray-900">
+    // Container with white background, horizontal scroll on mobile
+    <div className="rounded-lg border border-gray-300 bg-white text-gray-900 overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
-            {/* Selection checkbox column */}
+            {/* Selection checkbox column - hidden on mobile */}
             {showSelection && (
-              <TableHead className="w-[50px]">
+              <TableHead className="w-[50px] hidden sm:table-cell">
                 <Checkbox
                   checked={selectedOrders.size === orders.length && orders.length > 0}
                   onCheckedChange={toggleSelectAll}
@@ -131,12 +131,14 @@ export function OrdersTable({
                 />
               </TableHead>
             )}
-            <TableHead className="w-[50px]"></TableHead>
+            <TableHead className="w-[40px] sm:w-[50px]"></TableHead>
             <TableHead>Order</TableHead>
             <TableHead>Customer</TableHead>
-            <TableHead>Items</TableHead>
+            {/* Items count - hidden on mobile */}
+            <TableHead className="hidden md:table-cell">Items</TableHead>
             <TableHead>Total</TableHead>
-            <TableHead>Date</TableHead>
+            {/* Date - hidden on mobile */}
+            <TableHead className="hidden lg:table-cell">Date</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -145,9 +147,9 @@ export function OrdersTable({
             <>
               {/* Main order row - hover uses light gray */}
               <TableRow key={order.id} className="cursor-pointer hover:bg-gray-100">
-                {/* Selection checkbox */}
+                {/* Selection checkbox - hidden on mobile */}
                 {showSelection && (
-                  <TableCell onClick={(e) => e.stopPropagation()}>
+                  <TableCell onClick={(e) => e.stopPropagation()} className="hidden sm:table-cell">
                     <Checkbox
                       checked={selectedOrders.has(order.id)}
                       onCheckedChange={() => toggleSelection(order.id)}
@@ -156,7 +158,7 @@ export function OrdersTable({
                   </TableCell>
                 )}
                 {/* Expand/collapse button */}
-                <TableCell onClick={() => toggleExpanded(order.id)}>
+                <TableCell onClick={() => toggleExpanded(order.id)} className="p-2 sm:p-4">
                   <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                     {expandedOrders.has(order.id) ? (
                       <ChevronDown className="h-4 w-4" />
@@ -166,30 +168,30 @@ export function OrdersTable({
                   </Button>
                 </TableCell>
                 {/* Order ID */}
-                <TableCell onClick={() => toggleExpanded(order.id)} className="font-medium">
+                <TableCell onClick={() => toggleExpanded(order.id)} className="font-medium p-2 sm:p-4">
                   #{order.id}
                 </TableCell>
-                {/* Customer */}
-                <TableCell onClick={() => toggleExpanded(order.id)}>
-                  <div>
-                    <p className="font-medium">{order.customerName}</p>
-                    <p className="text-sm text-gray-500">{order.customerEmail}</p>
+                {/* Customer - truncate on mobile */}
+                <TableCell onClick={() => toggleExpanded(order.id)} className="p-2 sm:p-4">
+                  <div className="max-w-[120px] sm:max-w-none">
+                    <p className="font-medium truncate">{order.customerName}</p>
+                    <p className="text-sm text-gray-500 truncate hidden sm:block">{order.customerEmail}</p>
                   </div>
                 </TableCell>
-                {/* Items count */}
-                <TableCell onClick={() => toggleExpanded(order.id)}>
+                {/* Items count - hidden on mobile */}
+                <TableCell onClick={() => toggleExpanded(order.id)} className="hidden md:table-cell">
                   {order.items.reduce((sum, item) => sum + item.quantity, 0)} items
                 </TableCell>
                 {/* Total */}
-                <TableCell onClick={() => toggleExpanded(order.id)} className="font-medium">
+                <TableCell onClick={() => toggleExpanded(order.id)} className="font-medium p-2 sm:p-4">
                   ${order.total}
                 </TableCell>
-                {/* Date */}
-                <TableCell onClick={() => toggleExpanded(order.id)}>
+                {/* Date - hidden on mobile */}
+                <TableCell onClick={() => toggleExpanded(order.id)} className="hidden lg:table-cell">
                   {formatDate(order.createdAt)}
                 </TableCell>
                 {/* Status badges */}
-                <TableCell>
+                <TableCell className="p-2 sm:p-4">
                   <div className="flex flex-wrap gap-1">{getStatusBadges(order)}</div>
                 </TableCell>
               </TableRow>

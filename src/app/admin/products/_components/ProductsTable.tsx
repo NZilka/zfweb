@@ -72,13 +72,13 @@ export function ProductsTable({
   const someSelected = selectedProducts.size > 0 && !allSelected;
 
   return (
-    // Table container with white background for readability
-    <div className="rounded-lg border border-gray-300 bg-white text-gray-900">
+    // Table container with white background, horizontal scroll on mobile if needed
+    <div className="rounded-lg border border-gray-300 bg-white text-gray-900 overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
-            {/* Select all checkbox */}
-            <TableHead className="w-12">
+            {/* Select all checkbox - hidden on mobile */}
+            <TableHead className="w-10 sm:w-12 hidden sm:table-cell">
               <Checkbox
                 checked={allSelected}
                 // Use indeterminate state when some are selected
@@ -87,19 +87,19 @@ export function ProductsTable({
               />
             </TableHead>
             {/* Thumbnail column */}
-            <TableHead className="w-16">Image</TableHead>
+            <TableHead className="w-12 sm:w-16">Image</TableHead>
             {/* Product name */}
             <TableHead>Name</TableHead>
             {/* Price */}
             <TableHead className="text-right">Price</TableHead>
-            {/* Stock/inventory */}
-            <TableHead className="text-right">Stock</TableHead>
+            {/* Stock/inventory - hidden on mobile */}
+            <TableHead className="text-right hidden sm:table-cell">Stock</TableHead>
             {/* Status badge */}
             <TableHead className="text-center">Status</TableHead>
-            {/* Category name */}
-            <TableHead>Category</TableHead>
-            {/* Created date */}
-            <TableHead className="text-right">Created</TableHead>
+            {/* Category name - hidden on mobile and tablet */}
+            <TableHead className="hidden lg:table-cell">Category</TableHead>
+            {/* Created date - hidden on mobile and tablet */}
+            <TableHead className="text-right hidden lg:table-cell">Created</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -110,44 +110,43 @@ export function ProductsTable({
               className="cursor-pointer hover:bg-gray-50"
               onClick={() => onEdit(product)}
             >
-              {/* Selection checkbox - stop propagation to prevent row click */}
-              <TableCell onClick={(e) => e.stopPropagation()}>
+              {/* Selection checkbox - hidden on mobile, stop propagation to prevent row click */}
+              <TableCell onClick={(e) => e.stopPropagation()} className="hidden sm:table-cell">
                 <Checkbox
                   checked={selectedProducts.has(product.id)}
                   onCheckedChange={() => onSelectProduct(product.id)}
                 />
               </TableCell>
-              {/* Product thumbnail */}
-              <TableCell>
+              {/* Product thumbnail - smaller on mobile */}
+              <TableCell className="p-2 sm:p-4">
                 {product.imgUrl[0] ? (
                   <Image
                     src={product.imgUrl[0]}
                     alt={product.title}
                     width={40}
                     height={40}
-                    className="rounded object-cover"
-                    style={{ width: 40, height: 40 }}
+                    className="rounded object-cover w-8 h-8 sm:w-10 sm:h-10"
                   />
                 ) : (
                   // Placeholder for products without images
-                  <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-200 text-xs text-gray-400">
+                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded bg-gray-200 text-xs text-gray-400">
                     N/A
                   </div>
                 )}
               </TableCell>
               {/* Product name and SKU */}
-              <TableCell>
-                <div className="font-medium">{product.title}</div>
+              <TableCell className="p-2 sm:p-4">
+                <div className="font-medium text-sm sm:text-base truncate max-w-[120px] sm:max-w-none">{product.title}</div>
                 {product.sku && (
-                  <div className="text-xs text-gray-500">SKU: {product.sku}</div>
+                  <div className="text-xs text-gray-500 truncate">SKU: {product.sku}</div>
                 )}
               </TableCell>
               {/* Price */}
-              <TableCell className="text-right font-medium">
+              <TableCell className="text-right font-medium text-sm sm:text-base p-2 sm:p-4">
                 ${product.price}
               </TableCell>
-              {/* Stock with low stock warning */}
-              <TableCell className="text-right">
+              {/* Stock with low stock warning - hidden on mobile */}
+              <TableCell className="text-right hidden sm:table-cell">
                 <span
                   className={
                     product.inventory === 0
@@ -161,17 +160,17 @@ export function ProductsTable({
                 </span>
               </TableCell>
               {/* Status badge */}
-              <TableCell className="text-center">
+              <TableCell className="text-center p-2 sm:p-4">
                 <StatusBadge status={product.status} />
               </TableCell>
-              {/* Category name or uncategorized */}
-              <TableCell>
+              {/* Category name or uncategorized - hidden on mobile and tablet */}
+              <TableCell className="hidden lg:table-cell">
                 {getCategoryName(product.category_id) ?? (
                   <span className="text-gray-400">Uncategorized</span>
                 )}
               </TableCell>
-              {/* Created date */}
-              <TableCell className="text-right text-gray-500">
+              {/* Created date - hidden on mobile and tablet */}
+              <TableCell className="text-right text-gray-500 hidden lg:table-cell">
                 {formatDate(product.createdAt)}
               </TableCell>
             </TableRow>
