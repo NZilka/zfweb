@@ -41,6 +41,8 @@ export const KV_PREFIXES = {
   STRIPE_CUSTOMER: "stripe:customer:",
   // Stores order state cache by payment intent ID
   ORDER_PAYMENT: "order:payment:",
+  // Site-wide settings (maintenance mode, announcements, etc.)
+  SITE_SETTINGS: "site:settings",
 } as const;
 
 // Type definitions for cached data structures
@@ -66,6 +68,22 @@ export type OrderStateCache = {
   itemCount: number;
   customerId: string; // Stripe customer ID
   createdAt: number;
+};
+
+// Site-wide settings for maintenance mode and announcements
+export type SiteSettings = {
+  maintenanceMode: {
+    enabled: boolean;
+    message: string | null;
+    imageUrl: string | null;
+    imageKey: string | null; // UploadThing key for cleanup
+  };
+  announcementBanner: {
+    enabled: boolean;
+    text: string | null;
+    scrolling: boolean; // Whether text should scroll/marquee
+  };
+  updatedAt: number; // Unix timestamp
 };
 
 // Default TTL for cached data (30 days in seconds)
@@ -182,4 +200,42 @@ export async function checkKvConnection(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// Site settings functions
+// Default settings when none exist
+export const DEFAULT_SITE_SETTINGS: SiteSettings = {
+  maintenanceMode: {
+    enabled: false,
+    message: null,
+    imageUrl: null,
+    imageKey: null,
+  },
+  announcementBanner: {
+    enabled: false,
+    text: null,
+    scrolling: false,
+  },
+  updatedAt: Date.now(),
+};
+
+// Get site settings (returns defaults if not set or KV not configured)
+export async function getSiteSettings(): Promise<SiteSettings> {
+  if (!isKvConfigured()) {
+    return DEFAULT_SITE_SETTINGS;
+  }
+  try {
+    const settings = await kvGet<SiteSettings>(KV_PREFIXES.SITE_SETTINGS);
+    return settings ?? DEFAULT_SITE_SETTINGS;
+  } catch {
+    return DEFAULT_SITE_SETTINGS;
+  }
+}
+
+// Save site settings (no TTL - permanent storage)
+export async function setSiteSettings(settings: SiteSettings): Promise<void> {
+  await kvSet(KV_PREFIXES.SITE_SETTINGS, {
+    ...settings,
+    updatedAt: Date.now(),
+  });
 }

@@ -42,7 +42,7 @@ describe("AdminNav", () => {
   });
 
   describe("Navigation items rendering", () => {
-    it("renders all five navigation items in drawer", () => {
+    it("renders all six navigation items in drawer", () => {
       renderAdminNav();
 
       // Drawer sidebar shows all labels
@@ -51,14 +51,15 @@ describe("AdminNav", () => {
       expect(screen.getByText("Products")).toBeTruthy();
       expect(screen.getByText("Discounts")).toBeTruthy();
       expect(screen.getByText("Shipping")).toBeTruthy();
+      expect(screen.getByText("Settings")).toBeTruthy();
     });
 
     it("renders navigation as buttons with close button", () => {
       renderAdminNav();
 
-      // 5 nav items + 1 close button = 6 buttons
+      // 6 nav items + 1 close button = 7 buttons
       const buttons = screen.getAllByRole("button");
-      expect(buttons.length).toBe(6);
+      expect(buttons.length).toBe(7);
     });
 
     it("renders close button with correct aria-label", () => {
