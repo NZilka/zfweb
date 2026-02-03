@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock the kv module before importing settings-actions
+// Note: vi.mock is hoisted, so we use literal strings here
 vi.mock("~/server/kv", () => ({
   isKvConfigured: vi.fn(() => true),
   getSiteSettings: vi.fn(),
@@ -12,7 +13,8 @@ vi.mock("~/server/kv", () => ({
   DEFAULT_SITE_SETTINGS: {
     maintenanceMode: {
       enabled: false,
-      message: null,
+      // Prepopulated default message
+      message: "We're currently performing scheduled maintenance. Please check back soon!",
       imageUrl: null,
       imageKey: null,
     },
@@ -192,6 +194,92 @@ describe("settings-actions", () => {
         expect.objectContaining({
           maintenanceMode: expect.objectContaining({
             imageUrl: null,
+          }),
+        })
+      );
+    });
+
+    it("requires message when enabling maintenance mode", async () => {
+      vi.mocked(isKvConfigured).mockReturnValue(true);
+
+      // Attempt to enable maintenance without a message
+      const result = await updateSettings({
+        maintenanceMode: {
+          enabled: true,
+          message: null,
+          imageUrl: null,
+          imageKey: null,
+        },
+      });
+
+      expect(result.success).toBe(false);
+      expect(result).toHaveProperty("error");
+    });
+
+    it("requires non-empty message when enabling maintenance mode", async () => {
+      vi.mocked(isKvConfigured).mockReturnValue(true);
+
+      // Attempt to enable maintenance with empty/whitespace message
+      const result = await updateSettings({
+        maintenanceMode: {
+          enabled: true,
+          message: "   ",
+          imageUrl: null,
+          imageKey: null,
+        },
+      });
+
+      expect(result.success).toBe(false);
+      expect(result).toHaveProperty("error");
+    });
+
+    it("allows disabling maintenance without message", async () => {
+      vi.mocked(isKvConfigured).mockReturnValue(true);
+      vi.mocked(getSiteSettings).mockResolvedValue({
+        ...DEFAULT_SITE_SETTINGS,
+        maintenanceMode: {
+          enabled: true,
+          message: "Under maintenance",
+          imageUrl: null,
+          imageKey: null,
+        },
+      });
+      vi.mocked(setSiteSettings).mockResolvedValue(undefined);
+
+      // Disabling maintenance should work without requiring message
+      const result = await updateSettings({
+        maintenanceMode: {
+          enabled: false,
+          message: null,
+          imageUrl: null,
+          imageKey: null,
+        },
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it("allows enabling maintenance with valid message", async () => {
+      vi.mocked(isKvConfigured).mockReturnValue(true);
+      vi.mocked(getSiteSettings).mockResolvedValue(DEFAULT_SITE_SETTINGS);
+      vi.mocked(setSiteSettings).mockResolvedValue(undefined);
+
+      // Enable maintenance with a valid message
+      const result = await updateSettings({
+        maintenanceMode: {
+          enabled: true,
+          message: "We are performing scheduled maintenance",
+          imageUrl: null,
+          imageKey: null,
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expect(setSiteSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          maintenanceMode: expect.objectContaining({
+            enabled: true,
+            message: "We are performing scheduled maintenance",
           }),
         })
       );

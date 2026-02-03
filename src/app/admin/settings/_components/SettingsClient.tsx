@@ -4,17 +4,17 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { AlertTriangle, Megaphone, X, Upload } from "lucide-react";
+import { AlertTriangle, Megaphone, X, Upload, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Switch } from "~/components/ui/switch";
 import { Textarea } from "~/components/ui/textarea";
-import { UploadDropzone } from "~/utils/uploadthing";
+import { useUploadThing } from "~/utils/uploadthing";
 import { updateSettings } from "~/server/settings-actions";
 import type { SiteSettings } from "~/server/kv";
 
@@ -23,13 +23,18 @@ interface SettingsClientProps {
   kvAvailable: boolean;
 }
 
+// Default message shown when no custom message is set
+const DEFAULT_MAINTENANCE_MESSAGE =
+  "We're currently performing scheduled maintenance. Please check back soon!";
+
 export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientProps) {
   // Maintenance mode state
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(
     initialSettings.maintenanceMode.enabled
   );
+  // Prepopulate with default message if none saved
   const [maintenanceMessage, setMaintenanceMessage] = useState(
-    initialSettings.maintenanceMode.message ?? ""
+    initialSettings.maintenanceMode.message ?? DEFAULT_MAINTENANCE_MESSAGE
   );
   const [maintenanceImageUrl, setMaintenanceImageUrl] = useState(
     initialSettings.maintenanceMode.imageUrl ?? ""
@@ -51,9 +56,58 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
 
   // Form state
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // File input ref for triggering file picker
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // UploadThing hook - same approach as product forms
+  const { startUpload } = useUploadThing("imageUploader", {
+    onClientUploadComplete: (res) => {
+      if (res?.[0]) {
+        setMaintenanceImageUrl(res[0].url);
+        setMaintenanceImageKey(res[0].key);
+        toast.success("Image uploaded");
+      }
+      setIsUploading(false);
+    },
+    onUploadError: (error) => {
+      toast.error(`Upload failed: ${error.message}`);
+      setIsUploading(false);
+    },
+  });
+
+  // Handle file selection from input
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (4MB limit for maintenance image)
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("Image must be less than 4MB");
+      return;
+    }
+
+    setIsUploading(true);
+    await startUpload([file]);
+
+    // Reset input so same file can be selected again
+    e.target.value = "";
+  };
+
+  // Derived state: check if maintenance settings are valid
+  // Message is required when enabling maintenance mode
+  const isMaintenanceValid =
+    !maintenanceEnabled || maintenanceMessage.trim().length > 0;
 
   // Save maintenance mode settings
   const handleSaveMaintenanceMode = async () => {
+    // Client-side validation: require message when enabling
+    if (maintenanceEnabled && !maintenanceMessage.trim()) {
+      toast.error("A maintenance message is required when enabling maintenance mode");
+      return;
+    }
+
     setIsSaving(true);
     const result = await updateSettings({
       maintenanceMode: {
@@ -149,9 +203,11 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
             />
           </div>
 
-          {/* Maintenance message */}
+          {/* Maintenance message - required when enabled */}
           <div className="space-y-2">
-            <Label htmlFor="maintenance-message">Maintenance Message</Label>
+            <Label htmlFor="maintenance-message">
+              Maintenance Message <span className="text-red-500">*</span>
+            </Label>
             <Textarea
               id="maintenance-message"
               placeholder="We're currently performing scheduled maintenance. Please check back soon!"
@@ -162,6 +218,12 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
             />
             <p className="text-xs text-gray-500">
               {maintenanceMessage.length}/1000 characters
+              {/* Show requirement warning when toggle is on but message empty */}
+              {maintenanceEnabled && !maintenanceMessage.trim() && (
+                <span className="ml-2 text-red-500">
+                  — Message required to enable maintenance mode
+                </span>
+              )}
             </p>
           </div>
 
@@ -187,20 +249,39 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
                 </button>
               </div>
             ) : (
-              <UploadDropzone
-                endpoint="imageUploader"
-                onClientUploadComplete={(res) => {
-                  if (res?.[0]) {
-                    setMaintenanceImageUrl(res[0].url);
-                    setMaintenanceImageKey(res[0].key);
-                    toast.success("Image uploaded");
-                  }
-                }}
-                onUploadError={(error: Error) => {
-                  toast.error(`Upload failed: ${error.message}`);
-                }}
-                className="ut-label:text-sm ut-allowed-content:text-xs border-dashed"
-              />
+              // Custom upload UI using useUploadThing hook
+              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 hover:border-gray-400">
+                <Upload className="mb-2 h-8 w-8 text-gray-400" />
+                <p className="mb-2 text-sm text-gray-600">
+                  Upload a maintenance image
+                </p>
+                <p className="mb-4 text-xs text-gray-400">
+                  PNG, JPG, GIF up to 4MB
+                </p>
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    "Choose File"
+                  )}
+                </Button>
+              </div>
             )}
           </div>
 
@@ -225,8 +306,11 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
             </div>
           )}
 
-          {/* Save button */}
-          <Button onClick={handleSaveMaintenanceMode} disabled={isSaving}>
+          {/* Save button - disabled when validation fails */}
+          <Button
+            onClick={handleSaveMaintenanceMode}
+            disabled={isSaving || !isMaintenanceValid}
+          >
             {isSaving ? "Saving..." : "Save Maintenance Settings"}
           </Button>
         </CardContent>
