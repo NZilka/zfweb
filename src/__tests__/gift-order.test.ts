@@ -187,7 +187,7 @@ describe("Gift Order Functionality", () => {
     });
 
     it("should default isGift to false when not provided", () => {
-      const requestBody = {
+      const requestBody: { customerInfo: Record<string, string>; isGift?: boolean } = {
         customerInfo: {
           email: "test@example.com",
           firstName: "Test",
@@ -200,7 +200,7 @@ describe("Gift Order Functionality", () => {
         },
       };
 
-      // Simulate the default behavior
+      // Simulate the default behavior - isGift is optional and defaults to false
       const isGift = requestBody.isGift ?? false;
       expect(isGift).toBe(false);
     });
