@@ -22,8 +22,10 @@ export default async function ProductsPage() {
         <div className="h-full w-full text-center text-2xl">Please sign in</div>
       </SignedOut>
       <SignedIn>
-        {/* New client component with list/grid views and filtering */}
-        <ProductsClient products={products} categories={categories} />
+        <div className="mx-auto max-w-7xl">
+          {/* Client component with list/grid views and filtering */}
+          <ProductsClient products={products} categories={categories} />
+        </div>
       </SignedIn>
     </main>
   );

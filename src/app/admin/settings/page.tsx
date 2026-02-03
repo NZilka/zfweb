@@ -16,17 +16,15 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <>
+    <main className="p-3 sm:p-4 md:p-6">
+      <SignedOut>
+        <div className="h-full w-full text-center text-2xl">Please sign in</div>
+      </SignedOut>
       <SignedIn>
-        <div className="p-4 sm:p-6">
+        <div className="mx-auto max-w-7xl">
           <SettingsClient initialSettings={settings} kvAvailable={isAvailable} />
         </div>
       </SignedIn>
-      <SignedOut>
-        <div className="flex h-full items-center justify-center">
-          <p className="text-gray-500">Please sign in to access settings.</p>
-        </div>
-      </SignedOut>
-    </>
+    </main>
   );
 }
