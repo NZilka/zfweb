@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from "~/components/ui/badge";
+import { PackageX, Clock, PackageCheck, List, type LucideIcon } from "lucide-react";
 import { CsvExportButton } from "./CsvExportButton";
 import { OrdersTable } from "./OrdersTable";
 import type { FulfillmentFilter, OrderWithItems } from "~/server/admin-queries";
@@ -25,12 +26,17 @@ interface OrdersClientProps {
   orders: OrderWithItems[];
 }
 
-// Sub-tab configuration with labels and counts
-const ORDER_TABS: { id: FulfillmentFilter; label: string; countKey: keyof OrderCounts }[] = [
-  { id: "unshipped", label: "Unshipped", countKey: "unshipped" },
-  { id: "in_process", label: "In Process", countKey: "inProcess" },
-  { id: "shipped", label: "Shipped", countKey: "shipped" },
-  { id: "all", label: "All Orders", countKey: "all" },
+// Sub-tab configuration with labels, icons, and counts
+const ORDER_TABS: {
+  id: FulfillmentFilter;
+  label: string;
+  icon: LucideIcon;
+  countKey: keyof OrderCounts;
+}[] = [
+  { id: "unshipped", label: "Unshipped", icon: PackageX, countKey: "unshipped" },
+  { id: "in_process", label: "In Process", icon: Clock, countKey: "inProcess" },
+  { id: "shipped", label: "Shipped", icon: PackageCheck, countKey: "shipped" },
+  { id: "all", label: "All", icon: List, countKey: "all" },
 ];
 
 function OrdersTabsContent({ currentTab, counts, orders }: OrdersClientProps) {
@@ -61,19 +67,32 @@ function OrdersTabsContent({ currentTab, counts, orders }: OrdersClientProps) {
         )}
       </div>
 
-      {/* Sub-tabs for fulfillment status */}
+      {/* Sub-tabs for fulfillment status - horizontally scrollable on mobile */}
       <Tabs value={currentTab} onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-4">
-          {ORDER_TABS.map((tab) => (
-            <TabsTrigger key={tab.id} value={tab.id} className="gap-2">
-              {tab.label}
-              {/* Badge showing count for this status */}
-              <Badge variant="secondary" className="ml-1 text-xs">
-                {counts[tab.countKey]}
-              </Badge>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="inline-flex h-auto gap-1 bg-muted p-1 min-w-max">
+            {ORDER_TABS.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <TabsTrigger
+                  key={tab.id}
+                  value={tab.id}
+                  className="gap-1.5 px-3 py-2 text-sm whitespace-nowrap"
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{tab.label}</span>
+                  {/* Badge showing count - hidden on mobile to save space */}
+                  <Badge
+                    variant="secondary"
+                    className="ml-0.5 hidden sm:inline-flex text-xs px-1.5 py-0"
+                  >
+                    {counts[tab.countKey]}
+                  </Badge>
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </div>
       </Tabs>
 
       {/* Orders table with selection for unshipped tab */}
