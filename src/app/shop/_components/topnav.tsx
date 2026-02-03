@@ -7,45 +7,44 @@ import { CartButton } from "./CartButton";
 // Contains logo, products link, account/auth, and cart button with badge
 export const TopNav = () => {
   return (
-    <div className="gap-4">
-      <nav className="flex w-full items-center justify-between gap-4 border-b p-4 text-xl font-semibold">
-        <Link href="/shop" className="hover:text-gray-600">
-          Products
-        </Link>
-        {/* Right side: auth controls and cart */}
-        <div className="flex items-center gap-4">
-          {/* Show account link and user button when signed in */}
-          <SignedIn>
-            <Link
-              href="/shop/account"
-              className="text-base hover:text-gray-600"
-            >
-              My Account
-            </Link>
-            <UserButton afterSignOutUrl="/shop" />
-          </SignedIn>
-          {/* Show sign in button when signed out */}
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button className="text-base hover:text-gray-600">Sign In</button>
-            </SignInButton>
-          </SignedOut>
-          {/* Cart button with item count badge */}
-          <CartButton />
-        </div>
-      </nav>
-      <div className="flex w-full items-center justify-center px-4 py-8">
-        <div className="w-1/5"></div>
-        <Link href="/shop" className="flex w-3/5 max-w-sm items-center justify-center">
-          <Image
-            src="/logo.png"
-            width={3333}
-            height={1304}
-            alt="Zilka Forgewerks Logo"
-          />
-        </Link>
-        <div className="w-1/5"></div>
+    <nav className="flex w-full items-center justify-between gap-4 border-b p-4 text-xl font-semibold">
+      {/* Left side: Products link */}
+      <Link href="/shop" className="hover:text-gray-600">
+        Products
+      </Link>
+
+      {/* Center: Logo */}
+      <Link href="/shop" className="flex items-center justify-center">
+        <Image
+          src="/logo.png"
+          width={200}
+          height={78}
+          alt="Zilka Forgewerks Logo"
+          className="h-auto w-40 sm:w-48"
+        />
+      </Link>
+
+      {/* Right side: auth controls and cart */}
+      <div className="flex items-center gap-4">
+        {/* Show account link and user button when signed in */}
+        <SignedIn>
+          <Link
+            href="/shop/account"
+            className="text-base hover:text-gray-600"
+          >
+            My Account
+          </Link>
+          <UserButton afterSignOutUrl="/shop" />
+        </SignedIn>
+        {/* Show sign in button when signed out */}
+        <SignedOut>
+          <SignInButton mode="modal">
+            <button className="text-base hover:text-gray-600">Sign In</button>
+          </SignInButton>
+        </SignedOut>
+        {/* Cart button with item count badge */}
+        <CartButton />
       </div>
-    </div>
+    </nav>
   );
 };

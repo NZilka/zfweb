@@ -64,8 +64,8 @@ export function AddToCartButton({
   // Base button styles based on variant
   const buttonStyles =
     variant === "card"
-      ? "inline-flex items-center border-slate-300 bg-black px-3 py-2 text-center text-sm font-medium text-white hover:bg-zinc-700 focus:outline-hidden focus:ring-4 focus:ring-zinc-300 dark:bg-zinc-600 dark:hover:bg-black dark:focus:ring-zinc-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
-      : "inline-flex items-center justify-center bg-black px-6 py-3 text-white hover:bg-zinc-700 disabled:bg-gray-400 disabled:cursor-not-allowed";
+      ? "inline-flex items-center rounded-md border border-gray-700 bg-black px-3 py-2 text-center text-sm font-medium text-white hover:bg-zinc-700 focus:outline-hidden focus:ring-4 focus:ring-zinc-300 dark:bg-zinc-600 dark:hover:bg-black dark:focus:ring-zinc-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
+      : "inline-flex items-center justify-center rounded-md border border-gray-700 bg-black px-6 py-3 text-white hover:bg-zinc-700 disabled:bg-gray-400 disabled:cursor-not-allowed";
 
   return (
     <div className="flex flex-col items-center gap-2">
