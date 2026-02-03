@@ -35,6 +35,8 @@ const requestBodySchema = z.object({
   savedPaymentMethodId: z.string().optional(),
   // Optional discount code to apply
   discountCode: z.string().optional(),
+  // Whether this is a gift order (hides prices on packing slip)
+  isGift: z.boolean().optional().default(false),
 });
 
 // POST /api/checkout/create-intent
@@ -60,8 +62,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Extract validated fields including optional saved payment method ID and discount
-    const { customerInfo, savePaymentMethod, savedPaymentMethodId, discountCode } =
+    // Extract validated fields including optional saved payment method ID, discount, and gift flag
+    const { customerInfo, savePaymentMethod, savedPaymentMethodId, discountCode, isGift } =
       bodyResult.data;
     const customerName = `${customerInfo.firstName} ${customerInfo.lastName}`;
 
@@ -166,6 +168,8 @@ export async function POST(request: Request) {
       itemCount: String(summary.itemCount),
       checkoutType: clerkUserId ? "registered" : "guest",
       stripeCustomerId: stripeCustomer.customerId,
+      // Track if this is a gift order for packing slip
+      isGift: String(isGift),
     };
 
     // Add discount info to metadata if discount applied

@@ -1,9 +1,12 @@
 /**
  * PackingSlip - Print-optimized packing slip for orders
  * Displays order details and items for fulfillment
+ * Uses portal to render outside admin layout's print:hidden wrapper
  */
 "use client";
 
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "~/components/ui/button";
 import { Printer } from "lucide-react";
 import type { OrderWithItems } from "~/server/admin-queries";
@@ -25,6 +28,14 @@ interface ShippingAddress {
 }
 
 export function PackingSlip({ order }: PackingSlipProps) {
+  // Track if we're mounted (for portal rendering)
+  const [mounted, setMounted] = useState(false);
+
+  // Set mounted on client side for portal rendering
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Parse shipping address
   let address: ShippingAddress = {};
   try {
@@ -45,25 +56,18 @@ export function PackingSlip({ order }: PackingSlipProps) {
     window.print();
   };
 
-  return (
-    <>
-      {/* Print button - hidden when printing */}
-      <Button onClick={handlePrint} variant="outline" size="sm" className="gap-2 print:hidden">
-        <Printer className="h-4 w-4" />
-        Print Packing Slip
-      </Button>
-
-      {/* Packing slip content - only visible when printing */}
-      <div className="hidden print:block">
-        <style jsx>{`
-          @media print {
-            @page {
-              margin: 0.5in;
-            }
+  // Packing slip content component - rendered via portal to avoid print:hidden parent
+  const packingSlipContent = (
+    <div className="hidden print:block">
+      <style jsx>{`
+        @media print {
+          @page {
+            margin: 0.5in;
           }
-        `}</style>
+        }
+      `}</style>
 
-        <div className="packing-slip p-4">
+      <div className="packing-slip bg-white p-4 text-black">
           {/* Header */}
           <div className="mb-6 border-b pb-4">
             <h1 className="text-2xl font-bold">Zilka Forgewerks</h1>
@@ -96,7 +100,7 @@ export function PackingSlip({ order }: PackingSlipProps) {
             </div>
           </div>
 
-          {/* Items table */}
+          {/* Items table - price column hidden for gift orders */}
           <div className="mb-6">
             <p className="mb-2 text-sm font-medium text-gray-500">ITEMS:</p>
             <table className="w-full border-collapse">
@@ -104,6 +108,8 @@ export function PackingSlip({ order }: PackingSlipProps) {
                 <tr className="border-b">
                   <th className="py-2 text-left">Product</th>
                   <th className="py-2 text-right">Qty</th>
+                  {/* Only show price column if not a gift order */}
+                  {!order.isGift && <th className="py-2 text-right">Price</th>}
                 </tr>
               </thead>
               <tbody>
@@ -111,18 +117,46 @@ export function PackingSlip({ order }: PackingSlipProps) {
                   <tr key={item.id} className="border-b">
                     <td className="py-2">{item.product.title}</td>
                     <td className="py-2 text-right">{item.quantity}</td>
+                    {/* Only show price if not a gift order */}
+                    {!order.isGift && (
+                      <td className="py-2 text-right">
+                        ${(parseFloat(item.product.price) * item.quantity).toFixed(2)}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          {/* Footer */}
-          <div className="mt-8 text-center text-sm text-gray-500">
-            <p>Thank you for your order!</p>
-          </div>
+          {/* Order total - hidden for gift orders */}
+          {!order.isGift && (
+            <div className="mb-6 border-t pt-4">
+              <div className="flex justify-between font-bold">
+                <span>Total</span>
+                <span>${parseFloat(order.total).toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <p>Thank you for your order!</p>
         </div>
       </div>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Print button - hidden when printing */}
+      <Button onClick={handlePrint} variant="outline" size="sm" className="gap-2 print:hidden">
+        <Printer className="h-4 w-4" />
+        Print Packing Slip
+      </Button>
+
+      {/* Render packing slip via portal to modal-root (outside print:hidden wrapper) */}
+      {mounted && createPortal(packingSlipContent, document.getElementById("modal-root")!)}
     </>
   );
 }

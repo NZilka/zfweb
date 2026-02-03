@@ -83,6 +83,9 @@ export default function CheckoutForm() {
   // Discount code state
   const [appliedDiscount, setAppliedDiscount] = useState<ValidatedDiscount | null>(null);
 
+  // Gift order state - hides prices on packing slip
+  const [isGift, setIsGift] = useState(false);
+
   // Pre-fill email for signed-in users
   useEffect(() => {
     const primaryEmail = user?.emailAddresses?.[0]?.emailAddress;
@@ -164,6 +167,8 @@ export default function CheckoutForm() {
           ...(selectedMethodId && { savedPaymentMethodId: selectedMethodId }),
           // Pass discount code if applied
           ...(appliedDiscount && { discountCode: appliedDiscount.code }),
+          // Pass gift flag for packing slip
+          isGift,
         }),
       });
 
@@ -440,6 +445,17 @@ export default function CheckoutForm() {
           appliedDiscount={appliedDiscount}
         />
       </div>
+
+      {/* Gift order checkbox - hides prices on packing slip for gift recipients */}
+      <label className="flex cursor-pointer items-center gap-2">
+        <input
+          type="checkbox"
+          checked={isGift}
+          onChange={(e) => setIsGift(e.target.checked)}
+          className="h-4 w-4 rounded border-gray-300"
+        />
+        <span className="text-sm">This is a gift (don&apos;t include prices on packing slip)</span>
+      </label>
 
       {/* Submit error */}
       {errors.submit && (

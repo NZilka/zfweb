@@ -150,13 +150,21 @@ export async function updateOrderFulfillment(
       packed_at: Date | null;
       is_shipped: boolean;
       shipped_at: Date | null;
+      is_downloaded: boolean;
+      downloaded_at: Date | null;
       tracking_number: string | null;
     }> = {};
 
     // Set packed status with timestamp
+    // Also mark as downloaded to move order from "unshipped" to "in_process" tab
     if (updates.isPacked !== undefined) {
       updateData.is_packed = updates.isPacked;
       updateData.packed_at = updates.isPacked ? now : null;
+      // When marking as packed, also mark as downloaded (moves to "in process" tab)
+      if (updates.isPacked) {
+        updateData.is_downloaded = true;
+        updateData.downloaded_at = now;
+      }
     }
 
     // Set shipped status with timestamp

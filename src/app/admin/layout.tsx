@@ -15,7 +15,8 @@ export default function AdminLayout({
         - AdminNav: Overlay drawer (fixed position, toggles open/closed)
         - Main content: Full width, scrollable
       */}
-      <div className="flex h-dvh w-full min-w-0 flex-col">
+      {/* print:hidden hides the entire admin layout when printing, so only packing slip shows */}
+      <div className="flex h-dvh w-full min-w-0 flex-col print:hidden">
         {/* Top navigation bar - always at top, spans full width */}
         <TopNav />
 

@@ -22,6 +22,8 @@ export interface OrderWithItems {
   isShipped: boolean;
   shippedAt: Date | null;
   trackingNumber: string | null;
+  // Whether order is a gift (hides prices on packing slip)
+  isGift: boolean;
   createdAt: Date;
   items: {
     id: number;
@@ -84,6 +86,7 @@ export async function getOrdersByFulfillmentStatus(
       isShipped: order.is_shipped,
       shippedAt: order.shipped_at,
       trackingNumber: order.tracking_number,
+      isGift: order.is_gift,
       createdAt: order.createdAt,
     })
     .from(order)

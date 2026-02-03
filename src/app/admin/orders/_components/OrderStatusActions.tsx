@@ -1,10 +1,11 @@
 /**
  * OrderStatusActions - Packed and Shipped checkboxes for order fulfillment
- * Updates order status with timestamps
+ * Updates order status with timestamps and refreshes counts
  */
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -17,6 +18,7 @@ interface OrderStatusActionsProps {
 }
 
 export function OrderStatusActions({ order }: OrderStatusActionsProps) {
+  const router = useRouter();
   // Local state for optimistic updates
   const [isPacked, setIsPacked] = useState(order.isPacked);
   const [isShipped, setIsShipped] = useState(order.isShipped);
@@ -36,6 +38,8 @@ export function OrderStatusActions({ order }: OrderStatusActionsProps) {
       toast.error(result.error || "Failed to update packed status");
     } else {
       toast.success(checked ? "Order marked as packed" : "Order unpacked");
+      // Refresh page data to update counts in tab bar
+      router.refresh();
     }
 
     setIsUpdating(false);
@@ -58,6 +62,8 @@ export function OrderStatusActions({ order }: OrderStatusActionsProps) {
       toast.error(result.error || "Failed to update shipped status");
     } else {
       toast.success(checked ? "Order marked as shipped" : "Order unshipped");
+      // Refresh page data to update counts in tab bar
+      router.refresh();
     }
 
     setIsUpdating(false);
