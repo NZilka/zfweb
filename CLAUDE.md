@@ -149,7 +149,7 @@ src/
   components/ui/          # Shared UI components (shadcn pattern)
   lib/utils.ts            # cn() utility (clsx + tailwind-merge)
   utils/uploadthing.ts    # UploadThing React helpers
-  middleware.ts           # Clerk auth middleware
+  proxy.ts                # Clerk auth proxy (Next.js 16+)
 ```
 
 ## Key Patterns
