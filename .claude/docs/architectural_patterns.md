@@ -105,9 +105,9 @@ updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(() => new D
 
 ## Authentication Flow
 
-**Pattern:** Clerk middleware protects all routes; components use auth state.
+**Pattern:** Clerk proxy protects all routes; components use auth state.
 
-- Global middleware: `src/middleware.ts:1-12`
+- Global proxy: `src/proxy.ts:1-12` (renamed from middleware.ts in Next.js 16)
 - Server auth check: `await auth()` from `@clerk/nextjs/server`
 - Client components: `<SignedIn>`, `<SignedOut>`, `<UserButton>`
 - Protected upload: checks `can-upload` in user metadata (`core.ts:41`)
