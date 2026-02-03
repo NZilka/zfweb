@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import {
   Table,
   TableBody,
@@ -144,9 +144,9 @@ export function OrdersTable({
         </TableHeader>
         <TableBody>
           {orders.map((order) => (
-            <>
+            <Fragment key={order.id}>
               {/* Main order row - hover uses light gray */}
-              <TableRow key={order.id} className="cursor-pointer hover:bg-gray-100">
+              <TableRow className="cursor-pointer hover:bg-gray-100">
                 {/* Selection checkbox - hidden on mobile */}
                 {showSelection && (
                   <TableCell onClick={(e) => e.stopPropagation()} className="hidden sm:table-cell">
@@ -198,7 +198,7 @@ export function OrdersTable({
 
               {/* Expanded items row - light gray background */}
               {expandedOrders.has(order.id) && (
-                <TableRow key={`${order.id}-items`} className="bg-gray-50">
+                <TableRow className="bg-gray-50">
                   <TableCell colSpan={showSelection ? 8 : 7} className="p-4">
                     <div className="grid gap-6 lg:grid-cols-3">
                       {/* Order Items */}
@@ -253,7 +253,7 @@ export function OrdersTable({
                   </TableCell>
                 </TableRow>
               )}
-            </>
+            </Fragment>
           ))}
         </TableBody>
       </Table>
