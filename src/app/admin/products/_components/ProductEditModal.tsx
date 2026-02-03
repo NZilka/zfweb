@@ -48,6 +48,8 @@ export function ProductEditModal({
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Track form validity to enable/disable Save button
+  const [isFormValid, setIsFormValid] = useState(false);
 
   // Ref to access form submission from header buttons
   const formRef = useRef<{ submit: () => Promise<void> } | null>(null);
@@ -150,7 +152,8 @@ export function ProductEditModal({
         <DialogTitle className="sr-only">{modalTitle}</DialogTitle>
 
         {/* Modal Header with action buttons - stacks on mobile */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b px-4 sm:px-6 py-3 sm:py-4">
+        {/* Extra right padding (pr-10) to avoid overlap with the dialog's absolute X close button */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pl-4 sm:pl-6 pr-12 py-3 sm:py-4">
           {/* Left side: Back arrow and title */}
           <div className="flex items-center gap-3">
             <Button
@@ -211,11 +214,11 @@ export function ProductEditModal({
               </Button>
             )}
 
-            {/* Save button */}
+            {/* Save button - disabled when form is invalid or submitting */}
             <Button
               size="sm"
               onClick={handleSave}
-              disabled={isSubmitting}
+              disabled={!isFormValid || isSubmitting}
               className="gap-1"
             >
               {isSubmitting ? (
@@ -244,6 +247,7 @@ export function ProductEditModal({
                 initialImageKeys={product?.imgKey ?? []}
                 onSuccess={handleFormSuccess}
                 setIsSubmitting={setIsSubmitting}
+                setIsFormValid={setIsFormValid}
               />
             </ProductProvider>
           </EditImageProvider>

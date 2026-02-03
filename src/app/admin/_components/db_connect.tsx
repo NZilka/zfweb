@@ -5,7 +5,7 @@ import { product as dbProduct, product_category } from "~/server/db/schema";
 import { type ProductType } from "~/app/_context/ProductContext";
 import { auth } from "@clerk/nextjs/server";
 import { utapi } from "~/server/uploadthing";
-import { eq } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { type OrderedImageRef } from "~/app/_context/EditImageContext";
 import { z } from "zod";
 
@@ -18,11 +18,34 @@ const categorySchema = z.object({
 // Type for category input derived from Zod schema
 export type CategoryInput = z.infer<typeof categorySchema>;
 
+// Check if a URL handle already exists (for duplicate validation)
+// Returns true if the handle is already taken by another product
+export const checkUrlHandleExists = async (
+  urlHandle: string,
+  excludeProductId?: number,
+) => {
+  if (!urlHandle.trim()) return false;
+
+  const conditions = [eq(dbProduct.url_handle, urlHandle)];
+  // In edit mode, exclude the current product from the check
+  if (excludeProductId) {
+    conditions.push(ne(dbProduct.id, excludeProductId));
+  }
+
+  const existing = await db.query.product.findFirst({
+    where: and(...conditions),
+    columns: { id: true },
+  });
+
+  return !!existing;
+};
+
 // Create a new product with images
 export const addProduct = async (
   product: ProductType,
   urls: string[] | undefined,
   keys: string[] | undefined,
+  urlHandle?: string,
 ) => {
   const result: { returnId: number }[] = await db
     .insert(dbProduct)
@@ -35,6 +58,8 @@ export const addProduct = async (
       inventory: product.inventory,
       sku: product.sku ?? null,
       category_id: product.category_id ?? null,
+      // Save URL handle if provided
+      url_handle: urlHandle ?? null,
     })
     .returning({ returnId: dbProduct.id });
 
@@ -58,6 +83,7 @@ export const updateProduct = async (
   productId: number,
   product: ProductType,
   imageChanges: ImageChanges,
+  urlHandle?: string,
 ) => {
   // Verify user is authenticated
   const user = await auth();
@@ -114,6 +140,8 @@ export const updateProduct = async (
       category_id: product.category_id ?? null,
       imgUrl: finalUrls,
       imgKey: finalKeys,
+      // Update URL handle if provided
+      url_handle: urlHandle ?? null,
     })
     .where(eq(dbProduct.id, productId))
     .returning({ returnId: dbProduct.id });

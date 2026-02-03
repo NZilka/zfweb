@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useProduct } from "~/app/_context/ProductContext";
 import { useEditImage } from "~/app/_context/EditImageContext";
 import { useUploadThing } from "~/utils/uploadthing";
-import { addProduct, updateProduct } from "~/app/admin/_components/db_connect";
+import { addProduct, updateProduct, checkUrlHandleExists } from "~/app/admin/_components/db_connect";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -35,6 +35,16 @@ interface ProductEditFormProps {
   initialImageKeys: string[];
   onSuccess?: () => void;
   setIsSubmitting: (value: boolean) => void;
+  // Callback to notify parent when form validity changes
+  setIsFormValid: (value: boolean) => void;
+}
+
+// Field-level error state
+interface FormErrors {
+  title?: string;
+  price?: string;
+  urlHandle?: string;
+  images?: string;
 }
 
 // Expose submit method to parent via ref
@@ -55,6 +65,7 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
       initialImageKeys,
       onSuccess,
       setIsSubmitting,
+      setIsFormValid,
     },
     ref
   ) {
@@ -67,6 +78,11 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
     const [status, setStatus] = useState(product?.status ?? "active");
     const [onSale, setOnSale] = useState(product?.on_sale ?? false);
     const [urlHandle, setUrlHandle] = useState(product?.url_handle ?? "");
+
+    // Field-level validation errors
+    const [errors, setErrors] = useState<FormErrors>({});
+    // Track if URL handle is being checked for duplicates
+    const [isCheckingUrlHandle, setIsCheckingUrlHandle] = useState(false);
 
     // Track if images have been initialized
     const hasInitializedImages = useRef(false);
@@ -81,6 +97,73 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
         hasInitializedImages.current = false;
       }
     }, [mode, initialImageUrls, initialImageKeys, initializeFromProduct]);
+
+    // Get current image count for validation
+    const imageChanges = getImageChanges();
+    const imageCount = imageChanges.keepUrls.length + imageChanges.newFiles.length;
+
+    // Derive form validity from current state and errors
+    const isFormValid =
+      formProduct.title.trim() !== "" &&
+      formProduct.price >= 0 &&
+      imageCount > 0 &&
+      !errors.title &&
+      !errors.price &&
+      !errors.urlHandle &&
+      !errors.images &&
+      !isCheckingUrlHandle;
+
+    // Notify parent when form validity changes
+    useEffect(() => {
+      setIsFormValid(isFormValid);
+    }, [isFormValid, setIsFormValid]);
+
+    // Validate URL handle on blur - check for duplicates
+    const handleUrlHandleBlur = async () => {
+      const handle = urlHandle.trim();
+      if (!handle) {
+        // Clear error if empty (will auto-generate on save)
+        setErrors((prev) => ({ ...prev, urlHandle: undefined }));
+        return;
+      }
+
+      setIsCheckingUrlHandle(true);
+      try {
+        const exists = await checkUrlHandleExists(handle, product?.id);
+        if (exists) {
+          setErrors((prev) => ({
+            ...prev,
+            urlHandle: "This URL handle is already in use",
+          }));
+        } else {
+          setErrors((prev) => ({ ...prev, urlHandle: undefined }));
+        }
+      } catch (err) {
+        console.error("Error checking URL handle:", err);
+      } finally {
+        setIsCheckingUrlHandle(false);
+      }
+    };
+
+    // Validate title on change
+    const handleTitleChange = (value: string) => {
+      setProduct({ ...formProduct, title: value });
+      if (!value.trim()) {
+        setErrors((prev) => ({ ...prev, title: "Product name is required" }));
+      } else {
+        setErrors((prev) => ({ ...prev, title: undefined }));
+      }
+    };
+
+    // Validate price on change
+    const handlePriceChange = (value: number) => {
+      setProduct({ ...formProduct, price: value });
+      if (value < 0) {
+        setErrors((prev) => ({ ...prev, price: "Price must be 0 or greater" }));
+      } else {
+        setErrors((prev) => ({ ...prev, price: undefined }));
+      }
+    };
 
     // Upload new files to UploadThing
     const handleImageUpload = async (filesToUpload: File[]) => {
@@ -102,6 +185,12 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
           throw new Error("Price must be non-negative");
         }
 
+        // Auto-generate URL handle from title if empty
+        const finalUrlHandle = urlHandle.trim() || formProduct.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
+
         // Get image data from context
         const imageChanges = getImageChanges();
 
@@ -112,7 +201,7 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
 
         if (mode === "create") {
           // CREATE MODE: Create product with uploaded images
-          await addProduct(formProduct, newUrls, newKeys);
+          await addProduct(formProduct, newUrls, newKeys, finalUrlHandle);
           toast.success("Product created");
         } else {
           // EDIT MODE: Update product with image changes
@@ -120,8 +209,6 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
             throw new Error("Product ID required for edit mode");
           }
 
-          // Note: status, on_sale, url_handle updates would require extending
-          // the updateProduct server action. For now, we update core fields.
           await updateProduct(formProduct.id, formProduct, {
             keepUrls: imageChanges.keepUrls,
             keepKeys: imageChanges.keepKeys,
@@ -129,7 +216,7 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
             newUrls,
             newKeys,
             orderedImages: imageChanges.orderedImages,
-          });
+          }, finalUrlHandle);
           toast.success("Product updated");
         }
 
@@ -161,11 +248,15 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
         {/* Left Column - Main form content (full width on mobile) */}
         <div className="flex-1 space-y-4 lg:space-y-6">
           {/* Image Gallery Section */}
-          <section className="rounded-lg border bg-white p-4">
+          <section className={`rounded-lg border bg-white p-4 ${imageCount === 0 ? "border-red-300" : ""}`}>
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-medium text-gray-900">Image gallery</h3>
               <ImageGalleryEditor />
             </div>
+            {/* Show error if no images */}
+            {imageCount === 0 && (
+              <p className="text-sm text-red-600">At least one image is required</p>
+            )}
           </section>
 
           {/* Product Info Section */}
@@ -180,13 +271,15 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
                 <Input
                   id="product-name"
                   value={formProduct.title}
-                  onChange={(e) =>
-                    setProduct({ ...formProduct, title: e.target.value })
-                  }
+                  onChange={(e) => handleTitleChange(e.target.value)}
                   placeholder="Enter product name"
-                  className="mt-1 bg-white text-gray-900"
+                  className={`mt-1 bg-white text-gray-900 ${errors.title ? "border-red-300" : ""}`}
                   required
                 />
+                {/* Show error if title is empty */}
+                {errors.title && (
+                  <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+                )}
               </div>
 
               {/* URL Handle */}
@@ -199,9 +292,17 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
                   <Input
                     id="url-handle"
                     value={urlHandle}
-                    onChange={(e) => setUrlHandle(e.target.value)}
+                    onChange={(e) => {
+                      setUrlHandle(e.target.value);
+                      // Clear error when user starts typing again
+                      if (errors.urlHandle) {
+                        setErrors((prev) => ({ ...prev, urlHandle: undefined }));
+                      }
+                    }}
+                    // Check for duplicates when user leaves the field
+                    onBlur={handleUrlHandleBlur}
                     placeholder="product-url-slug"
-                    className="flex-1 bg-white text-gray-900"
+                    className={`flex-1 bg-white text-gray-900 ${errors.urlHandle ? "border-red-300" : ""}`}
                   />
                   <button
                     type="button"
@@ -211,6 +312,13 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
                     Generate
                   </button>
                 </div>
+                {/* Show checking indicator or error */}
+                {isCheckingUrlHandle && (
+                  <p className="mt-1 text-sm text-gray-500">Checking availability...</p>
+                )}
+                {errors.urlHandle && (
+                  <p className="mt-1 text-sm text-red-600">{errors.urlHandle}</p>
+                )}
               </div>
 
               {/* Description */}
@@ -252,16 +360,17 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
                     step="0.01"
                     min="0"
                     value={formProduct.price}
-                    onChange={(e) =>
-                      setProduct({
-                        ...formProduct,
-                        price: Number(e.target.value),
-                      })
-                    }
-                    className="pl-7 bg-white text-gray-900"
+                    onChange={(e) => handlePriceChange(Number(e.target.value))}
+                    // Auto-select value on focus so typing replaces the default 0
+                    onFocus={(e) => e.target.select()}
+                    className={`pl-7 bg-white text-gray-900 ${errors.price ? "border-red-300" : ""}`}
                     required
                   />
                 </div>
+                {/* Show error if price is invalid */}
+                {errors.price && (
+                  <p className="mt-1 text-sm text-red-600">{errors.price}</p>
+                )}
               </div>
 
               {/* Stock */}
@@ -280,6 +389,8 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
                       inventory: Number(e.target.value),
                     })
                   }
+                  // Auto-select value on focus so typing replaces the default 0
+                  onFocus={(e) => e.target.select()}
                   className="mt-1 bg-white text-gray-900"
                   required
                 />
