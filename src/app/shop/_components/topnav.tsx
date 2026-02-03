@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { User } from "lucide-react";
 import { CartButton } from "./CartButton";
 
 // Top navigation bar for the shop
@@ -31,11 +32,12 @@ export const TopNav = () => {
         <SignedIn>
           <Link
             href="/shop/account"
-            className="text-sm hover:text-gray-600 sm:text-base"
+            className="flex items-center hover:text-gray-600"
+            aria-label="My Account"
           >
-            {/* Hide text on mobile, show on sm+ */}
-            <span className="hidden sm:inline">My Account</span>
-            <span className="sm:hidden">Account</span>
+            {/* Icon on mobile, text on sm+ */}
+            <User className="h-5 w-5 sm:hidden" />
+            <span className="hidden text-base sm:inline">My Account</span>
           </Link>
           <UserButton afterSignOutUrl="/shop" />
         </SignedIn>
