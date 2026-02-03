@@ -18,6 +18,7 @@ import {
   Package,
   Tag,
   Truck,
+  Settings,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "products", label: "Products", path: "/admin/products", icon: Package },
   { id: "discounts", label: "Discounts", path: "/admin/discounts", icon: Tag },
   { id: "shipping", label: "Shipping", path: "/admin/shipping", icon: Truck },
+  { id: "settings", label: "Settings", path: "/admin/settings", icon: Settings },
 ];
 
 // Determine active nav item from pathname

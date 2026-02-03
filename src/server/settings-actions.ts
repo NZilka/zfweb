@@ -1,0 +1,150 @@
+/**
+ * Settings Server Actions
+ * Handles saving and retrieving site-wide settings (maintenance mode, announcements)
+ */
+"use server";
+
+import { z } from "zod";
+import {
+  getSiteSettings,
+  setSiteSettings,
+  type SiteSettings,
+  isKvConfigured,
+} from "./kv";
+
+// Validation schema for maintenance mode settings
+const maintenanceModeSchema = z.object({
+  enabled: z.boolean(),
+  message: z.string().max(1000).nullable(),
+  imageUrl: z.string().url().nullable().or(z.literal("")),
+  imageKey: z.string().nullable(),
+});
+
+// Validation schema for announcement banner settings
+const announcementBannerSchema = z.object({
+  enabled: z.boolean(),
+  text: z.string().max(500).nullable(),
+  scrolling: z.boolean(),
+});
+
+// Combined settings update schema
+const updateSettingsSchema = z.object({
+  maintenanceMode: maintenanceModeSchema.optional(),
+  announcementBanner: announcementBannerSchema.optional(),
+});
+
+type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
+
+// Result type for actions
+type ActionResult<T = void> =
+  | { success: true; data?: T }
+  | { success: false; error: string };
+
+/**
+ * Get current site settings
+ * Returns default settings if KV is not configured or on error
+ */
+export async function getSettings(): Promise<SiteSettings> {
+  return getSiteSettings();
+}
+
+/**
+ * Check if KV storage is available for settings
+ */
+export async function checkSettingsAvailable(): Promise<boolean> {
+  return isKvConfigured();
+}
+
+/**
+ * Update site settings (partial update supported)
+ * Only updates the fields provided in the input
+ */
+export async function updateSettings(
+  input: UpdateSettingsInput
+): Promise<ActionResult> {
+  // Check if KV is configured
+  if (!isKvConfigured()) {
+    return {
+      success: false,
+      error: "Settings storage is not configured. Please set up Upstash KV.",
+    };
+  }
+
+  // Validate input
+  const parsed = updateSettingsSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid settings data",
+    };
+  }
+
+  try {
+    // Get current settings
+    const currentSettings = await getSiteSettings();
+
+    // Merge with updates
+    const updatedSettings: SiteSettings = {
+      ...currentSettings,
+      maintenanceMode: parsed.data.maintenanceMode
+        ? {
+            ...currentSettings.maintenanceMode,
+            ...parsed.data.maintenanceMode,
+            // Normalize empty string to null for imageUrl
+            imageUrl: parsed.data.maintenanceMode.imageUrl || null,
+          }
+        : currentSettings.maintenanceMode,
+      announcementBanner: parsed.data.announcementBanner
+        ? {
+            ...currentSettings.announcementBanner,
+            ...parsed.data.announcementBanner,
+          }
+        : currentSettings.announcementBanner,
+      updatedAt: Date.now(),
+    };
+
+    // Save updated settings
+    await setSiteSettings(updatedSettings);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating settings:", error);
+    return {
+      success: false,
+      error: "Failed to save settings. Please try again.",
+    };
+  }
+}
+
+/**
+ * Toggle maintenance mode on/off
+ * Convenience action for quick toggling
+ */
+export async function toggleMaintenanceMode(
+  enabled: boolean
+): Promise<ActionResult> {
+  return updateSettings({
+    maintenanceMode: {
+      enabled,
+      message: null,
+      imageUrl: null,
+      imageKey: null,
+    },
+  });
+}
+
+/**
+ * Toggle announcement banner on/off
+ * Convenience action for quick toggling
+ */
+export async function toggleAnnouncementBanner(
+  enabled: boolean
+): Promise<ActionResult> {
+  const currentSettings = await getSiteSettings();
+  return updateSettings({
+    announcementBanner: {
+      ...currentSettings.announcementBanner,
+      enabled,
+    },
+  });
+}
