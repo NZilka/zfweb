@@ -1,13 +1,50 @@
+/**
+ * TopNav - Top navigation bar for admin dashboard
+ * Contains hamburger toggle (all sizes), Admin title, logo, and auth controls
+ */
+"use client";
+
 import Image from "next/image";
 import { UserButton, SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import { Menu } from "lucide-react";
+import { useAdminNav } from "./AdminNavContext";
 
 export const TopNav = () => {
+  const { toggleOpen } = useAdminNav();
+
   return (
     // min-w-0 prevents flexbox/grid implicit minimum width overflow
-    <div className="min-w-0">
+    // z-30 ensures header stays above content but below drawer (z-50)
+    <header className="min-w-0 border-b border-gray-700 bg-gray-900 z-30 relative">
       {/* Top nav bar with responsive padding */}
-      <nav className="flex w-full min-w-0 items-center justify-between gap-2 sm:gap-4 border-b px-3 py-2 sm:p-4 text-lg sm:text-xl font-semibold">
-        <div>Admin</div>
+      <nav className="flex w-full min-w-0 items-center justify-between gap-2 sm:gap-4 px-3 py-2 sm:px-4 sm:py-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Hamburger toggle - visible on all sizes, light colors for dark bg */}
+          <button
+            onClick={toggleOpen}
+            className="flex items-center justify-center h-9 w-9 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors duration-150"
+            aria-label="Toggle navigation menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <span className="text-lg sm:text-xl font-semibold text-white">Admin</span>
+        </div>
+
+        {/* Logo - compact in header, hidden on small mobile */}
+        <div className="hidden xs:block sm:flex-1 sm:flex sm:justify-center sm:px-4">
+          <div className="w-24 sm:w-32 md:w-40">
+            <Image
+              priority={true}
+              src="/logo.png"
+              width={3333}
+              height={1304}
+              alt="Zilka Forgewerks Logo"
+              className="w-full h-auto"
+            />
+          </div>
+        </div>
+
+        {/* Auth controls */}
         <div className="flex flex-row items-center gap-2 sm:gap-4">
           <SignedIn>
             <UserButton />
@@ -17,19 +54,6 @@ export const TopNav = () => {
           </SignedOut>
         </div>
       </nav>
-      {/* Logo section - responsive padding and centered */}
-      <div className="flex w-full items-center justify-center px-4 py-4 sm:py-6 md:py-8">
-        <div className="w-full max-w-xs sm:max-w-sm">
-          <Image
-            priority={true}
-            src="/logo.png"
-            width={3333}
-            height={1304}
-            alt="Zilka Forgewerks Logo"
-            className="w-full h-auto"
-          />
-        </div>
-      </div>
-    </div>
+    </header>
   );
 };
