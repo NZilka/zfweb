@@ -30,9 +30,9 @@ export const TopNav = () => {
           <span className="text-lg sm:text-xl font-semibold text-white">Admin</span>
         </div>
 
-        {/* Logo - compact in header, hidden on small mobile */}
-        <div className="hidden xs:block sm:flex-1 sm:flex sm:justify-center sm:px-4">
-          <div className="w-24 sm:w-32 md:w-40">
+        {/* Logo - compact in header, hidden on mobile */}
+        <div className="hidden sm:flex sm:flex-1 sm:justify-center sm:px-4">
+          <div className="w-32 md:w-40 max-w-[160px]">
             <Image
               priority={true}
               src="/logo.png"
