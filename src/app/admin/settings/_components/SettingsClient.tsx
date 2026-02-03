@@ -4,17 +4,17 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { AlertTriangle, Megaphone, X, Upload } from "lucide-react";
+import { AlertTriangle, Megaphone, X, Upload, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Switch } from "~/components/ui/switch";
 import { Textarea } from "~/components/ui/textarea";
-import { UploadDropzone } from "~/utils/uploadthing";
+import { useUploadThing } from "~/utils/uploadthing";
 import { updateSettings } from "~/server/settings-actions";
 import type { SiteSettings } from "~/server/kv";
 
@@ -56,6 +56,44 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
 
   // Form state
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // File input ref for triggering file picker
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // UploadThing hook - same approach as product forms
+  const { startUpload } = useUploadThing("imageUploader", {
+    onClientUploadComplete: (res) => {
+      if (res?.[0]) {
+        setMaintenanceImageUrl(res[0].url);
+        setMaintenanceImageKey(res[0].key);
+        toast.success("Image uploaded");
+      }
+      setIsUploading(false);
+    },
+    onUploadError: (error) => {
+      toast.error(`Upload failed: ${error.message}`);
+      setIsUploading(false);
+    },
+  });
+
+  // Handle file selection from input
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (4MB limit for maintenance image)
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("Image must be less than 4MB");
+      return;
+    }
+
+    setIsUploading(true);
+    await startUpload([file]);
+
+    // Reset input so same file can be selected again
+    e.target.value = "";
+  };
 
   // Derived state: check if maintenance settings are valid
   // Message is required when enabling maintenance mode
@@ -211,21 +249,39 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
                 </button>
               </div>
             ) : (
-              // Uses dedicated maintenance endpoint (1 image max)
-              <UploadDropzone
-                endpoint="maintenanceImageUploader"
-                onClientUploadComplete={(res) => {
-                  if (res?.[0]) {
-                    setMaintenanceImageUrl(res[0].url);
-                    setMaintenanceImageKey(res[0].key);
-                    toast.success("Image uploaded");
-                  }
-                }}
-                onUploadError={(error: Error) => {
-                  toast.error(`Upload failed: ${error.message}`);
-                }}
-                className="ut-label:text-sm ut-allowed-content:text-xs border-dashed"
-              />
+              // Custom upload UI using useUploadThing hook
+              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 hover:border-gray-400">
+                <Upload className="mb-2 h-8 w-8 text-gray-400" />
+                <p className="mb-2 text-sm text-gray-600">
+                  Upload a maintenance image
+                </p>
+                <p className="mb-4 text-xs text-gray-400">
+                  PNG, JPG, GIF up to 4MB
+                </p>
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    "Choose File"
+                  )}
+                </Button>
+              </div>
             )}
           </div>
 
