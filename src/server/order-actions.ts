@@ -21,6 +21,8 @@ export async function createOrderFromPayment(paymentIntent: Stripe.PaymentIntent
   const customerName = metadata.customerName ?? "";
   const shippingAddress = metadata.shippingAddress ?? "{}";
   const cartSessionToken = metadata.cartSessionToken ?? "";
+  // Gift flag stored as string in metadata, convert to boolean
+  const isGift = metadata.isGift === "true";
 
   if (!cartSessionToken) {
     throw new Error("No cart session token in payment intent metadata");
@@ -73,6 +75,8 @@ export async function createOrderFromPayment(paymentIntent: Stripe.PaymentIntent
       shipping_address: shippingAddress,
       products: productIds,
       total: calculatedTotal.toFixed(2),
+      // Gift flag controls whether prices show on packing slip
+      is_gift: isGift,
     })
     .returning();
 

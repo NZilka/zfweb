@@ -96,7 +96,7 @@ export function PackingSlip({ order }: PackingSlipProps) {
             </div>
           </div>
 
-          {/* Items table */}
+          {/* Items table - price column hidden for gift orders */}
           <div className="mb-6">
             <p className="mb-2 text-sm font-medium text-gray-500">ITEMS:</p>
             <table className="w-full border-collapse">
@@ -104,6 +104,8 @@ export function PackingSlip({ order }: PackingSlipProps) {
                 <tr className="border-b">
                   <th className="py-2 text-left">Product</th>
                   <th className="py-2 text-right">Qty</th>
+                  {/* Only show price column if not a gift order */}
+                  {!order.isGift && <th className="py-2 text-right">Price</th>}
                 </tr>
               </thead>
               <tbody>
@@ -111,11 +113,27 @@ export function PackingSlip({ order }: PackingSlipProps) {
                   <tr key={item.id} className="border-b">
                     <td className="py-2">{item.product.title}</td>
                     <td className="py-2 text-right">{item.quantity}</td>
+                    {/* Only show price if not a gift order */}
+                    {!order.isGift && (
+                      <td className="py-2 text-right">
+                        ${(parseFloat(item.product.price) * item.quantity).toFixed(2)}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {/* Order total - hidden for gift orders */}
+          {!order.isGift && (
+            <div className="mb-6 border-t pt-4">
+              <div className="flex justify-between font-bold">
+                <span>Total</span>
+                <span>${parseFloat(order.total).toFixed(2)}</span>
+              </div>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="mt-8 text-center text-sm text-gray-500">

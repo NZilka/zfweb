@@ -95,6 +95,9 @@ export const order = createTable("order", {
   // Carrier tracking number for customer notification
   tracking_number: varchar("tracking_number", { length: 256 }),
 
+  // Whether order is a gift (hides prices on packing slip)
+  is_gift: boolean("is_gift").notNull().default(false),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
