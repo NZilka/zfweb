@@ -23,13 +23,18 @@ interface SettingsClientProps {
   kvAvailable: boolean;
 }
 
+// Default message shown when no custom message is set
+const DEFAULT_MAINTENANCE_MESSAGE =
+  "We're currently performing scheduled maintenance. Please check back soon!";
+
 export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientProps) {
   // Maintenance mode state
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(
     initialSettings.maintenanceMode.enabled
   );
+  // Prepopulate with default message if none saved
   const [maintenanceMessage, setMaintenanceMessage] = useState(
-    initialSettings.maintenanceMode.message ?? ""
+    initialSettings.maintenanceMode.message ?? DEFAULT_MAINTENANCE_MESSAGE
   );
   const [maintenanceImageUrl, setMaintenanceImageUrl] = useState(
     initialSettings.maintenanceMode.imageUrl ?? ""

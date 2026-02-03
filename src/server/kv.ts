@@ -203,11 +203,15 @@ export async function checkKvConnection(): Promise<boolean> {
 }
 
 // Site settings functions
-// Default settings when none exist
+// Default maintenance message prepopulated for new setups
+export const DEFAULT_MAINTENANCE_MESSAGE =
+  "We're currently performing scheduled maintenance. Please check back soon!";
+
+// Default settings when none exist - maintenance is OFF by default
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   maintenanceMode: {
     enabled: false,
-    message: null,
+    message: DEFAULT_MAINTENANCE_MESSAGE,
     imageUrl: null,
     imageKey: null,
   },

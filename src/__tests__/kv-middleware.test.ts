@@ -21,6 +21,10 @@ vi.mock("@upstash/redis", () => ({
 // Import after mocking
 import { getMaintenanceSettings } from "~/server/kv-middleware";
 
+// Default message that should be prepopulated
+const DEFAULT_MAINTENANCE_MESSAGE =
+  "We're currently performing scheduled maintenance. Please check back soon!";
+
 describe("kv-middleware", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -43,8 +47,9 @@ describe("kv-middleware", () => {
       const result = await getMaintenanceSettings();
 
       // Should return defaults without calling Redis
+      // Maintenance is OFF by default, but message is prepopulated
       expect(result.maintenanceMode.enabled).toBe(false);
-      expect(result.maintenanceMode.message).toBeNull();
+      expect(result.maintenanceMode.message).toBe(DEFAULT_MAINTENANCE_MESSAGE);
       expect(mockGet).not.toHaveBeenCalled();
     });
 

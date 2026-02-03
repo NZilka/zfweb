@@ -6,11 +6,16 @@
 import { Redis } from "@upstash/redis";
 import type { SiteSettings } from "./kv";
 
+// Default maintenance message prepopulated for new setups
+const DEFAULT_MAINTENANCE_MESSAGE =
+  "We're currently performing scheduled maintenance. Please check back soon!";
+
 // Default settings to use when KV is unavailable or not configured
+// Maintenance is OFF by default
 const DEFAULT_SITE_SETTINGS: SiteSettings = {
   maintenanceMode: {
     enabled: false,
-    message: null,
+    message: DEFAULT_MAINTENANCE_MESSAGE,
     imageUrl: null,
     imageKey: null,
   },

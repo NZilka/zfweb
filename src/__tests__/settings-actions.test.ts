@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock the kv module before importing settings-actions
+// Note: vi.mock is hoisted, so we use literal strings here
 vi.mock("~/server/kv", () => ({
   isKvConfigured: vi.fn(() => true),
   getSiteSettings: vi.fn(),
@@ -12,7 +13,8 @@ vi.mock("~/server/kv", () => ({
   DEFAULT_SITE_SETTINGS: {
     maintenanceMode: {
       enabled: false,
-      message: null,
+      // Prepopulated default message
+      message: "We're currently performing scheduled maintenance. Please check back soon!",
       imageUrl: null,
       imageKey: null,
     },

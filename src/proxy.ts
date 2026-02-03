@@ -10,9 +10,13 @@ import { getMaintenanceSettings } from "~/server/kv-middleware";
 export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
 
-  // Only check maintenance mode for shop routes
-  // Admin routes, API routes, and other paths bypass maintenance check
-  if (pathname.startsWith("/shop")) {
+  // Skip maintenance check for admin routes and the maintenance page itself
+  // All other routes should show maintenance page when enabled
+  const isAdminRoute = pathname.startsWith("/admin");
+  const isMaintenancePage = pathname === "/maintenance";
+  const isApiRoute = pathname.startsWith("/api");
+
+  if (!isAdminRoute && !isMaintenancePage && !isApiRoute) {
     const settings = await getMaintenanceSettings();
 
     if (settings.maintenanceMode.enabled) {
@@ -26,7 +30,7 @@ export default clerkMiddleware(async (auth, req) => {
         const user = await client.users.getUser(userId);
         const isAdmin = user?.privateMetadata?.["can-upload"] === true;
 
-        // Allow admins to access shop during maintenance
+        // Allow admins to access site during maintenance
         if (isAdmin) {
           return NextResponse.next();
         }
@@ -38,7 +42,7 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
-  // Allow request to proceed for non-shop routes or when maintenance is off
+  // Allow request to proceed for admin routes or when maintenance is off
   return NextResponse.next();
 });
 
