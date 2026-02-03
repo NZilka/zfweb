@@ -52,8 +52,19 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
   // Form state
   const [isSaving, setIsSaving] = useState(false);
 
+  // Derived state: check if maintenance settings are valid
+  // Message is required when enabling maintenance mode
+  const isMaintenanceValid =
+    !maintenanceEnabled || maintenanceMessage.trim().length > 0;
+
   // Save maintenance mode settings
   const handleSaveMaintenanceMode = async () => {
+    // Client-side validation: require message when enabling
+    if (maintenanceEnabled && !maintenanceMessage.trim()) {
+      toast.error("A maintenance message is required when enabling maintenance mode");
+      return;
+    }
+
     setIsSaving(true);
     const result = await updateSettings({
       maintenanceMode: {
@@ -149,9 +160,11 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
             />
           </div>
 
-          {/* Maintenance message */}
+          {/* Maintenance message - required when enabled */}
           <div className="space-y-2">
-            <Label htmlFor="maintenance-message">Maintenance Message</Label>
+            <Label htmlFor="maintenance-message">
+              Maintenance Message <span className="text-red-500">*</span>
+            </Label>
             <Textarea
               id="maintenance-message"
               placeholder="We're currently performing scheduled maintenance. Please check back soon!"
@@ -162,6 +175,12 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
             />
             <p className="text-xs text-gray-500">
               {maintenanceMessage.length}/1000 characters
+              {/* Show requirement warning when toggle is on but message empty */}
+              {maintenanceEnabled && !maintenanceMessage.trim() && (
+                <span className="ml-2 text-red-500">
+                  — Message required to enable maintenance mode
+                </span>
+              )}
             </p>
           </div>
 
@@ -187,8 +206,9 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
                 </button>
               </div>
             ) : (
+              // Uses dedicated maintenance endpoint (1 image max)
               <UploadDropzone
-                endpoint="imageUploader"
+                endpoint="maintenanceImageUploader"
                 onClientUploadComplete={(res) => {
                   if (res?.[0]) {
                     setMaintenanceImageUrl(res[0].url);
@@ -225,8 +245,11 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
             </div>
           )}
 
-          {/* Save button */}
-          <Button onClick={handleSaveMaintenanceMode} disabled={isSaving}>
+          {/* Save button - disabled when validation fails */}
+          <Button
+            onClick={handleSaveMaintenanceMode}
+            disabled={isSaving || !isMaintenanceValid}
+          >
             {isSaving ? "Saving..." : "Save Maintenance Settings"}
           </Button>
         </CardContent>

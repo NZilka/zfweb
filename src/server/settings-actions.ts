@@ -13,12 +13,19 @@ import {
 } from "./kv";
 
 // Validation schema for maintenance mode settings
-const maintenanceModeSchema = z.object({
-  enabled: z.boolean(),
-  message: z.string().max(1000).nullable(),
-  imageUrl: z.string().url().nullable().or(z.literal("")),
-  imageKey: z.string().nullable(),
-});
+// Uses refine to enforce message requirement when enabled
+const maintenanceModeSchema = z
+  .object({
+    enabled: z.boolean(),
+    message: z.string().max(1000).nullable(),
+    imageUrl: z.string().url().nullable().or(z.literal("")),
+    imageKey: z.string().nullable(),
+  })
+  .refine(
+    // Message is required when enabling maintenance mode
+    (data) => !data.enabled || (data.message && data.message.trim().length > 0),
+    { message: "A maintenance message is required when enabling maintenance mode" }
+  );
 
 // Validation schema for announcement banner settings
 const announcementBannerSchema = z.object({
