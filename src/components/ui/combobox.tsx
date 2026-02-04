@@ -20,7 +20,10 @@ type ComboboxProps = {
   "aria-label"?: string;
 };
 
-// Searchable dropdown component - type to filter options
+// Typeahead buffer timeout in milliseconds (like native <select>)
+const TYPEAHEAD_TIMEOUT = 1000;
+
+// Searchable dropdown component with typeahead navigation
 export function Combobox({
   options,
   value,
@@ -31,27 +34,30 @@ export function Combobox({
   "aria-label": ariaLabel,
 }: ComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  // Typeahead buffer for keyboard navigation (resets after timeout)
+  const [typeaheadBuffer, setTypeaheadBuffer] = useState("");
   // -1 means no keyboard selection; first ArrowDown will select index 0
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const typeaheadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get display label for current value
   const selectedOption = options.find((o) => o.value === value);
   const displayValue = selectedOption?.label ?? "";
 
-  // Filter options based on search term
-  const filteredOptions = options.filter((option) =>
-    option.label.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Find index of currently selected value in options
+  const selectedIndex = options.findIndex((o) => o.value === value);
 
-  // Reset highlighted index when filtered options change
-  // -1 means user is typing; ArrowDown will start selection at index 0
+  // Clear typeahead timeout on unmount
   useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [searchTerm]);
+    return () => {
+      if (typeaheadTimeoutRef.current) {
+        clearTimeout(typeaheadTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Scroll highlighted item into view (only when an item is selected)
   useEffect(() => {
@@ -61,12 +67,21 @@ export function Combobox({
     }
   }, [highlightedIndex, isOpen]);
 
+  // When dropdown opens, highlight the currently selected item
+  useEffect(() => {
+    if (isOpen && selectedIndex >= 0) {
+      setHighlightedIndex(selectedIndex);
+    } else if (isOpen) {
+      setHighlightedIndex(0);
+    }
+  }, [isOpen, selectedIndex]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        setSearchTerm("");
+        setTypeaheadBuffer("");
       }
     }
 
@@ -79,10 +94,39 @@ export function Combobox({
     (optionValue: string) => {
       onChange(optionValue);
       setIsOpen(false);
-      setSearchTerm("");
-      inputRef.current?.blur();
+      setTypeaheadBuffer("");
+      buttonRef.current?.focus();
     },
     [onChange]
+  );
+
+  // Handle typeahead - find first option starting with buffer
+  const handleTypeahead = useCallback(
+    (char: string) => {
+      // Clear existing timeout
+      if (typeaheadTimeoutRef.current) {
+        clearTimeout(typeaheadTimeoutRef.current);
+      }
+
+      // Add character to buffer
+      const newBuffer = typeaheadBuffer + char.toLowerCase();
+      setTypeaheadBuffer(newBuffer);
+
+      // Find first option that starts with the buffer
+      const matchIndex = options.findIndex((option) =>
+        option.label.toLowerCase().startsWith(newBuffer)
+      );
+
+      if (matchIndex >= 0) {
+        setHighlightedIndex(matchIndex);
+      }
+
+      // Reset buffer after timeout
+      typeaheadTimeoutRef.current = setTimeout(() => {
+        setTypeaheadBuffer("");
+      }, TYPEAHEAD_TIMEOUT);
+    },
+    [typeaheadBuffer, options]
   );
 
   // Handle keyboard navigation
@@ -94,97 +138,83 @@ export function Combobox({
         e.preventDefault();
         if (!isOpen) {
           setIsOpen(true);
-        } else if (filteredOptions.length > 0) {
-          // First ArrowDown selects index 0, then increment from there
+        } else if (options.length > 0) {
+          // Move down in the list
           setHighlightedIndex((prev) =>
-            prev < 0 ? 0 : prev < filteredOptions.length - 1 ? prev + 1 : prev
+            prev < 0 ? 0 : prev < options.length - 1 ? prev + 1 : prev
           );
         }
         break;
       case "ArrowUp":
         e.preventDefault();
-        // Move up, but don't go below 0 once keyboard nav has started
-        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : prev < 0 ? 0 : prev));
+        if (!isOpen) {
+          setIsOpen(true);
+        } else {
+          // Move up, but don't go below 0
+          setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+        }
         break;
       case "Enter":
+      case " ": // Space key
         e.preventDefault();
-        // Only select if an item is highlighted (index >= 0)
-        if (isOpen && highlightedIndex >= 0 && filteredOptions[highlightedIndex]) {
-          selectOption(filteredOptions[highlightedIndex].value);
+        if (isOpen && highlightedIndex >= 0 && options[highlightedIndex]) {
+          selectOption(options[highlightedIndex].value);
         } else if (!isOpen) {
           setIsOpen(true);
         }
         break;
       case "Escape":
         setIsOpen(false);
-        setSearchTerm("");
+        setTypeaheadBuffer("");
         break;
       case "Tab":
         // Allow tab to move focus, close dropdown
         setIsOpen(false);
-        setSearchTerm("");
+        setTypeaheadBuffer("");
+        break;
+      default:
+        // Handle typeahead for letter/number keys
+        if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+          e.preventDefault();
+          if (!isOpen) {
+            setIsOpen(true);
+          }
+          handleTypeahead(e.key);
+        }
         break;
     }
   };
 
-  // Handle input focus - open dropdown and select text
-  const handleFocus = () => {
-    if (!disabled) {
-      setIsOpen(true);
-      // Pre-fill search with current value for easy editing
-      setSearchTerm(displayValue);
-      // Select all text so user can start typing to replace
-      setTimeout(() => inputRef.current?.select(), 0);
-    }
-  };
-
-  // Handle input change - update search term
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    if (!isOpen) setIsOpen(true);
-  };
-
   return (
     <div ref={containerRef} className={cn("relative", className)}>
-      {/* Input field */}
-      <div className="relative">
-        <input
-          ref={inputRef}
-          type="text"
-          value={isOpen ? searchTerm : displayValue}
-          onChange={handleInputChange}
-          onFocus={handleFocus}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={disabled}
-          aria-label={ariaLabel}
-          aria-expanded={isOpen}
-          aria-haspopup="listbox"
+      {/* Trigger button - shows selected value, handles keyboard for typeahead */}
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onKeyDown={handleKeyDown}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        className={cn(
+          "flex w-full items-center justify-between rounded border bg-white px-3 py-2 text-left text-gray-900",
+          "dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100",
+          "focus:outline-none focus:ring-2 focus:ring-primary/20",
+          disabled && "cursor-not-allowed opacity-50",
+          !displayValue && "text-gray-400 dark:text-gray-500"
+        )}
+      >
+        <span className="truncate">{displayValue || placeholder}</span>
+        <ChevronDown
           className={cn(
-            "w-full rounded border bg-white px-3 py-2 pr-8 text-gray-900",
-            "dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100",
-            "focus:outline-none focus:ring-2 focus:ring-primary/20",
-            disabled && "cursor-not-allowed opacity-50"
+            "ml-2 h-4 w-4 flex-shrink-0 text-gray-400 transition-transform",
+            isOpen && "rotate-180"
           )}
         />
-        {/* Dropdown arrow */}
-        <button
-          type="button"
-          tabIndex={-1}
-          onClick={() => !disabled && setIsOpen(!isOpen)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400"
-          aria-hidden="true"
-        >
-          <ChevronDown
-            className={cn(
-              "h-4 w-4 transition-transform",
-              isOpen && "rotate-180"
-            )}
-          />
-        </button>
-      </div>
+      </button>
 
-      {/* Dropdown list */}
+      {/* Dropdown list - shows all options, typeahead jumps to match */}
       {isOpen && (
         <ul
           ref={listRef}
@@ -195,30 +225,24 @@ export function Combobox({
             "dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           )}
         >
-          {filteredOptions.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-gray-500">No results found</li>
-          ) : (
-            filteredOptions.map((option, index) => (
-              <li
-                key={option.value}
-                role="option"
-                aria-selected={option.value === value}
-                onClick={() => selectOption(option.value)}
-                onMouseEnter={() => setHighlightedIndex(index)}
-                className={cn(
-                  "cursor-pointer px-3 py-2 text-sm",
-                  // Highlighted state (keyboard nav or hover) - only when index >= 0
-                  highlightedIndex >= 0 &&
-                    index === highlightedIndex &&
-                    "bg-gray-100 dark:bg-gray-700",
-                  // Selected state
-                  option.value === value && "font-medium text-primary"
-                )}
-              >
-                {option.label}
-              </li>
-            ))
-          )}
+          {options.map((option, index) => (
+            <li
+              key={option.value}
+              role="option"
+              aria-selected={option.value === value}
+              onClick={() => selectOption(option.value)}
+              onMouseEnter={() => setHighlightedIndex(index)}
+              className={cn(
+                "cursor-pointer px-3 py-2 text-sm",
+                // Highlighted state (keyboard nav, hover, or typeahead match)
+                index === highlightedIndex && "bg-gray-100 dark:bg-gray-700",
+                // Selected state (checkmark visual)
+                option.value === value && "font-medium text-primary"
+              )}
+            >
+              {option.label}
+            </li>
+          ))}
         </ul>
       )}
     </div>
