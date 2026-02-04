@@ -192,13 +192,28 @@ export function Combobox({
     }
   };
 
+  // Handle button click - clear selection if value exists and dropdown is closed
+  const handleButtonClick = () => {
+    if (disabled) return;
+
+    if (!isOpen && value) {
+      // Clear selection and open dropdown to start fresh
+      onChange("");
+      setHighlightedIndex(0);
+      setIsOpen(true);
+    } else {
+      // Toggle dropdown normally
+      setIsOpen(!isOpen);
+    }
+  };
+
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       {/* Trigger button - shows selected value, handles keyboard for typeahead */}
       <button
         ref={buttonRef}
         type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={handleButtonClick}
         onKeyDown={handleKeyDown}
         disabled={disabled}
         aria-label={ariaLabel}
