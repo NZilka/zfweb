@@ -40,9 +40,9 @@ export default async function CheckoutPage() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Checkout form */}
+        {/* Checkout form - pass subtotal for discount calculation display */}
         <div>
-          <CheckoutForm />
+          <CheckoutForm subtotal={parseFloat(summary.total)} />
         </div>
 
         {/* Order summary */}

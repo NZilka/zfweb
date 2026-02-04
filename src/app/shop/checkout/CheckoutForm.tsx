@@ -26,6 +26,8 @@ import { trackCheckoutStarted } from "~/lib/posthog";
 // Discount code input component
 import { DiscountCodeInput } from "./DiscountCodeInput";
 import type { ValidatedDiscount } from "~/server/discount-actions";
+// Discount calculation utility
+import { calculateDiscountedTotal } from "~/lib/discount-utils";
 
 // Saved payment method type from API
 type SavedPaymentMethod = {
@@ -64,8 +66,13 @@ const initialCustomerInfo: CustomerInfo = {
   country: "US",
 };
 
+// Props for CheckoutForm - receives subtotal for discount calculation
+interface CheckoutFormProps {
+  subtotal: number;
+}
+
 // Main checkout form component - wraps payment form with Stripe Elements
-export default function CheckoutForm() {
+export default function CheckoutForm({ subtotal }: CheckoutFormProps) {
   const { isSignedIn, user } = useUser();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>(initialCustomerInfo);
@@ -445,6 +452,40 @@ export default function CheckoutForm() {
           appliedDiscount={appliedDiscount}
         />
       </div>
+
+      {/* Order totals - shows discount when applied */}
+      {appliedDiscount && (
+        <div className="rounded-lg border bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+              <span className="text-gray-900 dark:text-gray-100">${subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-green-600 dark:text-green-400">
+              <span>Discount ({appliedDiscount.code})</span>
+              <span>
+                -$
+                {calculateDiscountedTotal(
+                  subtotal,
+                  appliedDiscount.discount,
+                  appliedDiscount.discountType
+                ).discountAmount.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between border-t pt-2 font-semibold dark:border-gray-600">
+              <span className="text-gray-900 dark:text-gray-100">Total</span>
+              <span className="text-gray-900 dark:text-gray-100">
+                $
+                {calculateDiscountedTotal(
+                  subtotal,
+                  appliedDiscount.discount,
+                  appliedDiscount.discountType
+                ).finalTotal.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Gift order checkbox - hides prices on packing slip for gift recipients */}
       <label className="flex cursor-pointer items-center gap-2">
