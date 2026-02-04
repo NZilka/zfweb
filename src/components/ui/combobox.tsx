@@ -192,19 +192,10 @@ export function Combobox({
     }
   };
 
-  // Handle button click - clear selection if value exists and dropdown is closed
+  // Handle button click - toggle dropdown, preserve selection
   const handleButtonClick = () => {
     if (disabled) return;
-
-    if (!isOpen && value) {
-      // Clear selection and open dropdown to start fresh
-      onChange("");
-      setHighlightedIndex(0);
-      setIsOpen(true);
-    } else {
-      // Toggle dropdown normally
-      setIsOpen(!isOpen);
-    }
+    setIsOpen(!isOpen);
   };
 
   return (
