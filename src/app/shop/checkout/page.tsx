@@ -48,7 +48,7 @@ export default async function CheckoutPage() {
         {/* Order summary */}
         <div className="lg:order-last">
           <div className="sticky top-4 rounded-lg border bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-4 text-xl font-semibold">Order Summary</h2>
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Order Summary</h2>
 
             {/* Cart items (readonly) */}
             <div className="max-h-64 space-y-3 overflow-y-auto">
@@ -73,31 +73,31 @@ export default async function CheckoutPage() {
 
                   {/* Product info */}
                   <div className="flex-1">
-                    <p className="text-sm font-medium">{item.product.title}</p>
-                    <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.product.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Qty: {item.quantity}</p>
                   </div>
 
                   {/* Line total */}
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     ${(parseFloat(item.product.price) * item.quantity).toFixed(2)}
                   </p>
                 </div>
               ))}
             </div>
 
-            {/* Totals */}
+            {/* Totals - explicit text colors for light/dark mode */}
             <div className="mt-4 space-y-2 border-t pt-4 dark:border-gray-700">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
-                <span>${summary.total}</span>
+                <span className="text-gray-900 dark:text-gray-100">${summary.total}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-400">Shipping</span>
-                <span>Free</span>
+                <span className="text-gray-900 dark:text-gray-100">Free</span>
               </div>
               <div className="flex justify-between border-t pt-2 text-lg font-semibold dark:border-gray-700">
-                <span>Total</span>
-                <span>${summary.total}</span>
+                <span className="text-gray-900 dark:text-gray-100">Total</span>
+                <span className="text-gray-900 dark:text-gray-100">${summary.total}</span>
               </div>
             </div>
           </div>
