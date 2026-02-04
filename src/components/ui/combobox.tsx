@@ -155,7 +155,6 @@ export function Combobox({
         }
         break;
       case "Enter":
-      case " ": // Space key
         e.preventDefault();
         if (isOpen && highlightedIndex >= 0 && options[highlightedIndex]) {
           selectOption(options[highlightedIndex].value);
@@ -171,6 +170,14 @@ export function Combobox({
         // Allow tab to move focus, close dropdown
         setIsOpen(false);
         setTypeaheadBuffer("");
+        break;
+      case " ": // Space key - add to typeahead buffer for multi-word searches
+        e.preventDefault();
+        if (!isOpen) {
+          setIsOpen(true);
+        } else {
+          handleTypeahead(" ");
+        }
         break;
       default:
         // Handle typeahead for letter/number keys
@@ -234,8 +241,8 @@ export function Combobox({
               onMouseEnter={() => setHighlightedIndex(index)}
               className={cn(
                 "cursor-pointer px-3 py-2 text-sm",
-                // Highlighted state (keyboard nav, hover, or typeahead match)
-                index === highlightedIndex && "bg-gray-100 dark:bg-gray-700",
+                // Highlighted state (keyboard nav, hover, or typeahead match) - darker for visibility
+                index === highlightedIndex && "bg-gray-300 dark:bg-gray-600",
                 // Selected state (checkmark visual)
                 option.value === value && "font-medium text-primary"
               )}
