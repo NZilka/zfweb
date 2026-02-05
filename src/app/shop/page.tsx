@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { getProducts } from "~/server/queries";
 import { getAvailableInventory } from "~/server/cart-actions";
+import { getCarouselData } from "~/server/carousel";
 import Image from "next/image";
 import { AddToCartButton } from "./_components/AddToCartButton";
+import { Carousel } from "./_components/Carousel";
 
 export const dynamic = "force-dynamic";
 
@@ -92,9 +94,14 @@ const Products = async () => {
   );
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Fetch carousel data — returns null if not enough content
+  const carouselData = await getCarouselData();
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-start gap-4 pt-8">
+      {/* Carousel above product grid — only rendered when data is available */}
+      {carouselData && <Carousel data={carouselData} />}
       <Products />
     </main>
   );
