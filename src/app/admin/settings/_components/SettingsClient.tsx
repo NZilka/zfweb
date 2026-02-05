@@ -16,7 +16,7 @@ import { Switch } from "~/components/ui/switch";
 import { Textarea } from "~/components/ui/textarea";
 import { useUploadThing } from "~/utils/uploadthing";
 import { updateSettings } from "~/server/settings-actions";
-import type { SiteSettings } from "~/server/kv";
+import type { SiteSettings, CarouselItem } from "~/server/kv";
 
 interface SettingsClientProps {
   initialSettings: SiteSettings;

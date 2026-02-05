@@ -1,16 +1,18 @@
 /**
  * Settings Server Actions
- * Handles saving and retrieving site-wide settings (maintenance mode, announcements)
+ * Handles saving and retrieving site-wide settings (maintenance mode, announcements, carousel)
  */
 "use server";
 
 import { z } from "zod";
+import { auth } from "@clerk/nextjs/server";
 import {
   getSiteSettings,
   setSiteSettings,
   type SiteSettings,
   isKvConfigured,
 } from "./kv";
+import { utapi } from "./uploadthing";
 
 // Validation schema for maintenance mode settings
 // Uses refine to enforce message requirement when enabled
@@ -78,10 +80,17 @@ export async function checkSettingsAvailable(): Promise<boolean> {
 /**
  * Update site settings (partial update supported)
  * Only updates the fields provided in the input
+ * Requires authentication — server actions are publicly callable endpoints
  */
 export async function updateSettings(
   input: UpdateSettingsInput
 ): Promise<ActionResult> {
+  // Auth check — prevent unauthenticated access to settings mutation
+  const user = await auth();
+  if (!user.userId) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   // Check if KV is configured
   if (!isKvConfigured()) {
     return {
@@ -135,6 +144,22 @@ export async function updateSettings(
         : currentSettings.logo,
       updatedAt: Date.now(),
     };
+
+    // Clean up removed carousel files from UploadThing
+    // Only deletes keys that existed in the STORED carousel items (server-trusted data)
+    // and are no longer present in the new items. Schema validation above ensures
+    // new items have valid UploadThing URLs with matching keys, preventing injection.
+    if (parsed.data.carousel) {
+      const oldKeys = new Set(currentSettings.carousel.items.map((i) => i.key));
+      const newKeys = new Set(parsed.data.carousel.items.map((i) => i.key));
+      const removedKeys = [...oldKeys].filter((k) => !newKeys.has(k));
+      if (removedKeys.length > 0) {
+        // Fire-and-forget: don't block save on file cleanup
+        utapi.deleteFiles(removedKeys).catch((err) => {
+          console.error("Failed to clean up removed carousel files:", err);
+        });
+      }
+    }
 
     // Save updated settings
     await setSiteSettings(updatedSettings);

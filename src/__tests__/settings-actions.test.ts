@@ -23,8 +23,27 @@ vi.mock("~/server/kv", () => ({
       text: null,
       scrolling: false,
     },
+    logo: {
+      large: { url: null, key: null },
+      small: { url: null, key: null },
+    },
+    carousel: {
+      enabled: false,
+      items: [],
+      autoScrollInterval: 3000,
+    },
     updatedAt: Date.now(),
   },
+}));
+
+// Mock uploadthing utapi — needed by settings-actions for carousel file cleanup
+vi.mock("~/server/uploadthing", () => ({
+  utapi: { deleteFiles: vi.fn(() => Promise.resolve()) },
+}));
+
+// Mock Clerk auth — updateSettings requires authentication
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: vi.fn(() => Promise.resolve({ userId: "test-user-id" })),
 }));
 
 // Import after mocking
