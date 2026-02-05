@@ -1,24 +1,22 @@
 /**
  * Server-side carousel data computation
- * Builds carousel data from custom items or auto-generates from products
- * Used by the shop page to pass pre-computed data to the client carousel component
+ * Builds carousel slides from complete rows configured in admin settings
+ * No auto-generation — carousel only shows manually configured content
  */
 import "server-only";
 
-import { getSiteSettings, type CarouselItem } from "./kv";
-import { getProducts } from "./queries";
+import { getSiteSettings, type CarouselRow } from "./kv";
 
-// A single item within a carousel slide (image or video)
+// A single item within an image slide
 export type CarouselSlideItem = {
-  type: "image" | "video";
   url: string;
   alt: string;
 };
 
-// A slide containing up to 3 items displayed side-by-side
-export type CarouselSlide = {
-  items: CarouselSlideItem[];
-};
+// A slide is either 3 images side-by-side or 1 full-width video
+export type CarouselSlide =
+  | { type: "images"; items: CarouselSlideItem[] }
+  | { type: "video"; url: string; videoPositionY: number };
 
 // Complete carousel data passed to the client component
 export type CarouselData = {
@@ -28,93 +26,54 @@ export type CarouselData = {
 };
 
 /**
- * Main entry point — builds carousel data for the shop page
- * Returns null if there's not enough content for a carousel
+ * Check if a row is "complete" and ready to display
+ * Images row: all 3 cells must be non-null
+ * Video row: always complete (has required url/key)
  */
-export async function getCarouselData(): Promise<CarouselData | null> {
-  const settings = await getSiteSettings();
-
-  // Use custom carousel if enabled and has items
-  if (settings.carousel.enabled && settings.carousel.items.length > 0) {
-    return buildCustomCarousel(
-      settings.carousel.items,
-      settings.carousel.autoScrollInterval
-    );
-  }
-
-  // Otherwise auto-generate from products
-  return buildAutoCarousel(settings.carousel.autoScrollInterval);
+function isCompleteRow(row: CarouselRow | null): row is CarouselRow {
+  if (!row) return false;
+  if (row.type === "video") return true;
+  // Images row requires all 3 cells filled
+  return row.cells.every((cell) => cell !== null);
 }
 
 /**
- * Build carousel from custom uploaded items
- * Groups items into slides of 3, sorted by order field
+ * Convert a complete CarouselRow into a CarouselSlide for the client
  */
-function buildCustomCarousel(
-  items: CarouselItem[],
-  interval: number
-): CarouselData | null {
-  // Sort by order field
-  const sorted = [...items].sort((a, b) => a.order - b.order);
-
-  // Group into slides of 3 — only complete groups
-  const slides: CarouselSlide[] = [];
-  for (let i = 0; i + 2 < sorted.length; i += 3) {
-    slides.push({
-      items: sorted.slice(i, i + 3).map((item) => ({
-        type: item.type,
-        url: item.url,
-        alt: item.alt ?? "",
-      })),
-    });
+function rowToSlide(row: CarouselRow): CarouselSlide {
+  if (row.type === "video") {
+    return {
+      type: "video",
+      url: row.url,
+      videoPositionY: row.videoPositionY,
+    };
   }
-
-  if (slides.length === 0) return null;
-
+  // Images row — cells are guaranteed non-null by isCompleteRow check
   return {
-    slides,
-    // Single slide = static, multiple = auto-scroll
-    autoScroll: slides.length > 1,
-    autoScrollInterval: interval,
+    type: "images",
+    items: row.cells.map((cell) => ({
+      url: cell!.url,
+      alt: cell!.alt,
+    })),
   };
 }
 
 /**
- * Auto-generate carousel from active products with images
- * Groups products into slides of 3 for display
- * Returns null if fewer than 3 qualifying products exist
+ * Main entry point — builds carousel data from configured rows
+ * Returns null if no complete rows exist (carousel won't render)
  */
-async function buildAutoCarousel(
-  interval: number
-): Promise<CarouselData | null> {
-  const products = await getProducts();
+export async function getCarouselData(): Promise<CarouselData | null> {
+  const settings = await getSiteSettings();
+  const completeRows = settings.carousel.rows.filter(isCompleteRow);
 
-  // Filter to active products that have at least one image
-  const eligible = products.filter(
-    (p) => p.status === "active" && p.imgUrl.length > 0
-  );
+  // No complete rows = no carousel
+  if (completeRows.length === 0) return null;
 
-  // Need at least 3 products for a meaningful carousel
-  if (eligible.length < 3) return null;
-
-  // Group into slides of 3 — only complete groups
-  const slides: CarouselSlide[] = [];
-  for (let i = 0; i + 2 < eligible.length; i += 3) {
-    slides.push({
-      items: eligible.slice(i, i + 3).map((product) => ({
-        type: "image" as const,
-        url: product.imgUrl[0]!,
-        alt: product.title,
-      })),
-    });
-  }
-
-  if (slides.length === 0) return null;
-
+  const slides = completeRows.map(rowToSlide);
   return {
     slides,
-    // 1 slide (3-5 products) = static, 2+ slides (6+) = scrolling
-    autoScroll: slides.length > 1,
-    autoScrollInterval: interval,
+    // Single row = static display, 2+ rows = auto-scroll
+    autoScroll: completeRows.length > 1,
+    autoScrollInterval: settings.carousel.autoScrollInterval,
   };
 }

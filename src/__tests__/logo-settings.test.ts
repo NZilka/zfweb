@@ -27,8 +27,7 @@ vi.mock("~/server/kv", () => ({
       small: { url: null, key: null },
     },
     carousel: {
-      enabled: false,
-      items: [],
+      rows: [null, null, null, null],
       autoScrollInterval: 3000,
     },
     updatedAt: Date.now(),

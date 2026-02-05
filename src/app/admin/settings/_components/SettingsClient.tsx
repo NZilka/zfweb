@@ -7,7 +7,7 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { AlertTriangle, Megaphone, ImageIcon, X, Upload, Loader2 } from "lucide-react";
+import { AlertTriangle, Megaphone, ImageIcon, X, Upload, Loader2, Film } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
@@ -16,18 +16,20 @@ import { Switch } from "~/components/ui/switch";
 import { Textarea } from "~/components/ui/textarea";
 import { useUploadThing } from "~/utils/uploadthing";
 import { updateSettings } from "~/server/settings-actions";
-import type { SiteSettings, CarouselItem } from "~/server/kv";
+import { CarouselModal } from "./CarouselModal";
+import type { SiteSettings, CarouselRow } from "~/server/kv";
 
 interface SettingsClientProps {
   initialSettings: SiteSettings;
   kvAvailable: boolean;
+  productImages: { url: string; alt: string }[];
 }
 
 // Default message shown when no custom message is set
 const DEFAULT_MAINTENANCE_MESSAGE =
   "We're currently performing scheduled maintenance. Please check back soon!";
 
-export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientProps) {
+export function SettingsClient({ initialSettings, kvAvailable, productImages }: SettingsClientProps) {
   // Maintenance mode state
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(
     initialSettings.maintenanceMode.enabled
@@ -69,6 +71,15 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
   );
   // Tracks which logo variant ("large" | "small") is currently being uploaded
   const [logoUploadTarget, setLogoUploadTarget] = useState<"large" | "small">("large");
+
+  // Carousel state — row-based grid model
+  const [carouselRows, setCarouselRows] = useState<(CarouselRow | null)[]>(
+    initialSettings.carousel.rows
+  );
+  const [autoScrollInterval, setAutoScrollInterval] = useState(
+    initialSettings.carousel.autoScrollInterval
+  );
+  const [carouselModalOpen, setCarouselModalOpen] = useState(false);
 
   // Form state
   const [isSaving, setIsSaving] = useState(false);
@@ -239,6 +250,30 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
       setLogoSmallUrl("");
       setLogoSmallKey("");
     }
+  };
+
+  // Save carousel settings from the modal — persists rows and interval
+  const handleSaveCarousel = async (
+    rows: (CarouselRow | null)[],
+    interval: number
+  ) => {
+    setIsSaving(true);
+    const result = await updateSettings({
+      carousel: {
+        rows,
+        autoScrollInterval: interval,
+      },
+    });
+
+    if (result.success) {
+      setCarouselRows(rows);
+      setAutoScrollInterval(interval);
+      setCarouselModalOpen(false);
+      toast.success("Carousel settings saved");
+    } else {
+      toast.error(result.error);
+    }
+    setIsSaving(false);
   };
 
   // Trigger logo file picker for a specific variant
@@ -492,6 +527,38 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
           </Button>
         </CardContent>
       </Card>
+
+      {/* Shop Carousel Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Film className="h-5 w-5 text-purple-500" />
+            Shop Carousel
+          </CardTitle>
+          <CardDescription>
+            Configure the image carousel on the shop homepage.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Status indicator — shows how many rows are configured */}
+          <p className="text-sm text-gray-500">
+            {carouselRows.filter((r) => r !== null).length} of 4 rows configured
+          </p>
+          <Button onClick={() => setCarouselModalOpen(true)}>
+            Configure Carousel
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Carousel modal — grid-based editor for rows */}
+      <CarouselModal
+        open={carouselModalOpen}
+        onOpenChange={setCarouselModalOpen}
+        initialRows={carouselRows}
+        initialInterval={autoScrollInterval}
+        productImages={productImages}
+        onSave={handleSaveCarousel}
+      />
 
       {/* Site Logo Section */}
       <Card>

@@ -1,6 +1,6 @@
 /**
  * Unit tests for carousel server-side logic
- * Tests getCarouselData with custom carousel and auto-generation from products
+ * Tests getCarouselData with row-based carousel model (no auto-generation)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -12,17 +12,11 @@ vi.mock("~/server/kv", () => ({
   getSiteSettings: vi.fn(),
 }));
 
-// Mock queries module — provides getProducts for auto-generation
-vi.mock("~/server/queries", () => ({
-  getProducts: vi.fn(),
-}));
-
 // Import after mocking
 import { getCarouselData } from "~/server/carousel";
 import { getSiteSettings } from "~/server/kv";
-import { getProducts } from "~/server/queries";
 
-// Helper to create mock site settings
+// Helper to create mock site settings with carousel overrides
 const mockSettings = (carouselOverrides = {}) => ({
   maintenanceMode: {
     enabled: false,
@@ -36,35 +30,29 @@ const mockSettings = (carouselOverrides = {}) => ({
     small: { url: null, key: null },
   },
   carousel: {
-    enabled: false,
-    items: [],
+    rows: [null, null, null, null],
     autoScrollInterval: 3000,
     ...carouselOverrides,
   },
   updatedAt: Date.now(),
 });
 
-// Helper to create a mock product
-const mockProduct = (
-  id: number,
-  status = "active",
-  imgUrl: string[] = [`https://utfs.io/f/img${id}.png`]
-) => ({
-  id,
-  title: `Product ${id}`,
-  description: "desc",
-  price: "10.00",
-  imgUrl,
-  imgKey: [`key${id}`],
-  inventory: 10,
-  sku: null,
-  category_id: null,
-  status,
-  on_sale: false,
-  handle: `product-${id}`,
-  url_handle: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
+// Helper to create a complete images row (all 3 cells filled)
+const makeImageRow = (prefix: string) => ({
+  type: "images" as const,
+  cells: [
+    { url: `https://utfs.io/f/${prefix}1.png`, key: `${prefix}1`, alt: `Alt ${prefix}1` },
+    { url: `https://utfs.io/f/${prefix}2.png`, key: `${prefix}2`, alt: `Alt ${prefix}2` },
+    { url: `https://utfs.io/f/${prefix}3.png`, key: `${prefix}3`, alt: `Alt ${prefix}3` },
+  ],
+});
+
+// Helper to create a video row
+const makeVideoRow = (prefix: string, posY = 50) => ({
+  type: "video" as const,
+  url: `https://utfs.io/f/${prefix}.mp4`,
+  key: `${prefix}`,
+  videoPositionY: posY,
 });
 
 describe("carousel", () => {
@@ -72,16 +60,46 @@ describe("carousel", () => {
     vi.clearAllMocks();
   });
 
-  describe("custom carousel", () => {
-    it("uses custom items when carousel is enabled", async () => {
+  describe("no complete rows", () => {
+    it("returns null when all rows are null", async () => {
+      vi.mocked(getSiteSettings).mockResolvedValue(mockSettings());
+
+      const data = await getCarouselData();
+
+      expect(data).toBeNull();
+    });
+
+    it("returns null for incomplete image rows (1-2 cells filled)", async () => {
+      // Row with only 2 of 3 cells filled — incomplete
       vi.mocked(getSiteSettings).mockResolvedValue(
         mockSettings({
-          enabled: true,
-          items: [
-            { type: "image", url: "https://utfs.io/f/a.png", key: "a", order: 0 },
-            { type: "image", url: "https://utfs.io/f/b.png", key: "b", order: 1 },
-            { type: "video", url: "https://utfs.io/f/c.mp4", key: "c", order: 2 },
+          rows: [
+            {
+              type: "images",
+              cells: [
+                { url: "https://utfs.io/f/a.png", key: "a", alt: "A" },
+                { url: "https://utfs.io/f/b.png", key: "b", alt: "B" },
+                null, // Missing third cell
+              ],
+            },
+            null,
+            null,
+            null,
           ],
+        })
+      );
+
+      const data = await getCarouselData();
+
+      expect(data).toBeNull();
+    });
+  });
+
+  describe("single complete row", () => {
+    it("builds static carousel from 1 complete image row (no auto-scroll)", async () => {
+      vi.mocked(getSiteSettings).mockResolvedValue(
+        mockSettings({
+          rows: [makeImageRow("img"), null, null, null],
           autoScrollInterval: 5000,
         })
       );
@@ -90,47 +108,16 @@ describe("carousel", () => {
 
       expect(data).not.toBeNull();
       expect(data!.slides).toHaveLength(1);
-      expect(data!.slides[0]!.items).toHaveLength(3);
-      // Single slide should not auto-scroll
+      expect(data!.slides[0]!.type).toBe("images");
+      // Single slide = no auto-scroll
       expect(data!.autoScroll).toBe(false);
       expect(data!.autoScrollInterval).toBe(5000);
     });
 
-    it("groups custom items into slides of 3", async () => {
-      // 6 items = 2 slides of 3
+    it("builds static carousel from 1 video row (always complete)", async () => {
       vi.mocked(getSiteSettings).mockResolvedValue(
         mockSettings({
-          enabled: true,
-          items: Array.from({ length: 6 }, (_, i) => ({
-            type: "image",
-            url: `https://utfs.io/f/img${i}.png`,
-            key: `key${i}`,
-            order: i,
-          })),
-        })
-      );
-
-      const data = await getCarouselData();
-
-      expect(data).not.toBeNull();
-      expect(data!.slides).toHaveLength(2);
-      expect(data!.slides[0]!.items).toHaveLength(3);
-      expect(data!.slides[1]!.items).toHaveLength(3);
-      // Multiple slides should auto-scroll
-      expect(data!.autoScroll).toBe(true);
-    });
-
-    it("drops incomplete groups (less than 3 remaining)", async () => {
-      // 5 items = 1 complete slide of 3, 2 leftover dropped
-      vi.mocked(getSiteSettings).mockResolvedValue(
-        mockSettings({
-          enabled: true,
-          items: Array.from({ length: 5 }, (_, i) => ({
-            type: "image",
-            url: `https://utfs.io/f/img${i}.png`,
-            key: `key${i}`,
-            order: i,
-          })),
+          rows: [makeVideoRow("vid"), null, null, null],
         })
       );
 
@@ -138,157 +125,113 @@ describe("carousel", () => {
 
       expect(data).not.toBeNull();
       expect(data!.slides).toHaveLength(1);
-    });
-
-    it("returns null when custom carousel has fewer than 3 items", async () => {
-      vi.mocked(getSiteSettings).mockResolvedValue(
-        mockSettings({
-          enabled: true,
-          items: [
-            { type: "image", url: "https://utfs.io/f/a.png", key: "a", order: 0 },
-            { type: "image", url: "https://utfs.io/f/b.png", key: "b", order: 1 },
-          ],
-        })
-      );
-
-      const data = await getCarouselData();
-
-      expect(data).toBeNull();
-    });
-
-    it("preserves video items in slides", async () => {
-      vi.mocked(getSiteSettings).mockResolvedValue(
-        mockSettings({
-          enabled: true,
-          items: [
-            { type: "video", url: "https://utfs.io/f/v1.mp4", key: "v1", order: 0 },
-            { type: "image", url: "https://utfs.io/f/i1.png", key: "i1", order: 1 },
-            { type: "video", url: "https://utfs.io/f/v2.mp4", key: "v2", order: 2 },
-          ],
-        })
-      );
-
-      const data = await getCarouselData();
-
-      expect(data).not.toBeNull();
-      expect(data!.slides[0]!.items[0]!.type).toBe("video");
-      expect(data!.slides[0]!.items[1]!.type).toBe("image");
-      expect(data!.slides[0]!.items[2]!.type).toBe("video");
+      expect(data!.slides[0]!.type).toBe("video");
+      expect(data!.autoScroll).toBe(false);
     });
   });
 
-  describe("auto-generation from products", () => {
-    it("returns null for fewer than 3 active products", async () => {
-      vi.mocked(getSiteSettings).mockResolvedValue(mockSettings());
-      vi.mocked(getProducts).mockResolvedValue([
-        mockProduct(1),
-        mockProduct(2),
-      ]);
-
-      const data = await getCarouselData();
-
-      expect(data).toBeNull();
-    });
-
-    it("creates static carousel for 3-5 products (1 slide)", async () => {
-      vi.mocked(getSiteSettings).mockResolvedValue(mockSettings());
-      vi.mocked(getProducts).mockResolvedValue([
-        mockProduct(1),
-        mockProduct(2),
-        mockProduct(3),
-        mockProduct(4),
-      ]);
+  describe("multiple complete rows", () => {
+    it("builds scrolling carousel from 2+ complete rows", async () => {
+      vi.mocked(getSiteSettings).mockResolvedValue(
+        mockSettings({
+          rows: [makeImageRow("a"), makeImageRow("b"), null, null],
+        })
+      );
 
       const data = await getCarouselData();
 
       expect(data).not.toBeNull();
-      // 4 products = 1 complete slide of 3, 1 leftover dropped
-      expect(data!.slides).toHaveLength(1);
-      expect(data!.autoScroll).toBe(false);
-    });
-
-    it("creates scrolling carousel for 6+ products", async () => {
-      vi.mocked(getSiteSettings).mockResolvedValue(mockSettings());
-      vi.mocked(getProducts).mockResolvedValue([
-        mockProduct(1),
-        mockProduct(2),
-        mockProduct(3),
-        mockProduct(4),
-        mockProduct(5),
-        mockProduct(6),
-      ]);
-
-      const data = await getCarouselData();
-
-      expect(data).not.toBeNull();
-      // 6 products = 2 slides of 3
       expect(data!.slides).toHaveLength(2);
+      // Multiple slides = auto-scroll enabled
       expect(data!.autoScroll).toBe(true);
     });
 
-    it("excludes non-active products", async () => {
-      vi.mocked(getSiteSettings).mockResolvedValue(mockSettings());
-      vi.mocked(getProducts).mockResolvedValue([
-        mockProduct(1, "active"),
-        mockProduct(2, "hidden"),
-        mockProduct(3, "sold_out"),
-        mockProduct(4, "active"),
-        mockProduct(5, "active"),
-      ]);
+    it("handles mixed image and video rows", async () => {
+      vi.mocked(getSiteSettings).mockResolvedValue(
+        mockSettings({
+          rows: [
+            makeImageRow("img"),
+            makeVideoRow("vid", 75),
+            null,
+            makeImageRow("img2"),
+          ],
+        })
+      );
 
       const data = await getCarouselData();
 
-      // Only 3 active products = 1 slide
       expect(data).not.toBeNull();
-      expect(data!.slides).toHaveLength(1);
-      expect(data!.slides[0]!.items).toHaveLength(3);
+      expect(data!.slides).toHaveLength(3);
+      expect(data!.slides[0]!.type).toBe("images");
+      expect(data!.slides[1]!.type).toBe("video");
+      expect(data!.slides[2]!.type).toBe("images");
+      expect(data!.autoScroll).toBe(true);
     });
+  });
 
-    it("excludes products without images", async () => {
-      vi.mocked(getSiteSettings).mockResolvedValue(mockSettings());
-      vi.mocked(getProducts).mockResolvedValue([
-        mockProduct(1, "active", ["https://utfs.io/f/img1.png"]),
-        mockProduct(2, "active", []), // No images
-        mockProduct(3, "active", ["https://utfs.io/f/img3.png"]),
-        mockProduct(4, "active", ["https://utfs.io/f/img4.png"]),
-      ]);
-
-      const data = await getCarouselData();
-
-      // 3 eligible products (one has no images) = 1 slide
-      expect(data).not.toBeNull();
-      expect(data!.slides).toHaveLength(1);
-    });
-
-    it("uses first image of each product", async () => {
-      vi.mocked(getSiteSettings).mockResolvedValue(mockSettings());
-      vi.mocked(getProducts).mockResolvedValue([
-        mockProduct(1, "active", ["https://utfs.io/f/first.png", "https://utfs.io/f/second.png"]),
-        mockProduct(2, "active", ["https://utfs.io/f/img2.png"]),
-        mockProduct(3, "active", ["https://utfs.io/f/img3.png"]),
-      ]);
+  describe("slide data", () => {
+    it("image slide contains 3 items with url and alt", async () => {
+      vi.mocked(getSiteSettings).mockResolvedValue(
+        mockSettings({
+          rows: [makeImageRow("test"), null, null, null],
+        })
+      );
 
       const data = await getCarouselData();
+      const slide = data!.slides[0]!;
 
-      expect(data).not.toBeNull();
-      // Should use the first image URL
-      expect(data!.slides[0]!.items[0]!.url).toBe("https://utfs.io/f/first.png");
-    });
-
-    it("all auto-generated items are typed as image", async () => {
-      vi.mocked(getSiteSettings).mockResolvedValue(mockSettings());
-      vi.mocked(getProducts).mockResolvedValue([
-        mockProduct(1),
-        mockProduct(2),
-        mockProduct(3),
-      ]);
-
-      const data = await getCarouselData();
-
-      expect(data).not.toBeNull();
-      for (const item of data!.slides[0]!.items) {
-        expect(item.type).toBe("image");
+      expect(slide.type).toBe("images");
+      if (slide.type === "images") {
+        expect(slide.items).toHaveLength(3);
+        expect(slide.items[0]!.url).toBe("https://utfs.io/f/test1.png");
+        expect(slide.items[0]!.alt).toBe("Alt test1");
       }
+    });
+
+    it("video slide contains url and videoPositionY", async () => {
+      vi.mocked(getSiteSettings).mockResolvedValue(
+        mockSettings({
+          rows: [makeVideoRow("myvid", 30), null, null, null],
+        })
+      );
+
+      const data = await getCarouselData();
+      const slide = data!.slides[0]!;
+
+      expect(slide.type).toBe("video");
+      if (slide.type === "video") {
+        expect(slide.url).toBe("https://utfs.io/f/myvid.mp4");
+        expect(slide.videoPositionY).toBe(30);
+      }
+    });
+
+    it("skips incomplete rows between complete rows", async () => {
+      // Row 0: complete images, Row 1: incomplete, Row 2: video, Row 3: null
+      vi.mocked(getSiteSettings).mockResolvedValue(
+        mockSettings({
+          rows: [
+            makeImageRow("a"),
+            {
+              type: "images",
+              cells: [
+                { url: "https://utfs.io/f/x.png", key: "x", alt: "X" },
+                null,
+                null,
+              ],
+            },
+            makeVideoRow("v"),
+            null,
+          ],
+        })
+      );
+
+      const data = await getCarouselData();
+
+      expect(data).not.toBeNull();
+      // Only 2 complete rows (row 0 images + row 2 video), row 1 skipped
+      expect(data!.slides).toHaveLength(2);
+      expect(data!.slides[0]!.type).toBe("images");
+      expect(data!.slides[1]!.type).toBe("video");
     });
   });
 });
