@@ -70,7 +70,13 @@ export type OrderStateCache = {
   createdAt: number;
 };
 
-// Site-wide settings for maintenance mode and announcements
+// Logo variant stores both UploadThing URL and key for upload management
+export type LogoVariant = {
+  url: string | null;
+  key: string | null;
+};
+
+// Site-wide settings for maintenance mode, announcements, and branding
 export type SiteSettings = {
   maintenanceMode: {
     enabled: boolean;
@@ -82,6 +88,11 @@ export type SiteSettings = {
     enabled: boolean;
     text: string | null;
     scrolling: boolean; // Whether text should scroll/marquee
+  };
+  // Site logo with large (nav) and small (favicon/mobile) variants
+  logo: {
+    large: LogoVariant;
+    small: LogoVariant;
   };
   updatedAt: number; // Unix timestamp
 };
@@ -207,6 +218,9 @@ export async function checkKvConnection(): Promise<boolean> {
 export const DEFAULT_MAINTENANCE_MESSAGE =
   "We're currently performing scheduled maintenance. Please check back soon!";
 
+// Default logo variant — no logo uploaded
+export const DEFAULT_LOGO_VARIANT: LogoVariant = { url: null, key: null };
+
 // Default settings when none exist - maintenance is OFF by default
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   maintenanceMode: {
@@ -220,17 +234,29 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     text: null,
     scrolling: false,
   },
+  logo: {
+    large: { ...DEFAULT_LOGO_VARIANT },
+    small: { ...DEFAULT_LOGO_VARIANT },
+  },
   updatedAt: Date.now(),
 };
 
 // Get site settings (returns defaults if not set or KV not configured)
+// Merges missing top-level keys from defaults for backward compatibility
+// when new fields (e.g. logo) are added to SiteSettings after existing KV data
 export async function getSiteSettings(): Promise<SiteSettings> {
   if (!isKvConfigured()) {
     return DEFAULT_SITE_SETTINGS;
   }
   try {
     const settings = await kvGet<SiteSettings>(KV_PREFIXES.SITE_SETTINGS);
-    return settings ?? DEFAULT_SITE_SETTINGS;
+    if (!settings) return DEFAULT_SITE_SETTINGS;
+    // Fill in any missing top-level keys from defaults (backward compat)
+    return {
+      ...DEFAULT_SITE_SETTINGS,
+      ...settings,
+      logo: settings.logo ?? DEFAULT_SITE_SETTINGS.logo,
+    };
   } catch {
     return DEFAULT_SITE_SETTINGS;
   }

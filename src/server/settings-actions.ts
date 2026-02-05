@@ -34,10 +34,23 @@ const announcementBannerSchema = z.object({
   scrolling: z.boolean(),
 });
 
-// Combined settings update schema
+// Validation schema for a single logo variant (url + UploadThing key)
+const logoVariantSchema = z.object({
+  url: z.string().url().nullable().or(z.literal("")),
+  key: z.string().nullable(),
+});
+
+// Validation schema for site logo settings (large + small variants)
+const logoSchema = z.object({
+  large: logoVariantSchema,
+  small: logoVariantSchema,
+});
+
+// Combined settings update schema — each section is optional for partial updates
 const updateSettingsSchema = z.object({
   maintenanceMode: maintenanceModeSchema.optional(),
   announcementBanner: announcementBannerSchema.optional(),
+  logo: logoSchema.optional(),
 });
 
 type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
@@ -90,7 +103,7 @@ export async function updateSettings(
     // Get current settings
     const currentSettings = await getSiteSettings();
 
-    // Merge with updates
+    // Merge with updates — only overwrite sections that were provided
     const updatedSettings: SiteSettings = {
       ...currentSettings,
       maintenanceMode: parsed.data.maintenanceMode
@@ -107,6 +120,19 @@ export async function updateSettings(
             ...parsed.data.announcementBanner,
           }
         : currentSettings.announcementBanner,
+      // Logo merge: normalize empty URL strings to null
+      logo: parsed.data.logo
+        ? {
+            large: {
+              url: parsed.data.logo.large.url || null,
+              key: parsed.data.logo.large.key,
+            },
+            small: {
+              url: parsed.data.logo.small.url || null,
+              key: parsed.data.logo.small.key,
+            },
+          }
+        : currentSettings.logo,
       updatedAt: Date.now(),
     };
 

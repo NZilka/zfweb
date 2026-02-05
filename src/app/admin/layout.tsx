@@ -1,11 +1,16 @@
 import { TopNav } from "./_components/topnav";
 import { AdminNav } from "./_components/AdminNav";
 import { AdminNavProvider } from "./_components/AdminNavContext";
+import { getSiteSettings } from "~/server/kv";
 
-export default function AdminLayout({
+// Async layout — fetches site settings to pass custom logo URL to TopNav
+export default async function AdminLayout({
   children,
   modal,
 }: Readonly<{ children: React.ReactNode; modal: React.ReactNode }>) {
+  // Fetch site settings for dynamic logo
+  const settings = await getSiteSettings();
+
   return (
     // Provider enables sidebar toggle state sharing between TopNav and AdminNav
     <AdminNavProvider>
@@ -17,8 +22,8 @@ export default function AdminLayout({
       */}
       {/* print:hidden hides the entire admin layout when printing, so only packing slip shows */}
       <div className="flex h-dvh w-full min-w-0 flex-col print:hidden">
-        {/* Top navigation bar - always at top, spans full width */}
-        <TopNav />
+        {/* Top navigation bar - passes custom logo URL from settings */}
+        <TopNav logoUrl={settings.logo.large.url ?? undefined} />
 
         {/* Overlay drawer navigation - fixed position, controlled by context */}
         <AdminNav />
