@@ -16,6 +16,10 @@ Keep this and all other reliant markdown files up to date to match the state of 
 
 Create or use current markdown files such as CLAUDE.md or PROJECT.md to store context so there is continuity between sessions.
 
+Always format using default Prettier rules. Always use TyepScript. Avoid return types unless necessary (lean on inference).
+
+Minimize usage of useEffect. Derive all state where possible. Skip useMemo.
+
 <use_parallel_tool_calls>
 If you intend to call multiple tools and there are no dependencies
 between the tool calls, make all of the independent tool calls in
@@ -74,32 +78,40 @@ After completing each PR, create a lesson file in `.claude/lessons/` that teache
 **File naming:** `.claude/lessons/{pr-number}-{feature-name}.md`
 
 **Lesson structure:**
+
 ```markdown
 # Lesson: {Feature Name}
 
 ## What We Built
+
 Brief description of the feature/change.
 
 ## Why This Approach
+
 Explanation of architectural decisions and trade-offs.
 
 ## Key Concepts
+
 - Concept 1: explanation
 - Concept 2: explanation
 
 ## Code Walkthrough
+
 Highlight important code patterns with explanations.
 
 ## Testing Strategy
+
 How we tested this feature and why.
 
 ## What You Learned
+
 Summary of new patterns, techniques, or knowledge.
 ```
 
 ### PR Checklist
 
 Before committing a PR, verify:
+
 - [ ] Unit tests written for new functionality
 - [ ] All tests pass (`pnpm test:run`)
 - [ ] Type check passes (`pnpm check`)
@@ -165,6 +177,7 @@ src/
 **Only modify the specific UI elements that are requested.** Do not make changes to surrounding or related elements to achieve the requested change.
 
 Examples:
+
 - If asked to make text visible: change the text color, NOT the background color
 - If asked to fix a button: change the button, NOT the container it's in
 - If asked to adjust spacing: change the spacing, NOT the element sizes
@@ -178,25 +191,29 @@ This applies to all styling properties: colors, backgrounds, borders, sizes, fon
 ### Responsive Patterns
 
 1. **Start with mobile layout**, then add breakpoints for larger screens:
+
    ```tsx
    // Mobile-first: base styles are for mobile, sm/md/lg add desktop features
-   className="flex flex-col lg:flex-row gap-4 lg:gap-6 p-4 lg:p-6"
+   className = "flex flex-col lg:flex-row gap-4 lg:gap-6 p-4 lg:p-6";
    ```
 
 2. **Hide non-essential columns on mobile** using responsive display utilities:
+
    ```tsx
    // Show on tablet and up
-   className="hidden md:table-cell"
+   className = "hidden md:table-cell";
    // Show on desktop only
-   className="hidden lg:table-cell"
+   className = "hidden lg:table-cell";
    ```
 
 3. **Stack layouts vertically on mobile**, side-by-side on desktop:
+
    ```tsx
-   className="flex flex-col sm:flex-row"
+   className = "flex flex-col sm:flex-row";
    ```
 
 4. **Use icon-only buttons on mobile**, show labels on larger screens:
+
    ```tsx
    <Button className="gap-2 px-2 sm:px-4">
      <Icon className="h-4 w-4" />
@@ -206,7 +223,7 @@ This applies to all styling properties: colors, backgrounds, borders, sizes, fon
 
 5. **Add horizontal scroll as fallback** for wide content (tables):
    ```tsx
-   className="overflow-x-auto"
+   className = "overflow-x-auto";
    ```
 
 ### Tailwind Breakpoints
