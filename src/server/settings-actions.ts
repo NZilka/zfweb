@@ -48,41 +48,11 @@ const logoSchema = z.object({
   small: logoVariantSchema,
 });
 
-// UploadThing URL prefix — all legitimate uploads are served from this domain
-const UPLOADTHING_URL_PREFIX = "https://utfs.io/";
-
-// Validation schema for a single carousel media item
-// Validates URL is from UploadThing domain and key matches URL to prevent
-// arbitrary file key injection (which could lead to unauthorized file deletion)
-const carouselItemSchema = z
-  .object({
-    type: z.enum(["image", "video"]),
-    url: z.string().url(),
-    key: z.string().min(1),
-    alt: z.string().max(200).optional(),
-    order: z.number().int().min(0),
-  })
-  .refine((item) => item.url.startsWith(UPLOADTHING_URL_PREFIX), {
-    message: "Carousel media URL must be from UploadThing",
-  })
-  .refine((item) => item.url.includes(item.key), {
-    message: "Carousel media URL must match the file key",
-  });
-
-// Validation schema for carousel settings
-// Max 30 items, auto-scroll interval between 1-10 seconds
-const carouselSchema = z.object({
-  enabled: z.boolean(),
-  items: z.array(carouselItemSchema).max(30),
-  autoScrollInterval: z.number().int().min(1000).max(10000),
-});
-
 // Combined settings update schema — each section is optional for partial updates
 const updateSettingsSchema = z.object({
   maintenanceMode: maintenanceModeSchema.optional(),
   announcementBanner: announcementBannerSchema.optional(),
   logo: logoSchema.optional(),
-  carousel: carouselSchema.optional(),
 });
 
 type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
@@ -172,8 +142,6 @@ export async function updateSettings(
             },
           }
         : currentSettings.logo,
-      // Carousel merge: replace entire carousel config when provided
-      carousel: parsed.data.carousel ?? currentSettings.carousel,
       updatedAt: Date.now(),
     };
 

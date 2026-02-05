@@ -28,11 +28,6 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
     large: { url: null, key: null },
     small: { url: null, key: null },
   },
-  carousel: {
-    enabled: false,
-    items: [],
-    autoScrollInterval: 3000,
-  },
   updatedAt: Date.now(),
 };
 
