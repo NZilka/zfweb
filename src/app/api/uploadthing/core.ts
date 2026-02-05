@@ -114,6 +114,41 @@ export const ourFileRouter = {
       // !!! Whatever is returned here is sent to the clientside `onClientUploadComplete` callback
       return { res };
     }),
+  // Logo uploader - single image for site branding (large or small variant)
+  logoUploader: f({
+    image: {
+      maxFileSize: "4MB",
+      maxFileCount: 1, // One logo at a time
+    },
+  })
+    .middleware(async ({ req }) => {
+      const user = await auth();
+
+      if (!user.userId) throw new UploadThingError("Unauthorized");
+
+      const fullUserData = await (
+        await clerkClient()
+      ).users.getUser(user.userId);
+
+      if (fullUserData?.privateMetadata?.["can-upload"] !== true)
+        throw new UploadThingError("User Does Not Have Upload Permissions");
+
+      return { userId: user.userId };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log("Logo upload complete for userId:", metadata.userId);
+
+      type resType = {
+        key: string;
+        url: string;
+      };
+
+      const res: resType = {
+        key: file.key,
+        url: file.url,
+      };
+      return { res };
+    }),
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof ourFileRouter;

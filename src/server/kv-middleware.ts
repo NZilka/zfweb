@@ -11,7 +11,7 @@ const DEFAULT_MAINTENANCE_MESSAGE =
   "We're currently performing scheduled maintenance. Please check back soon!";
 
 // Default settings to use when KV is unavailable or not configured
-// Maintenance is OFF by default
+// Maintenance is OFF by default — includes logo field for SiteSettings compat
 const DEFAULT_SITE_SETTINGS: SiteSettings = {
   maintenanceMode: {
     enabled: false,
@@ -23,6 +23,10 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
     enabled: false,
     text: null,
     scrolling: false,
+  },
+  logo: {
+    large: { url: null, key: null },
+    small: { url: null, key: null },
   },
   updatedAt: Date.now(),
 };

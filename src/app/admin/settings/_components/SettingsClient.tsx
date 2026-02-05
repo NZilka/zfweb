@@ -7,7 +7,7 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { AlertTriangle, Megaphone, X, Upload, Loader2 } from "lucide-react";
+import { AlertTriangle, Megaphone, ImageIcon, X, Upload, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
@@ -54,12 +54,30 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
     initialSettings.announcementBanner.scrolling
   );
 
+  // Logo state — large and small variants with url + UploadThing key
+  const [logoLargeUrl, setLogoLargeUrl] = useState(
+    initialSettings.logo.large.url ?? ""
+  );
+  const [logoLargeKey, setLogoLargeKey] = useState(
+    initialSettings.logo.large.key ?? ""
+  );
+  const [logoSmallUrl, setLogoSmallUrl] = useState(
+    initialSettings.logo.small.url ?? ""
+  );
+  const [logoSmallKey, setLogoSmallKey] = useState(
+    initialSettings.logo.small.key ?? ""
+  );
+  // Tracks which logo variant ("large" | "small") is currently being uploaded
+  const [logoUploadTarget, setLogoUploadTarget] = useState<"large" | "small">("large");
+
   // Form state
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLogoUploading, setIsLogoUploading] = useState(false);
 
-  // File input ref for triggering file picker
+  // File input refs for triggering file pickers
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
 
   // UploadThing hook - same approach as product forms
   const { startUpload } = useUploadThing("imageUploader", {
@@ -77,7 +95,44 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
     },
   });
 
-  // Handle file selection from input
+  // UploadThing hook for logo uploads — routes to logoUploader endpoint
+  const { startUpload: startLogoUpload } = useUploadThing("logoUploader", {
+    onClientUploadComplete: (res) => {
+      if (res?.[0]) {
+        // Set the correct variant based on which upload was triggered
+        if (logoUploadTarget === "large") {
+          setLogoLargeUrl(res[0].url);
+          setLogoLargeKey(res[0].key);
+        } else {
+          setLogoSmallUrl(res[0].url);
+          setLogoSmallKey(res[0].key);
+        }
+        toast.success(`${logoUploadTarget === "large" ? "Large" : "Small"} logo uploaded`);
+      }
+      setIsLogoUploading(false);
+    },
+    onUploadError: (error) => {
+      toast.error(`Logo upload failed: ${error.message}`);
+      setIsLogoUploading(false);
+    },
+  });
+
+  // Handle logo file selection — validates size and triggers upload
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("Logo must be less than 4MB");
+      return;
+    }
+
+    setIsLogoUploading(true);
+    await startLogoUpload([file]);
+    e.target.value = "";
+  };
+
+  // Handle file selection from input (maintenance image)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -149,6 +204,47 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
   const handleRemoveImage = () => {
     setMaintenanceImageUrl("");
     setMaintenanceImageKey("");
+  };
+
+  // Save logo settings — persists both large and small variants
+  const handleSaveLogoSettings = async () => {
+    setIsSaving(true);
+    const result = await updateSettings({
+      logo: {
+        large: {
+          url: logoLargeUrl || null,
+          key: logoLargeKey || null,
+        },
+        small: {
+          url: logoSmallUrl || null,
+          key: logoSmallKey || null,
+        },
+      },
+    });
+
+    if (result.success) {
+      toast.success("Logo settings saved");
+    } else {
+      toast.error(result.error);
+    }
+    setIsSaving(false);
+  };
+
+  // Remove a logo variant (large or small)
+  const handleRemoveLogo = (variant: "large" | "small") => {
+    if (variant === "large") {
+      setLogoLargeUrl("");
+      setLogoLargeKey("");
+    } else {
+      setLogoSmallUrl("");
+      setLogoSmallKey("");
+    }
+  };
+
+  // Trigger logo file picker for a specific variant
+  const triggerLogoUpload = (variant: "large" | "small") => {
+    setLogoUploadTarget(variant);
+    logoFileInputRef.current?.click();
   };
 
   // Show warning if KV is not configured
@@ -393,6 +489,109 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
           {/* Save button */}
           <Button onClick={handleSaveAnnouncementBanner} disabled={isSaving}>
             {isSaving ? "Saving..." : "Save Announcement Settings"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Site Logo Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5 text-green-500" />
+            Site Logo
+          </CardTitle>
+          <CardDescription>
+            Upload custom logos for your site. Large logo appears in navigation bars, small logo for favicons or compact views.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Hidden file input shared by both logo upload zones */}
+          <input
+            ref={logoFileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleLogoFileChange}
+            className="hidden"
+          />
+
+          {/* Two upload areas: stacked on mobile, side-by-side on md+ */}
+          <div className="flex flex-col gap-6 md:flex-row">
+            {/* Large logo upload */}
+            <div className="flex-1 space-y-2">
+              <Label>Large Logo</Label>
+              {logoLargeUrl ? (
+                <div className="relative inline-block">
+                  <Image
+                    src={logoLargeUrl}
+                    alt="Large site logo"
+                    width={200}
+                    height={78}
+                    className="rounded-lg border object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveLogo("large")}
+                    className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+                    aria-label="Remove large logo"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 hover:border-gray-400"
+                  onClick={() => triggerLogoUpload("large")}
+                >
+                  <Upload className="mb-2 h-8 w-8 text-gray-400" />
+                  <p className="mb-1 text-sm text-gray-600">Upload large logo</p>
+                  <p className="text-xs text-gray-400">PNG, JPG up to 4MB</p>
+                  {isLogoUploading && logoUploadTarget === "large" && (
+                    <Loader2 className="mt-2 h-5 w-5 animate-spin text-gray-500" />
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Small logo upload */}
+            <div className="flex-1 space-y-2">
+              <Label>Small Logo</Label>
+              {logoSmallUrl ? (
+                <div className="relative inline-block">
+                  <Image
+                    src={logoSmallUrl}
+                    alt="Small site logo"
+                    width={100}
+                    height={100}
+                    className="rounded-lg border object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveLogo("small")}
+                    className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+                    aria-label="Remove small logo"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 hover:border-gray-400"
+                  onClick={() => triggerLogoUpload("small")}
+                >
+                  <Upload className="mb-2 h-8 w-8 text-gray-400" />
+                  <p className="mb-1 text-sm text-gray-600">Upload small logo</p>
+                  <p className="text-xs text-gray-400">PNG, JPG up to 4MB</p>
+                  {isLogoUploading && logoUploadTarget === "small" && (
+                    <Loader2 className="mt-2 h-5 w-5 animate-spin text-gray-500" />
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Save logo settings */}
+          <Button onClick={handleSaveLogoSettings} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save Logo Settings"}
           </Button>
         </CardContent>
       </Card>

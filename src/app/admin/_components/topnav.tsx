@@ -1,6 +1,7 @@
 /**
  * TopNav - Top navigation bar for admin dashboard
  * Contains hamburger toggle (all sizes), Admin title, logo, and auth controls
+ * Accepts optional logoUrl prop for dynamic logo from site settings
  */
 "use client";
 
@@ -9,7 +10,8 @@ import { UserButton, SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
 import { Menu } from "lucide-react";
 import { useAdminNav } from "./AdminNavContext";
 
-export const TopNav = () => {
+// logoUrl prop allows parent layout to pass custom logo from site settings
+export const TopNav = ({ logoUrl }: { logoUrl?: string }) => {
   const { toggleOpen } = useAdminNav();
 
   return (
@@ -33,9 +35,10 @@ export const TopNav = () => {
         {/* Logo - compact in header, hidden on mobile */}
         <div className="hidden sm:flex sm:flex-1 sm:justify-center sm:px-4">
           <div className="w-32 md:w-40 max-w-[160px]">
+            {/* Use custom logo from settings or fallback to default */}
             <Image
               priority={true}
-              src="/logo.png"
+              src={logoUrl ?? "/logo.png"}
               width={3333}
               height={1304}
               alt="Zilka Forgewerks Logo"
