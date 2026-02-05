@@ -76,6 +76,22 @@ export type LogoVariant = {
   key: string | null;
 };
 
+// Individual carousel media item (image or video) with ordering
+export type CarouselItem = {
+  type: "image" | "video";
+  url: string;
+  key: string; // UploadThing key for file cleanup
+  alt?: string; // Optional alt text for accessibility
+  order: number; // Sort position
+};
+
+// Carousel configuration for the shop homepage
+export type CarouselSettings = {
+  enabled: boolean; // Whether custom carousel is active (false = auto-generate from products)
+  items: CarouselItem[]; // Uploaded images/videos
+  autoScrollInterval: number; // Milliseconds between slides, default 3000
+};
+
 // Site-wide settings for maintenance mode, announcements, and branding
 export type SiteSettings = {
   maintenanceMode: {
@@ -94,6 +110,8 @@ export type SiteSettings = {
     large: LogoVariant;
     small: LogoVariant;
   };
+  // Shop homepage carousel configuration
+  carousel: CarouselSettings;
   updatedAt: number; // Unix timestamp
 };
 
@@ -221,6 +239,13 @@ export const DEFAULT_MAINTENANCE_MESSAGE =
 // Default logo variant — no logo uploaded
 export const DEFAULT_LOGO_VARIANT: LogoVariant = { url: null, key: null };
 
+// Default carousel settings — disabled so carousel auto-generates from products
+export const DEFAULT_CAROUSEL_SETTINGS: CarouselSettings = {
+  enabled: false,
+  items: [],
+  autoScrollInterval: 3000,
+};
+
 // Default settings when none exist - maintenance is OFF by default
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   maintenanceMode: {
@@ -238,6 +263,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     large: { ...DEFAULT_LOGO_VARIANT },
     small: { ...DEFAULT_LOGO_VARIANT },
   },
+  carousel: { ...DEFAULT_CAROUSEL_SETTINGS },
   updatedAt: Date.now(),
 };
 
@@ -252,10 +278,12 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     const settings = await kvGet<SiteSettings>(KV_PREFIXES.SITE_SETTINGS);
     if (!settings) return DEFAULT_SITE_SETTINGS;
     // Fill in any missing top-level keys from defaults (backward compat)
+    // Explicit ?? fallbacks needed for keys added after initial release (logo, carousel)
     return {
       ...DEFAULT_SITE_SETTINGS,
       ...settings,
       logo: settings.logo ?? DEFAULT_SITE_SETTINGS.logo,
+      carousel: settings.carousel ?? DEFAULT_SITE_SETTINGS.carousel,
     };
   } catch {
     return DEFAULT_SITE_SETTINGS;

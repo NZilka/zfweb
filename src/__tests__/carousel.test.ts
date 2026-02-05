@@ -62,6 +62,7 @@ const mockProduct = (
   status,
   on_sale: false,
   handle: `product-${id}`,
+  url_handle: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 });
