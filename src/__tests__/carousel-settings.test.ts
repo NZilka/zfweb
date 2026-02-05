@@ -1,6 +1,6 @@
 /**
  * Unit tests for carousel settings functionality
- * Tests carousel schema validation, item ordering, and backward compatibility
+ * Tests carousel schema validation, item ordering, backward compatibility, and security
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -40,6 +40,11 @@ vi.mock("~/server/uploadthing", () => ({
   utapi: { deleteFiles: vi.fn(() => Promise.resolve()) },
 }));
 
+// Mock Clerk auth — updateSettings requires authentication
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: vi.fn(() => Promise.resolve({ userId: "test-user-id" })),
+}));
+
 // Import after mocking
 import { updateSettings } from "~/server/settings-actions";
 import {
@@ -49,10 +54,30 @@ import {
   DEFAULT_SITE_SETTINGS,
 } from "~/server/kv";
 import { utapi } from "~/server/uploadthing";
+import { auth } from "@clerk/nextjs/server";
 
 describe("carousel-settings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: authenticated user
+    vi.mocked(auth).mockResolvedValue({ userId: "test-user-id" } as any);
+  });
+
+  describe("authentication", () => {
+    it("rejects unauthenticated requests", async () => {
+      vi.mocked(auth).mockResolvedValue({ userId: null } as any);
+
+      const result = await updateSettings({
+        carousel: {
+          enabled: true,
+          items: [],
+          autoScrollInterval: 3000,
+        },
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error).toBe("Unauthorized");
+    });
   });
 
   describe("carousel schema validation", () => {
@@ -67,14 +92,14 @@ describe("carousel-settings", () => {
           items: [
             {
               type: "image",
-              url: "https://utfs.io/f/img1.png",
-              key: "img1",
+              url: "https://utfs.io/f/abc123img1.png",
+              key: "abc123img1",
               order: 0,
             },
             {
               type: "image",
-              url: "https://utfs.io/f/img2.png",
-              key: "img2",
+              url: "https://utfs.io/f/def456img2.png",
+              key: "def456img2",
               alt: "Second image",
               order: 1,
             },
@@ -89,7 +114,7 @@ describe("carousel-settings", () => {
           carousel: expect.objectContaining({
             enabled: true,
             items: expect.arrayContaining([
-              expect.objectContaining({ type: "image", key: "img1" }),
+              expect.objectContaining({ type: "image", key: "abc123img1" }),
             ]),
           }),
         })
@@ -107,8 +132,8 @@ describe("carousel-settings", () => {
           items: [
             {
               type: "video",
-              url: "https://utfs.io/f/vid1.mp4",
-              key: "vid1",
+              url: "https://utfs.io/f/vid1key.mp4",
+              key: "vid1key",
               order: 0,
             },
           ],
@@ -128,8 +153,8 @@ describe("carousel-settings", () => {
           items: [
             {
               type: "audio" as "image", // Invalid type
-              url: "https://utfs.io/f/audio.mp3",
-              key: "aud1",
+              url: "https://utfs.io/f/aud1key.mp3",
+              key: "aud1key",
               order: 0,
             },
           ],
@@ -143,11 +168,11 @@ describe("carousel-settings", () => {
     it("rejects items exceeding max count (30)", async () => {
       vi.mocked(isKvConfigured).mockReturnValue(true);
 
-      // Create 31 items to exceed max
+      // Create 31 items to exceed max — URLs contain keys for validation
       const items = Array.from({ length: 31 }, (_, i) => ({
         type: "image" as const,
-        url: `https://utfs.io/f/img${i}.png`,
-        key: `img${i}`,
+        url: `https://utfs.io/f/key${i}.png`,
+        key: `key${i}`,
         order: i,
       }));
 
@@ -155,6 +180,73 @@ describe("carousel-settings", () => {
         carousel: {
           enabled: true,
           items,
+          autoScrollInterval: 3000,
+        },
+      });
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("carousel item URL/key security validation", () => {
+    it("rejects items with non-UploadThing URL", async () => {
+      vi.mocked(isKvConfigured).mockReturnValue(true);
+
+      // URL from a different domain — could be used for key injection
+      const result = await updateSettings({
+        carousel: {
+          enabled: true,
+          items: [
+            {
+              type: "image",
+              url: "https://evil.com/f/stolen-key.png",
+              key: "stolen-key",
+              order: 0,
+            },
+          ],
+          autoScrollInterval: 3000,
+        },
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects items where URL does not contain the key", async () => {
+      vi.mocked(isKvConfigured).mockReturnValue(true);
+
+      // URL is from UploadThing but key doesn't match — arbitrary key injection
+      const result = await updateSettings({
+        carousel: {
+          enabled: true,
+          items: [
+            {
+              type: "image",
+              url: "https://utfs.io/f/legitimate-file.png",
+              key: "product-image-key-to-delete",
+              order: 0,
+            },
+          ],
+          autoScrollInterval: 3000,
+        },
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects items with empty key", async () => {
+      vi.mocked(isKvConfigured).mockReturnValue(true);
+
+      const result = await updateSettings({
+        carousel: {
+          enabled: true,
+          items: [
+            {
+              type: "image",
+              url: "https://utfs.io/f/img.png",
+              key: "",
+              order: 0,
+            },
+          ],
           autoScrollInterval: 3000,
         },
       });
@@ -228,7 +320,6 @@ describe("carousel-settings", () => {
   describe("backward compatibility", () => {
     it("returns defaults when settings lack carousel field", async () => {
       vi.mocked(isKvConfigured).mockReturnValue(true);
-      // Simulate old settings without carousel — getSiteSettings fills defaults
       vi.mocked(getSiteSettings).mockResolvedValue({
         ...DEFAULT_SITE_SETTINGS,
         carousel: DEFAULT_SITE_SETTINGS.carousel,
@@ -252,8 +343,8 @@ describe("carousel-settings", () => {
           items: [
             {
               type: "image" as const,
-              url: "https://utfs.io/f/img.png",
-              key: "img-key",
+              url: "https://utfs.io/f/imgkey1.png",
+              key: "imgkey1",
               order: 0,
             },
           ],
@@ -277,7 +368,7 @@ describe("carousel-settings", () => {
           carousel: expect.objectContaining({
             enabled: true,
             items: expect.arrayContaining([
-              expect.objectContaining({ key: "img-key" }),
+              expect.objectContaining({ key: "imgkey1" }),
             ]),
           }),
         })
@@ -288,15 +379,15 @@ describe("carousel-settings", () => {
   describe("file cleanup on item removal", () => {
     it("deletes removed carousel files from UploadThing", async () => {
       vi.mocked(isKvConfigured).mockReturnValue(true);
-      // Current settings have 3 items
+      // Current settings have 3 items — keys match UploadThing URL pattern
       const currentSettings = {
         ...DEFAULT_SITE_SETTINGS,
         carousel: {
           enabled: true,
           items: [
-            { type: "image" as const, url: "https://utfs.io/f/a.png", key: "key-a", order: 0 },
-            { type: "image" as const, url: "https://utfs.io/f/b.png", key: "key-b", order: 1 },
-            { type: "video" as const, url: "https://utfs.io/f/c.mp4", key: "key-c", order: 2 },
+            { type: "image" as const, url: "https://utfs.io/f/keyA.png", key: "keyA", order: 0 },
+            { type: "image" as const, url: "https://utfs.io/f/keyB.png", key: "keyB", order: 1 },
+            { type: "video" as const, url: "https://utfs.io/f/keyC.mp4", key: "keyC", order: 2 },
           ],
           autoScrollInterval: 3000,
         },
@@ -304,19 +395,19 @@ describe("carousel-settings", () => {
       vi.mocked(getSiteSettings).mockResolvedValue(currentSettings);
       vi.mocked(setSiteSettings).mockResolvedValue(undefined);
 
-      // Save with only 1 item remaining — key-b and key-c removed
+      // Save with only 1 item remaining — keyB and keyC removed
       await updateSettings({
         carousel: {
           enabled: true,
           items: [
-            { type: "image", url: "https://utfs.io/f/a.png", key: "key-a", order: 0 },
+            { type: "image", url: "https://utfs.io/f/keyA.png", key: "keyA", order: 0 },
           ],
           autoScrollInterval: 3000,
         },
       });
 
       // utapi.deleteFiles should be called with the removed keys
-      expect(utapi.deleteFiles).toHaveBeenCalledWith(["key-b", "key-c"]);
+      expect(utapi.deleteFiles).toHaveBeenCalledWith(["keyB", "keyC"]);
     });
 
     it("does not call deleteFiles when no items removed", async () => {
@@ -326,7 +417,7 @@ describe("carousel-settings", () => {
         carousel: {
           enabled: true,
           items: [
-            { type: "image" as const, url: "https://utfs.io/f/a.png", key: "key-a", order: 0 },
+            { type: "image" as const, url: "https://utfs.io/f/keyA.png", key: "keyA", order: 0 },
           ],
           autoScrollInterval: 3000,
         },
@@ -339,7 +430,7 @@ describe("carousel-settings", () => {
         carousel: {
           enabled: true,
           items: [
-            { type: "image", url: "https://utfs.io/f/a.png", key: "key-a", order: 0 },
+            { type: "image", url: "https://utfs.io/f/keyA.png", key: "keyA", order: 0 },
           ],
           autoScrollInterval: 3000,
         },

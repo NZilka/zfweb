@@ -5,6 +5,7 @@
 "use server";
 
 import { z } from "zod";
+import { auth } from "@clerk/nextjs/server";
 import {
   getSiteSettings,
   setSiteSettings,
@@ -47,14 +48,26 @@ const logoSchema = z.object({
   small: logoVariantSchema,
 });
 
+// UploadThing URL prefix — all legitimate uploads are served from this domain
+const UPLOADTHING_URL_PREFIX = "https://utfs.io/";
+
 // Validation schema for a single carousel media item
-const carouselItemSchema = z.object({
-  type: z.enum(["image", "video"]),
-  url: z.string().url(),
-  key: z.string(),
-  alt: z.string().max(200).optional(),
-  order: z.number().int().min(0),
-});
+// Validates URL is from UploadThing domain and key matches URL to prevent
+// arbitrary file key injection (which could lead to unauthorized file deletion)
+const carouselItemSchema = z
+  .object({
+    type: z.enum(["image", "video"]),
+    url: z.string().url(),
+    key: z.string().min(1),
+    alt: z.string().max(200).optional(),
+    order: z.number().int().min(0),
+  })
+  .refine((item) => item.url.startsWith(UPLOADTHING_URL_PREFIX), {
+    message: "Carousel media URL must be from UploadThing",
+  })
+  .refine((item) => item.url.includes(item.key), {
+    message: "Carousel media URL must match the file key",
+  });
 
 // Validation schema for carousel settings
 // Max 30 items, auto-scroll interval between 1-10 seconds
@@ -97,10 +110,17 @@ export async function checkSettingsAvailable(): Promise<boolean> {
 /**
  * Update site settings (partial update supported)
  * Only updates the fields provided in the input
+ * Requires authentication — server actions are publicly callable endpoints
  */
 export async function updateSettings(
   input: UpdateSettingsInput
 ): Promise<ActionResult> {
+  // Auth check — prevent unauthenticated access to settings mutation
+  const user = await auth();
+  if (!user.userId) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   // Check if KV is configured
   if (!isKvConfigured()) {
     return {
@@ -158,7 +178,9 @@ export async function updateSettings(
     };
 
     // Clean up removed carousel files from UploadThing
-    // Compare old items to new items and delete any removed file keys
+    // Only deletes keys that existed in the STORED carousel items (server-trusted data)
+    // and are no longer present in the new items. Schema validation above ensures
+    // new items have valid UploadThing URLs with matching keys, preventing injection.
     if (parsed.data.carousel) {
       const oldKeys = new Set(currentSettings.carousel.items.map((i) => i.key));
       const newKeys = new Set(parsed.data.carousel.items.map((i) => i.key));

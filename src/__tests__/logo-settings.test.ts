@@ -40,6 +40,11 @@ vi.mock("~/server/uploadthing", () => ({
   utapi: { deleteFiles: vi.fn(() => Promise.resolve()) },
 }));
 
+// Mock Clerk auth — updateSettings requires authentication
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: vi.fn(() => Promise.resolve({ userId: "test-user-id" })),
+}));
+
 // Import after mocking
 import { updateSettings } from "~/server/settings-actions";
 import {
