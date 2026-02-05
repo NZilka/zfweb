@@ -28,9 +28,9 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
     large: { url: null, key: null },
     small: { url: null, key: null },
   },
+  // Default carousel: 4 empty rows, carousel shows when ≥1 complete row exists
   carousel: {
-    enabled: false,
-    items: [],
+    rows: [null, null, null, null],
     autoScrollInterval: 3000,
   },
   updatedAt: Date.now(),

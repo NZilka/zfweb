@@ -76,20 +76,22 @@ export type LogoVariant = {
   key: string | null;
 };
 
-// Individual carousel media item (image or video) with ordering
-export type CarouselItem = {
-  type: "image" | "video";
+// Single image cell in the carousel grid — always has an UploadThing key (product images are copied)
+export type CarouselImageCell = {
   url: string;
   key: string; // UploadThing key for file cleanup
-  alt?: string; // Optional alt text for accessibility
-  order: number; // Sort position
+  alt: string; // Alt text for accessibility
 };
 
-// Carousel configuration for the shop homepage
+// A carousel row: either 3 images side-by-side or 1 full-width video
+export type CarouselRow =
+  | { type: "images"; cells: (CarouselImageCell | null)[] } // length 3
+  | { type: "video"; url: string; key: string; videoPositionY: number }; // vertical position 0-100
+
+// Carousel configuration — 4-row grid, rows can be null (empty) or filled
 export type CarouselSettings = {
-  enabled: boolean; // Whether custom carousel is active (false = auto-generate from products)
-  items: CarouselItem[]; // Uploaded images/videos
-  autoScrollInterval: number; // Milliseconds between slides, default 3000
+  rows: (CarouselRow | null)[]; // length 4
+  autoScrollInterval: number; // ms between slides, default 3000
 };
 
 // Site-wide settings for maintenance mode, announcements, and branding
@@ -239,10 +241,9 @@ export const DEFAULT_MAINTENANCE_MESSAGE =
 // Default logo variant — no logo uploaded
 export const DEFAULT_LOGO_VARIANT: LogoVariant = { url: null, key: null };
 
-// Default carousel settings — disabled so carousel auto-generates from products
+// Default carousel settings — 4 empty rows, carousel shows when ≥1 row is complete
 export const DEFAULT_CAROUSEL_SETTINGS: CarouselSettings = {
-  enabled: false,
-  items: [],
+  rows: [null, null, null, null],
   autoScrollInterval: 3000,
 };
 

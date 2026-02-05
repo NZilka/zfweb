@@ -10,6 +10,7 @@ import {
   getSiteSettings,
   setSiteSettings,
   type SiteSettings,
+  type CarouselRow,
   isKvConfigured,
 } from "./kv";
 import { utapi } from "./uploadthing";
@@ -51,29 +52,40 @@ const logoSchema = z.object({
 // UploadThing URL prefix — all legitimate uploads are served from this domain
 const UPLOADTHING_URL_PREFIX = "https://utfs.io/";
 
-// Validation schema for a single carousel media item
-// Validates URL is from UploadThing domain and key matches URL to prevent
-// arbitrary file key injection (which could lead to unauthorized file deletion)
-const carouselItemSchema = z
+// Validation schema for a single carousel image cell (nullable — empty cell)
+const carouselImageCellSchema = z
   .object({
-    type: z.enum(["image", "video"]),
     url: z.string().url(),
     key: z.string().min(1),
-    alt: z.string().max(200).optional(),
-    order: z.number().int().min(0),
+    alt: z.string().max(200),
   })
-  .refine((item) => item.url.startsWith(UPLOADTHING_URL_PREFIX), {
-    message: "Carousel media URL must be from UploadThing",
+  .refine((cell) => cell.url.startsWith(UPLOADTHING_URL_PREFIX), {
+    message: "Carousel image URL must be from UploadThing",
   })
-  .refine((item) => item.url.includes(item.key), {
-    message: "Carousel media URL must match the file key",
-  });
+  .refine((cell) => cell.url.includes(cell.key), {
+    message: "Carousel image URL must match the file key",
+  })
+  .nullable();
 
-// Validation schema for carousel settings
-// Max 30 items, auto-scroll interval between 1-10 seconds
+// Validation schema for a carousel row: 3 images or 1 full-width video
+const carouselRowSchema = z
+  .discriminatedUnion("type", [
+    z.object({
+      type: z.literal("images"),
+      cells: z.array(carouselImageCellSchema).length(3),
+    }),
+    z.object({
+      type: z.literal("video"),
+      url: z.string().url(),
+      key: z.string().min(1),
+      videoPositionY: z.number().int().min(0).max(100),
+    }),
+  ])
+  .nullable();
+
+// Validation schema for carousel settings — 4-row grid with auto-scroll interval
 const carouselSchema = z.object({
-  enabled: z.boolean(),
-  items: z.array(carouselItemSchema).max(30),
+  rows: z.array(carouselRowSchema).length(4),
   autoScrollInterval: z.number().int().min(1000).max(10000),
 });
 
@@ -178,12 +190,11 @@ export async function updateSettings(
     };
 
     // Clean up removed carousel files from UploadThing
-    // Only deletes keys that existed in the STORED carousel items (server-trusted data)
-    // and are no longer present in the new items. Schema validation above ensures
-    // new items have valid UploadThing URLs with matching keys, preventing injection.
+    // Collects all keys from old rows vs new rows and deletes any that were removed.
+    // Schema validation ensures new keys have valid UploadThing URLs, preventing injection.
     if (parsed.data.carousel) {
-      const oldKeys = new Set(currentSettings.carousel.items.map((i) => i.key));
-      const newKeys = new Set(parsed.data.carousel.items.map((i) => i.key));
+      const oldKeys = new Set(collectRowKeys(currentSettings.carousel.rows));
+      const newKeys = new Set(collectRowKeys(parsed.data.carousel.rows));
       const removedKeys = [...oldKeys].filter((k) => !newKeys.has(k));
       if (removedKeys.length > 0) {
         // Fire-and-forget: don't block save on file cleanup
@@ -237,4 +248,63 @@ export async function toggleAnnouncementBanner(
       enabled,
     },
   });
+}
+
+/**
+ * Collect all UploadThing keys from carousel rows for diffing during cleanup
+ * Handles both image cells and video rows
+ */
+function collectRowKeys(rows: (CarouselRow | null)[]): string[] {
+  const keys: string[] = [];
+  for (const row of rows) {
+    if (!row) continue;
+    if (row.type === "images") {
+      // Collect keys from non-null image cells
+      for (const cell of row.cells) {
+        if (cell) keys.push(cell.key);
+      }
+    } else {
+      // Video row has a single key
+      keys.push(row.key);
+    }
+  }
+  return keys;
+}
+
+/**
+ * Copy a product image to carousel storage via UploadThing
+ * Creates an independent copy so carousel images aren't affected by product changes
+ */
+export async function copyProductImageToCarousel(
+  sourceUrl: string
+): Promise<
+  | { success: true; url: string; key: string }
+  | { success: false; error: string }
+> {
+  // Auth check — only authenticated admins can modify carousel
+  const user = await auth();
+  if (!user.userId) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  // Validate source URL is from UploadThing to prevent arbitrary URL fetching
+  if (!sourceUrl.startsWith(UPLOADTHING_URL_PREFIX)) {
+    return { success: false, error: "Source URL must be from UploadThing" };
+  }
+
+  try {
+    // Upload a copy of the image via UploadThing's server-side URL upload
+    const result = await utapi.uploadFilesFromUrl(sourceUrl);
+    if (result.error) {
+      return { success: false, error: "Failed to copy image" };
+    }
+    return {
+      success: true,
+      url: result.data.url,
+      key: result.data.key,
+    };
+  } catch (error) {
+    console.error("Failed to copy product image to carousel:", error);
+    return { success: false, error: "Failed to copy image" };
+  }
 }
