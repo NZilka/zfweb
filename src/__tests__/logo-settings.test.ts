@@ -26,8 +26,18 @@ vi.mock("~/server/kv", () => ({
       large: { url: null, key: null },
       small: { url: null, key: null },
     },
+    carousel: {
+      enabled: false,
+      items: [],
+      autoScrollInterval: 3000,
+    },
     updatedAt: Date.now(),
   },
+}));
+
+// Mock uploadthing utapi — needed by settings-actions for carousel file cleanup
+vi.mock("~/server/uploadthing", () => ({
+  utapi: { deleteFiles: vi.fn(() => Promise.resolve()) },
 }));
 
 // Import after mocking
@@ -204,11 +214,12 @@ describe("logo-settings", () => {
         },
         updatedAt: Date.now(),
       };
-      // getSiteSettings should fill in missing logo from defaults
+      // getSiteSettings should fill in missing logo/carousel from defaults
       // (this is tested by the merge logic in kv.ts getSiteSettings)
       vi.mocked(getSiteSettings).mockResolvedValue({
         ...oldSettings,
         logo: DEFAULT_SITE_SETTINGS.logo,
+        carousel: DEFAULT_SITE_SETTINGS.carousel,
       });
 
       const settings = await getSiteSettings();

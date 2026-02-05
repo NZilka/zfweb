@@ -149,6 +149,46 @@ export const ourFileRouter = {
       };
       return { res };
     }),
+
+  // Carousel media uploader - images and videos for shop homepage carousel
+  carouselMediaUploader: f({
+    image: {
+      maxFileSize: "8MB",
+      maxFileCount: 10, // Up to 10 images per upload batch
+    },
+    video: {
+      maxFileSize: "32MB",
+      maxFileCount: 5, // Up to 5 videos per upload batch
+    },
+  })
+    .middleware(async ({ req }) => {
+      const user = await auth();
+
+      if (!user.userId) throw new UploadThingError("Unauthorized");
+
+      const fullUserData = await (
+        await clerkClient()
+      ).users.getUser(user.userId);
+
+      if (fullUserData?.privateMetadata?.["can-upload"] !== true)
+        throw new UploadThingError("User Does Not Have Upload Permissions");
+
+      return { userId: user.userId };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log("Carousel media upload complete for userId:", metadata.userId);
+
+      type resType = {
+        key: string;
+        url: string;
+      };
+
+      const res: resType = {
+        key: file.key,
+        url: file.url,
+      };
+      return { res };
+    }),
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof ourFileRouter;

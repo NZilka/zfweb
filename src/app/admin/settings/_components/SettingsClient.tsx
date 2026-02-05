@@ -7,7 +7,7 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { AlertTriangle, Megaphone, ImageIcon, X, Upload, Loader2 } from "lucide-react";
+import { AlertTriangle, Megaphone, ImageIcon, Film, X, Upload, Loader2, ChevronUp, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
@@ -16,7 +16,7 @@ import { Switch } from "~/components/ui/switch";
 import { Textarea } from "~/components/ui/textarea";
 import { useUploadThing } from "~/utils/uploadthing";
 import { updateSettings } from "~/server/settings-actions";
-import type { SiteSettings } from "~/server/kv";
+import type { SiteSettings, CarouselItem } from "~/server/kv";
 
 interface SettingsClientProps {
   initialSettings: SiteSettings;
@@ -70,14 +70,27 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
   // Tracks which logo variant ("large" | "small") is currently being uploaded
   const [logoUploadTarget, setLogoUploadTarget] = useState<"large" | "small">("large");
 
+  // Carousel state — enabled toggle, media items list, auto-scroll interval
+  const [carouselEnabled, setCarouselEnabled] = useState(
+    initialSettings.carousel.enabled
+  );
+  const [carouselItems, setCarouselItems] = useState<CarouselItem[]>(
+    initialSettings.carousel.items
+  );
+  const [carouselInterval, setCarouselInterval] = useState(
+    initialSettings.carousel.autoScrollInterval / 1000 // Convert ms to seconds for UI
+  );
+
   // Form state
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isLogoUploading, setIsLogoUploading] = useState(false);
+  const [isCarouselUploading, setIsCarouselUploading] = useState(false);
 
   // File input refs for triggering file pickers
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
+  const carouselFileInputRef = useRef<HTMLInputElement>(null);
 
   // UploadThing hook - same approach as product forms
   const { startUpload } = useUploadThing("imageUploader", {
@@ -245,6 +258,85 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
   const triggerLogoUpload = (variant: "large" | "small") => {
     setLogoUploadTarget(variant);
     logoFileInputRef.current?.click();
+  };
+
+  // UploadThing hook for carousel media — supports images and videos
+  const { startUpload: startCarouselUpload } = useUploadThing("carouselMediaUploader", {
+    onClientUploadComplete: (res) => {
+      if (res) {
+        // Append new items with incremental order values
+        const maxOrder = carouselItems.length > 0
+          ? Math.max(...carouselItems.map((i) => i.order))
+          : -1;
+        const newItems: CarouselItem[] = res.map((file, idx) => ({
+          // Determine type from file content type (UploadThing returns type info in name)
+          type: file.name.match(/\.(mp4|webm|mov|avi)$/i) ? "video" as const : "image" as const,
+          url: file.url,
+          key: file.key,
+          order: maxOrder + 1 + idx,
+        }));
+        setCarouselItems((prev) => [...prev, ...newItems]);
+        toast.success(`${res.length} file(s) uploaded`);
+      }
+      setIsCarouselUploading(false);
+    },
+    onUploadError: (error) => {
+      toast.error(`Carousel upload failed: ${error.message}`);
+      setIsCarouselUploading(false);
+    },
+  });
+
+  // Handle carousel file selection — accepts images and videos
+  const handleCarouselFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsCarouselUploading(true);
+    await startCarouselUpload(Array.from(files));
+    e.target.value = "";
+  };
+
+  // Remove a carousel item by its key
+  const handleRemoveCarouselItem = (key: string) => {
+    setCarouselItems((prev) => prev.filter((item) => item.key !== key));
+  };
+
+  // Move a carousel item up or down in order
+  const handleReorderCarouselItem = (key: string, direction: "up" | "down") => {
+    setCarouselItems((prev) => {
+      const sorted = [...prev].sort((a, b) => a.order - b.order);
+      const idx = sorted.findIndex((item) => item.key === key);
+      if (idx === -1) return prev;
+      // Can't move first item up or last item down
+      if (direction === "up" && idx === 0) return prev;
+      if (direction === "down" && idx === sorted.length - 1) return prev;
+
+      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+      // Swap order values between the two items
+      const temp = sorted[idx]!.order;
+      sorted[idx]!.order = sorted[swapIdx]!.order;
+      sorted[swapIdx]!.order = temp;
+      return sorted;
+    });
+  };
+
+  // Save carousel settings
+  const handleSaveCarouselSettings = async () => {
+    setIsSaving(true);
+    const result = await updateSettings({
+      carousel: {
+        enabled: carouselEnabled,
+        items: carouselItems,
+        autoScrollInterval: carouselInterval * 1000, // Convert seconds to ms
+      },
+    });
+
+    if (result.success) {
+      toast.success("Carousel settings saved");
+    } else {
+      toast.error(result.error);
+    }
+    setIsSaving(false);
   };
 
   // Show warning if KV is not configured
@@ -592,6 +684,168 @@ export function SettingsClient({ initialSettings, kvAvailable }: SettingsClientP
           {/* Save logo settings */}
           <Button onClick={handleSaveLogoSettings} disabled={isSaving}>
             {isSaving ? "Saving..." : "Save Logo Settings"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Shop Carousel Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Film className="h-5 w-5 text-purple-500" />
+            Shop Carousel
+          </CardTitle>
+          <CardDescription>
+            Manage the homepage carousel. When disabled, it auto-generates from your products.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Enable/disable toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="carousel-toggle" className="flex flex-col gap-1">
+              <span>Custom Carousel</span>
+              <span className="text-sm font-normal text-gray-500">
+                {carouselEnabled
+                  ? "Using custom uploaded media"
+                  : "Carousel auto-generates from products"}
+              </span>
+            </Label>
+            <Switch
+              id="carousel-toggle"
+              checked={carouselEnabled}
+              onCheckedChange={setCarouselEnabled}
+            />
+          </div>
+
+          {/* Carousel content — only shown when custom carousel is enabled */}
+          {carouselEnabled && (
+            <>
+              {/* Upload zone for images and videos */}
+              <div className="space-y-2">
+                <Label>Upload Media</Label>
+                <div
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 hover:border-gray-400"
+                  onClick={() => carouselFileInputRef.current?.click()}
+                >
+                  <Upload className="mb-2 h-8 w-8 text-gray-400" />
+                  <p className="mb-1 text-sm text-gray-600">Upload images or videos</p>
+                  <p className="text-xs text-gray-400">
+                    Images up to 8MB, videos up to 32MB
+                  </p>
+                  {isCarouselUploading && (
+                    <Loader2 className="mt-2 h-5 w-5 animate-spin text-gray-500" />
+                  )}
+                </div>
+                {/* Hidden file input — accepts images and common video formats */}
+                <input
+                  ref={carouselFileInputRef}
+                  type="file"
+                  accept="image/*,video/mp4,video/webm,video/quicktime"
+                  multiple
+                  onChange={handleCarouselFileChange}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Grid of uploaded carousel items */}
+              {carouselItems.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Carousel Items ({carouselItems.length})</Label>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                    {[...carouselItems]
+                      .sort((a, b) => a.order - b.order)
+                      .map((item, idx) => (
+                        <div
+                          key={item.key}
+                          className="group relative overflow-hidden rounded-lg border bg-gray-50"
+                        >
+                          {/* Thumbnail — image or video poster */}
+                          {item.type === "image" ? (
+                            <Image
+                              src={item.url}
+                              alt={item.alt ?? `Carousel item ${idx + 1}`}
+                              width={200}
+                              height={200}
+                              className="aspect-square w-full object-cover"
+                            />
+                          ) : (
+                            <video
+                              src={item.url}
+                              className="aspect-square w-full object-cover"
+                              muted
+                              playsInline
+                              preload="metadata"
+                            />
+                          )}
+
+                          {/* Type badge — shows "Image" or "Video" overlay */}
+                          <span className="absolute left-1 top-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                            {item.type === "image" ? "IMG" : "VID"}
+                          </span>
+
+                          {/* Action buttons — remove + reorder, shown on hover/touch */}
+                          <div className="absolute right-1 top-1 flex flex-col gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            {/* Remove button */}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCarouselItem(item.key)}
+                              className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+                              aria-label="Remove item"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                            {/* Move up — hidden for first item */}
+                            {idx > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleReorderCarouselItem(item.key, "up")}
+                                className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-700 text-white hover:bg-gray-800"
+                                aria-label="Move up"
+                              >
+                                <ChevronUp className="h-3 w-3" />
+                              </button>
+                            )}
+                            {/* Move down — hidden for last item */}
+                            {idx < carouselItems.length - 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleReorderCarouselItem(item.key, "down")}
+                                className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-700 text-white hover:bg-gray-800"
+                                aria-label="Move down"
+                              >
+                                <ChevronDown className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Auto-scroll interval — number input in seconds */}
+              <div className="space-y-2">
+                <Label htmlFor="carousel-interval">Auto-Scroll Interval (seconds)</Label>
+                <Input
+                  id="carousel-interval"
+                  type="number"
+                  min={1}
+                  max={10}
+                  step={0.5}
+                  value={carouselInterval}
+                  onChange={(e) => setCarouselInterval(Number(e.target.value))}
+                  className="w-24"
+                />
+                <p className="text-xs text-gray-500">
+                  Time between slides (1–10 seconds)
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* Save carousel settings */}
+          <Button onClick={handleSaveCarouselSettings} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save Carousel Settings"}
           </Button>
         </CardContent>
       </Card>

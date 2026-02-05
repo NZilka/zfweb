@@ -1,6 +1,6 @@
 /**
  * Settings Server Actions
- * Handles saving and retrieving site-wide settings (maintenance mode, announcements)
+ * Handles saving and retrieving site-wide settings (maintenance mode, announcements, carousel)
  */
 "use server";
 
@@ -11,6 +11,7 @@ import {
   type SiteSettings,
   isKvConfigured,
 } from "./kv";
+import { utapi } from "./uploadthing";
 
 // Validation schema for maintenance mode settings
 // Uses refine to enforce message requirement when enabled
@@ -46,11 +47,29 @@ const logoSchema = z.object({
   small: logoVariantSchema,
 });
 
+// Validation schema for a single carousel media item
+const carouselItemSchema = z.object({
+  type: z.enum(["image", "video"]),
+  url: z.string().url(),
+  key: z.string(),
+  alt: z.string().max(200).optional(),
+  order: z.number().int().min(0),
+});
+
+// Validation schema for carousel settings
+// Max 30 items, auto-scroll interval between 1-10 seconds
+const carouselSchema = z.object({
+  enabled: z.boolean(),
+  items: z.array(carouselItemSchema).max(30),
+  autoScrollInterval: z.number().int().min(1000).max(10000),
+});
+
 // Combined settings update schema — each section is optional for partial updates
 const updateSettingsSchema = z.object({
   maintenanceMode: maintenanceModeSchema.optional(),
   announcementBanner: announcementBannerSchema.optional(),
   logo: logoSchema.optional(),
+  carousel: carouselSchema.optional(),
 });
 
 type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
@@ -133,8 +152,24 @@ export async function updateSettings(
             },
           }
         : currentSettings.logo,
+      // Carousel merge: replace entire carousel config when provided
+      carousel: parsed.data.carousel ?? currentSettings.carousel,
       updatedAt: Date.now(),
     };
+
+    // Clean up removed carousel files from UploadThing
+    // Compare old items to new items and delete any removed file keys
+    if (parsed.data.carousel) {
+      const oldKeys = new Set(currentSettings.carousel.items.map((i) => i.key));
+      const newKeys = new Set(parsed.data.carousel.items.map((i) => i.key));
+      const removedKeys = [...oldKeys].filter((k) => !newKeys.has(k));
+      if (removedKeys.length > 0) {
+        // Fire-and-forget: don't block save on file cleanup
+        utapi.deleteFiles(removedKeys).catch((err) => {
+          console.error("Failed to clean up removed carousel files:", err);
+        });
+      }
+    }
 
     // Save updated settings
     await setSiteSettings(updatedSettings);
