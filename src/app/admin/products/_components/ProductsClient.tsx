@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Plus, Upload, Layout } from "lucide-react";
 import {
   DndContext,
@@ -85,10 +85,10 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
 
   // Local product order for optimistic drag-and-drop reordering
   const [orderedProducts, setOrderedProducts] = useState<ProductData[]>(products);
-  // Sync with server data when products prop changes
-  if (products !== orderedProducts && products.length !== orderedProducts.length) {
+  // Re-sync local order when server products prop changes (edit, delete, revalidation)
+  useEffect(() => {
     setOrderedProducts(products);
-  }
+  }, [products]);
 
   // dnd-kit sensors — pointer + keyboard for accessibility
   const sensors = useSensors(
@@ -112,7 +112,7 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
     });
   }, [products, orderedProducts, searchQuery, statusFilter, categoryFilter, hasActiveFilters]);
 
-  // Handle drag end — reorder locally then persist to server
+  // Handle drag end — optimistic reorder with rollback on server failure
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -121,12 +121,18 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
     const newIndex = orderedProducts.findIndex((p) => p.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    // Optimistic local reorder
+    // Save previous order for rollback, then optimistically apply new order
+    const previousOrder = orderedProducts;
     const reordered = arrayMove(orderedProducts, oldIndex, newIndex);
     setOrderedProducts(reordered);
 
-    // Persist new sort order to server
-    await updateProductSortOrder(reordered.map((p) => p.id));
+    try {
+      await updateProductSortOrder(reordered.map((p) => p.id));
+    } catch (error) {
+      // Rollback to previous order on failure
+      setOrderedProducts(previousOrder);
+      console.error("Failed to update product order:", error);
+    }
   };
 
   // Open dialog for creating new product

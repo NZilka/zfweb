@@ -21,8 +21,10 @@ export const getProducts = async (opts?: {
         conditions.push(eq(model.category_id, opts.categoryId));
       }
       // Search across title and description with case-insensitive matching
+      // Escape LIKE metacharacters (% and _) so user input is treated literally
       if (opts?.search) {
-        const term = `%${opts.search}%`;
+        const escaped = opts.search.replace(/%/g, "\\%").replace(/_/g, "\\_");
+        const term = `%${escaped}%`;
         conditions.push(
           or(ilike(model.title, term), ilike(model.description, term))!,
         );

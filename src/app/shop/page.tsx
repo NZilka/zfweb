@@ -104,7 +104,12 @@ export default async function HomePage({
 }) {
   const params = await searchParams;
   // Parse category filter and search query from query string
-  const categoryId = params.category ? Number(params.category) : undefined;
+  // Treat NaN (e.g. ?category=abc) as no filter rather than erroring
+  const rawCategoryId = params.category ? Number(params.category) : undefined;
+  const categoryId =
+    rawCategoryId !== undefined && !Number.isNaN(rawCategoryId)
+      ? rawCategoryId
+      : undefined;
   const searchQuery = params.q?.trim() || undefined;
 
   // Fetch products (optionally filtered/searched) and carousel in parallel
