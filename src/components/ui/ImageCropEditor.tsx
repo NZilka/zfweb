@@ -113,8 +113,11 @@ export function cropToStyle(
   const { croppedArea } = crop;
   // Scale image so the visible area matches the container
   // croppedArea values are percentages (0-100) of the original image
+  // maxWidth: "none" overrides Tailwind Preflight's `max-width: 100%` on img
+  // elements, which otherwise caps the width and breaks crop positioning
   return {
     position: "absolute" as const,
+    maxWidth: "none",
     width: `${100 / (croppedArea.width / 100)}%`,
     height: `${100 / (croppedArea.height / 100)}%`,
     left: `-${croppedArea.x / (croppedArea.width / 100)}%`,

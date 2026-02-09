@@ -54,8 +54,10 @@ describe("cropToStyle", () => {
     // height: 100 / (50/100) = 200%
     // left: -(10 / (50/100)) = -20%
     // top: -(20 / (50/100)) = -40%
+    // maxWidth: "none" overrides Tailwind Preflight's max-width: 100%
     expect(style).toEqual({
       position: "absolute",
+      maxWidth: "none",
       width: "200%",
       height: "200%",
       left: "-20%",
@@ -73,8 +75,10 @@ describe("cropToStyle", () => {
     });
 
     // No scaling or offset when full image is visible
+    // maxWidth: "none" always present to override Tailwind Preflight
     expect(style).toEqual({
       position: "absolute",
+      maxWidth: "none",
       width: "100%",
       height: "100%",
       left: "-0%",
