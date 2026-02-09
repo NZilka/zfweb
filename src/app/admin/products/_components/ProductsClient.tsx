@@ -32,6 +32,12 @@ import { updateProductSortOrder } from "~/server/product-actions";
 import type { CategoryType } from "~/app/admin/_components/ProductForm";
 import { filterProducts } from "./filterProducts";
 
+// Crop entry type matching react-easy-crop output (or null for no crop)
+type CropEntry = {
+  croppedArea: { x: number; y: number; width: number; height: number };
+  zoom: number;
+} | null;
+
 // Product data type from database (matches schema)
 export interface ProductData {
   id: number;
@@ -43,6 +49,8 @@ export interface ProductData {
   category_id: number | null;
   imgUrl: string[];
   imgKey: string[];
+  // Per-image crop data — parallel array to imgUrl/imgKey
+  imgCrop: CropEntry[];
   // Sort order for drag-and-drop reordering
   sort_order: number;
   // New fields for redesign

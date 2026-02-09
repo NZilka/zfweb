@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useState, useContext, ReactNode } from "react";
+import type { CropData } from "~/components/ui/ImageCropEditor";
 
 const MAX_IMAGES = 5;
 
@@ -11,6 +12,8 @@ export interface ImageItem {
   key?: string;   // UploadThing key for existing images (for deletion tracking)
   file?: File;    // File object for new uploads
   previewUrl?: string; // Blob URL for preview (new uploads only)
+  // Optional crop data for image positioning
+  crop?: CropData;
 }
 
 // Describes the final order of images after user reordering.
@@ -21,6 +24,9 @@ export interface OrderedImageRef {
   type: "existing" | "new";
   index: number;  // Index into keepUrls/keepKeys (existing) or newFiles (new)
 }
+
+// Crop entry type for getImageChanges — matches CropData or null
+type CropEntry = CropData | null;
 
 interface EditImageContextType {
   // Current images array (no gaps, max 5)
@@ -33,6 +39,8 @@ interface EditImageContextType {
   removeImage: (index: number) => void;
   // Reorder images by moving from one index to another
   reorderImages: (fromIndex: number, toIndex: number) => void;
+  // Update crop data for a specific image
+  updateImageCrop: (index: number, crop: CropData) => void;
   // Get data for form submission - includes orderedImages to preserve interleaved order
   getImageChanges: () => {
     keepUrls: string[];
@@ -40,11 +48,14 @@ interface EditImageContextType {
     removeKeys: string[];
     newFiles: File[];
     orderedImages: OrderedImageRef[];  // Describes final order after reordering
+    // Crop arrays parallel to keepUrls/newFiles for image positioning
+    keepCrops: CropEntry[];
+    newCrops: CropEntry[];
   };
   // Reset to initial state
   reset: () => void;
   // Initialize from existing product (edit mode)
-  initializeFromProduct: (urls: string[], keys: string[]) => void;
+  initializeFromProduct: (urls: string[], keys: string[], crops?: (CropData | null)[]) => void;
   // Check if can add more images
   canAddMore: boolean;
   // Get slot count to display (images + 1 empty, up to MAX)
@@ -89,6 +100,14 @@ export const EditImageProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  // Update crop data for a specific image at index
+  const updateImageCrop = (index: number, crop: CropData) => {
+    if (index < 0 || index >= images.length) return;
+    setImages((prev) =>
+      prev.map((img, i) => (i === index ? { ...img, crop } : img)),
+    );
+  };
+
   // Reorder images by moving one to a new position
   const reorderImages = (fromIndex: number, toIndex: number) => {
     if (fromIndex === toIndex) return;
@@ -112,7 +131,9 @@ export const EditImageProvider = ({ children }: { children: ReactNode }) => {
   const getImageChanges = () => {
     const keepUrls: string[] = [];
     const keepKeys: string[] = [];
+    const keepCrops: CropEntry[] = [];
     const newFiles: File[] = [];
+    const newCrops: CropEntry[] = [];
     const orderedImages: OrderedImageRef[] = [];
 
     // Track indices as we build the arrays so orderedImages can reference them
@@ -125,18 +146,28 @@ export const EditImageProvider = ({ children }: { children: ReactNode }) => {
         // Use empty string for falsy values to preserve array positions.
         keepUrls.push(img.url ?? "");
         keepKeys.push(img.key ?? "");
+        keepCrops.push(img.crop ?? null);
         // Record this position references existing image at existingIndex
         orderedImages.push({ type: "existing", index: existingIndex });
         existingIndex++;
       } else if (img.type === "new" && img.file) {
         newFiles.push(img.file);
+        newCrops.push(img.crop ?? null);
         // Record this position references new upload at newIndex
         orderedImages.push({ type: "new", index: newIndex });
         newIndex++;
       }
     });
 
-    return { keepUrls, keepKeys, removeKeys: removedKeys, newFiles, orderedImages };
+    return {
+      keepUrls,
+      keepKeys,
+      removeKeys: removedKeys,
+      newFiles,
+      orderedImages,
+      keepCrops,
+      newCrops,
+    };
   };
 
   // Reset to empty state
@@ -152,7 +183,12 @@ export const EditImageProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Initialize from existing product data (edit mode)
-  const initializeFromProduct = (urls: string[], keys: string[]) => {
+  // Accepts optional crops array parallel to urls/keys
+  const initializeFromProduct = (
+    urls: string[],
+    keys: string[],
+    crops?: (CropData | null)[],
+  ) => {
     // Clear any existing state first
     reset();
 
@@ -165,6 +201,8 @@ export const EditImageProvider = ({ children }: { children: ReactNode }) => {
         type: "existing",
         url: urls[i],
         key: keys[i],
+        // Attach crop data if available for this image
+        crop: crops?.[i] ?? undefined,
       });
     }
 
@@ -186,6 +224,7 @@ export const EditImageProvider = ({ children }: { children: ReactNode }) => {
         addImage,
         removeImage,
         reorderImages,
+        updateImageCrop,
         getImageChanges,
         reset,
         initializeFromProduct,

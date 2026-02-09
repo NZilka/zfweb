@@ -40,12 +40,20 @@ export const checkUrlHandleExists = async (
   return !!existing;
 };
 
+// Crop data type for image positioning (matches react-easy-crop output)
+type CropEntry = {
+  croppedArea: { x: number; y: number; width: number; height: number };
+  zoom: number;
+} | null;
+
 // Create a new product with images
 export const addProduct = async (
   product: ProductType,
   urls: string[] | undefined,
   keys: string[] | undefined,
   urlHandle?: string,
+  // Optional crop data array parallel to urls/keys
+  imgCrop?: CropEntry[],
 ) => {
   const result: { returnId: number }[] = await db
     .insert(dbProduct)
@@ -55,6 +63,8 @@ export const addProduct = async (
       description: product.description,
       imgKey: keys ?? [],
       imgUrl: urls ?? [],
+      // Store crop data — default to empty array if not provided
+      imgCrop: imgCrop ?? [],
       inventory: product.inventory,
       sku: product.sku ?? null,
       category_id: product.category_id ?? null,
@@ -76,6 +86,10 @@ interface ImageChanges {
   newUrls: string[];     // URLs from newly uploaded images
   newKeys: string[];     // Keys from newly uploaded images
   orderedImages: OrderedImageRef[];  // Final order: each entry references existing or new by index
+  // Crop data parallel to keepUrls/keepKeys — one per existing image
+  keepCrops?: CropEntry[];
+  // Crop data parallel to newUrls/newKeys — one per new image
+  newCrops?: CropEntry[];
 }
 
 // Update an existing product with support for image changes
@@ -111,20 +125,26 @@ export const updateProduct = async (
   // based on where the user dragged them during reordering.
   const finalUrls: string[] = [];
   const finalKeys: string[] = [];
+  // Build crop array parallel to urls/keys for image positioning
+  const finalCrops: CropEntry[] = [];
 
   for (const ref of imageChanges.orderedImages) {
     if (ref.type === "existing") {
-      // Reference to an existing image - pull from keepUrls/keepKeys
+      // Reference to an existing image - pull from keepUrls/keepKeys/keepCrops
       const url = imageChanges.keepUrls[ref.index];
       const key = imageChanges.keepKeys[ref.index];
+      const crop = imageChanges.keepCrops?.[ref.index] ?? null;
       if (url) finalUrls.push(url);
       if (key) finalKeys.push(key);
+      finalCrops.push(crop);
     } else {
-      // Reference to a newly uploaded image - pull from newUrls/newKeys
+      // Reference to a newly uploaded image - pull from newUrls/newKeys/newCrops
       const url = imageChanges.newUrls[ref.index];
       const key = imageChanges.newKeys[ref.index];
+      const crop = imageChanges.newCrops?.[ref.index] ?? null;
       if (url) finalUrls.push(url);
       if (key) finalKeys.push(key);
+      finalCrops.push(crop);
     }
   }
 
@@ -140,6 +160,8 @@ export const updateProduct = async (
       category_id: product.category_id ?? null,
       imgUrl: finalUrls,
       imgKey: finalKeys,
+      // Store crop data parallel to urls/keys
+      imgCrop: finalCrops,
       // Update URL handle if provided
       url_handle: urlHandle ?? null,
     })

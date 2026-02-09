@@ -43,7 +43,11 @@ export default async function ProductPage({
       <div className="flex max-w-4xl flex-col gap-8 md:flex-row">
         {/* Product images section - interactive gallery with clickable thumbnails */}
         <div className="flex-1">
-          <ImageGallery images={product.imgUrl} productTitle={product.title} />
+          <ImageGallery
+            images={product.imgUrl}
+            productTitle={product.title}
+            imgCrop={product.imgCrop}
+          />
         </div>
 
         {/* Product details section */}

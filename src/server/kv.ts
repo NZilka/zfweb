@@ -81,6 +81,11 @@ export type CarouselImageCell = {
   url: string;
   key: string; // UploadThing key for file cleanup
   alt: string; // Alt text for accessibility
+  // Crop data from react-easy-crop — optional for backward compat with existing KV data
+  crop?: {
+    croppedArea: { x: number; y: number; width: number; height: number };
+    zoom: number;
+  };
 };
 
 // A carousel row: either 3 images side-by-side or 1 full-width video

@@ -67,12 +67,27 @@ const aboutSchema = z.object({
 // UploadThing URL prefix — all legitimate uploads are served from this domain
 const UPLOADTHING_URL_PREFIX = "https://utfs.io/";
 
+// Crop data schema — percentages from react-easy-crop for CSS positioning
+const cropDataSchema = z
+  .object({
+    croppedArea: z.object({
+      x: z.number(),
+      y: z.number(),
+      width: z.number().positive(),
+      height: z.number().positive(),
+    }),
+    zoom: z.number().min(1).max(10),
+  })
+  .optional();
+
 // Validation schema for a single carousel image cell (nullable — empty cell)
 const carouselImageCellSchema = z
   .object({
     url: z.string().url(),
     key: z.string().min(1),
     alt: z.string().max(200),
+    // Optional crop data for image positioning — backward compat with existing cells
+    crop: cropDataSchema,
   })
   .refine((cell) => cell.url.startsWith(UPLOADTHING_URL_PREFIX), {
     message: "Carousel image URL must be from UploadThing",

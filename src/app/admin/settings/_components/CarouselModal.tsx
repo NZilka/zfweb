@@ -39,6 +39,11 @@ import { Label } from "~/components/ui/label";
 import { useUploadThing } from "~/utils/uploadthing";
 import { copyProductImageToCarousel } from "~/server/settings-actions";
 import type { CarouselRow, CarouselImageCell } from "~/server/kv";
+import {
+  ImageCropEditor,
+  cropToStyle,
+  type CropData,
+} from "~/components/ui/ImageCropEditor";
 
 interface CarouselModalProps {
   open: boolean;
@@ -60,6 +65,8 @@ interface SortableRowProps {
   onClearRow: (rowIdx: number) => void;
   onVideoUpload: (rowIdx: number) => void;
   onVideoPositionChange: (rowIdx: number, value: number) => void;
+  // Open crop editor for a filled image cell
+  onCropClick: (rowIdx: number, cellIdx: number) => void;
 }
 
 // Sortable row component — wraps row content with drag handle
@@ -73,6 +80,7 @@ function SortableRow({
   onClearRow,
   onVideoUpload,
   onVideoPositionChange,
+  onCropClick,
 }: SortableRowProps) {
   const {
     attributes,
@@ -160,14 +168,27 @@ function SortableRow({
               >
                 {cell ? (
                   <>
-                    {/* Filled cell — thumbnail with remove button */}
-                    <Image
-                      src={cell.url}
-                      width={100}
-                      height={100}
-                      alt={cell.alt}
-                      className="h-full w-full rounded-lg border object-cover"
-                    />
+                    {/* Filled cell — clickable thumbnail for crop positioning */}
+                    <button
+                      type="button"
+                      onClick={() => onCropClick(rowIdx, cellIdx)}
+                      className="relative h-full w-full overflow-hidden rounded-lg border"
+                      aria-label={`Position image in row ${rowIdx + 1}, cell ${cellIdx + 1}`}
+                    >
+                      {/* Show crop preview if crop data exists, otherwise default cover */}
+                      <Image
+                        src={cell.url}
+                        width={100}
+                        height={100}
+                        alt={cell.alt}
+                        className={
+                          cell.crop
+                            ? "pointer-events-none"
+                            : "h-full w-full object-cover"
+                        }
+                        style={cell.crop ? cropToStyle(cell.crop) : undefined}
+                      />
+                    </button>
                     <button
                       type="button"
                       onClick={() => onRemoveCell(rowIdx, cellIdx)}
@@ -231,6 +252,11 @@ export function CarouselModal({
     row: number;
     cell: number;
   } | null>(null);
+  // Track which filled cell is being cropped (rowIndex + cellIndex)
+  const [cropTarget, setCropTarget] = useState<{
+    row: number;
+    cell: number;
+  } | null>(null);
   // Loading states for async operations
   const [isCopying, setIsCopying] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -269,6 +295,7 @@ export function CarouselModal({
       setRows([...initialRows]);
       setInterval(initialInterval);
       setPickerTarget(null);
+      setCropTarget(null);
     }
     onOpenChange(isOpen);
   };
@@ -376,6 +403,19 @@ export function CarouselModal({
     setRows(newRows);
   };
 
+  // Update crop data for a specific image cell
+  const updateCellCrop = (rowIdx: number, cellIdx: number, crop: CropData) => {
+    const row = rows[rowIdx];
+    if (!row || row.type !== "images") return;
+    const cell = row.cells[cellIdx];
+    if (!cell) return;
+    const newCells = [...row.cells];
+    newCells[cellIdx] = { ...cell, crop };
+    const newRows = [...rows];
+    newRows[rowIdx] = { type: "images", cells: newCells };
+    setRows(newRows);
+  };
+
   // Handle picking a product image — copies it to carousel storage
   const handlePickProductImage = async (img: {
     url: string;
@@ -452,8 +492,8 @@ export function CarouselModal({
         className="hidden"
       />
 
-      {/* Main carousel editor modal */}
-      <Dialog open={open && !pickerTarget} onOpenChange={handleOpenChange}>
+      {/* Main carousel editor modal — hidden when picker or crop sub-dialog is open */}
+      <Dialog open={open && !pickerTarget && !cropTarget} onOpenChange={handleOpenChange}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Configure Carousel</DialogTitle>
@@ -486,6 +526,7 @@ export function CarouselModal({
                     onClearRow={clearRow}
                     onVideoUpload={triggerVideoUpload}
                     onVideoPositionChange={updateVideoPositionY}
+                    onCropClick={(r, c) => setCropTarget({ row: r, cell: c })}
                   />
                 ))}
               </div>
@@ -597,6 +638,46 @@ export function CarouselModal({
               </>
             )}
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Crop positioning sub-dialog — shown when clicking a filled image cell */}
+      <Dialog
+        open={!!cropTarget}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setCropTarget(null);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Position Image</DialogTitle>
+            <DialogDescription>
+              Drag to pan, scroll or use slider to zoom. This sets how the image
+              appears in the carousel.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Render crop editor for the targeted cell */}
+          {cropTarget && (() => {
+            const row = rows[cropTarget.row];
+            const cell =
+              row?.type === "images" ? row.cells[cropTarget.cell] : null;
+            if (!cell) return null;
+            return (
+              <ImageCropEditor
+                imageUrl={cell.url}
+                initialCrop={cell.crop}
+                aspect={1}
+                onChange={(data) =>
+                  updateCellCrop(cropTarget.row, cropTarget.cell, data)
+                }
+              />
+            );
+          })()}
+
+          <DialogFooter>
+            <Button onClick={() => setCropTarget(null)}>Done</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
