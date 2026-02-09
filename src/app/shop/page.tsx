@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getProducts } from "~/server/queries";
+import { getProducts, getPublicCategoryById } from "~/server/queries";
 import { getAvailableInventory } from "~/server/cart-actions";
 import { getCarouselData } from "~/server/carousel";
 import Image from "next/image";
@@ -9,10 +9,12 @@ import { Carousel } from "./_components/Carousel";
 
 export const dynamic = "force-dynamic";
 
-// Product listing component - fetches all products and displays as NUIT-style cards
-const Products = async () => {
-  const products = await getProducts();
-
+// Product card grid — receives products + inventory as props (fetched in HomePage)
+async function ProductGrid({
+  products,
+}: {
+  products: Awaited<ReturnType<typeof getProducts>>;
+}) {
   // Fetch available inventory for all products in parallel
   // This accounts for items reserved in other users' carts
   const availableInventories = await Promise.all(
@@ -93,17 +95,68 @@ const Products = async () => {
       })}
     </div>
   );
-};
+}
 
-export default async function HomePage() {
-  // Fetch carousel data — returns null if not enough content
-  const carouselData = await getCarouselData();
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string; q?: string }>;
+}) {
+  const params = await searchParams;
+  // Parse category filter and search query from query string
+  const categoryId = params.category ? Number(params.category) : undefined;
+  const searchQuery = params.q?.trim() || undefined;
+
+  // Fetch products (optionally filtered/searched) and carousel in parallel
+  const [products, carouselData, category] = await Promise.all([
+    getProducts({
+      categoryId,
+      search: searchQuery,
+    }),
+    getCarouselData(),
+    // Only fetch category name when filtering by category
+    categoryId ? getPublicCategoryById(categoryId) : Promise.resolve(null),
+  ]);
+
+  // Whether we're viewing filtered/searched results vs the full shop home
+  const isFiltered = !!categoryId || !!searchQuery;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start gap-4 pt-8">
-      {/* Carousel above product grid — only rendered when data is available */}
-      {carouselData && <Carousel data={carouselData} />}
-      <Products />
+      {/* Carousel only on unfiltered shop home — hide when viewing category or search */}
+      {!isFiltered && carouselData && <Carousel data={carouselData} />}
+
+      {/* Show search results heading */}
+      {searchQuery && (
+        <div className="flex w-full max-w-[1200px] flex-col items-center gap-2 px-4">
+          <h1 className="text-3xl font-semibold tracking-tight text-white font-[family-name:var(--font-heading)]">
+            Results for &ldquo;{searchQuery}&rdquo;
+          </h1>
+          <Link
+            href="/shop"
+            className="text-sm text-[#e8e0d4] hover:text-white underline"
+          >
+            View all products
+          </Link>
+        </div>
+      )}
+
+      {/* Show category heading when filtering by category */}
+      {categoryId && !searchQuery && (
+        <div className="flex w-full max-w-[1200px] flex-col items-center gap-2 px-4">
+          <h1 className="text-3xl font-semibold tracking-tight text-white font-[family-name:var(--font-heading)]">
+            {category?.name ?? "Category"}
+          </h1>
+          <Link
+            href="/shop"
+            className="text-sm text-[#e8e0d4] hover:text-white underline"
+          >
+            View all products
+          </Link>
+        </div>
+      )}
+
+      <ProductGrid products={products} />
     </main>
   );
 }

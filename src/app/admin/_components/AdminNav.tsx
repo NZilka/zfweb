@@ -98,19 +98,19 @@ function NavItemButton({
 export function AdminNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isOpen, close } = useAdminNav();
+  const { isOpen, isInstantClose, close, instantClose } = useAdminNav();
 
   const activeId = getActiveNavId(pathname);
 
-  // Navigate and close drawer after selection (always hamburger-controlled)
+  // Navigate and instantly hide drawer — no slide-out animation on link click
   const handleNavigate = (path: string) => {
     router.push(path);
-    close();
+    instantClose();
   };
 
   return (
     <>
-      {/* Backdrop overlay — visible on all sizes when drawer is open */}
+      {/* Backdrop overlay — hidden instantly when isInstantClose */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50"
@@ -119,7 +119,7 @@ export function AdminNav() {
         />
       )}
 
-      {/* Sidebar drawer */}
+      {/* Sidebar drawer — skip transition when instant-closing for snappy nav */}
       <nav
         className={cn(
           // Fixed position, full height below header
@@ -128,8 +128,8 @@ export function AdminNav() {
           "w-64",
           // Styling — black bg matching shop mobile drawer
           "border-r border-neutral-700 bg-black",
-          // Slide in/out animation
-          "transition-transform duration-300 ease-in-out",
+          // Conditionally skip slide animation on instant close
+          isInstantClose ? "" : "transition-transform duration-300 ease-in-out",
           // Transform based on open state
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
