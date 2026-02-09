@@ -58,7 +58,7 @@ export function ShopNavClient({
             {/* Products link — replaces old "All" link, goes to shop home */}
             <Link
               href="/shop"
-              className="text-sm uppercase tracking-wide text-neutral-700 hover:text-black"
+              className="text-sm uppercase tracking-wide text-[#e8e0d4] hover:text-white"
             >
               Products
             </Link>
@@ -67,7 +67,7 @@ export function ShopNavClient({
             <div className="group relative">
               <button
                 type="button"
-                className="text-sm uppercase tracking-wide text-neutral-700 hover:text-black"
+                className="text-sm uppercase tracking-wide text-[#e8e0d4] hover:text-white"
               >
                 Categories
               </button>
@@ -89,7 +89,7 @@ export function ShopNavClient({
             {aboutEnabled && (
               <Link
                 href="/shop/about"
-                className="text-sm uppercase tracking-wide text-neutral-700 hover:text-black"
+                className="text-sm uppercase tracking-wide text-[#e8e0d4] hover:text-white"
               >
                 About
               </Link>
