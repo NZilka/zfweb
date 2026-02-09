@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Plus, Upload, Layout } from "lucide-react";
 import {
   DndContext,
@@ -85,9 +85,12 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
 
   // Local product order for optimistic drag-and-drop reordering
   const [orderedProducts, setOrderedProducts] = useState<ProductData[]>(products);
+  // Guard against useEffect overwriting optimistic state during revalidation
+  const isPendingReorder = useRef(false);
   // Re-sync local order when server products prop changes (edit, delete, revalidation)
+  // Skip sync while a reorder is in-flight to prevent reverting optimistic state
   useEffect(() => {
-    setOrderedProducts(products);
+    if (!isPendingReorder.current) setOrderedProducts(products);
   }, [products]);
 
   // dnd-kit sensors — pointer + keyboard for accessibility
@@ -124,6 +127,8 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
     // Save previous order for rollback, then optimistically apply new order
     const previousOrder = orderedProducts;
     const reordered = arrayMove(orderedProducts, oldIndex, newIndex);
+    // Flag pending to prevent useEffect from overwriting optimistic state
+    isPendingReorder.current = true;
     setOrderedProducts(reordered);
 
     try {
@@ -132,6 +137,9 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
       // Rollback to previous order on failure
       setOrderedProducts(previousOrder);
       console.error("Failed to update product order:", error);
+    } finally {
+      // Clear flag so future prop changes sync normally
+      isPendingReorder.current = false;
     }
   };
 
