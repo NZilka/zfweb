@@ -17,14 +17,15 @@ export const TopNav = ({ logoUrl }: { logoUrl?: string }) => {
   return (
     // min-w-0 prevents flexbox/grid implicit minimum width overflow
     // z-30 ensures header stays above content but below drawer (z-50)
-    <header className="min-w-0 border-b border-gray-700 bg-gray-900 z-30 relative">
+    // Black bg + neutral border matching admin drawer style
+    <header className="min-w-0 border-b border-neutral-700 bg-black z-30 relative">
       {/* Top nav bar with responsive padding */}
       <nav className="flex w-full min-w-0 items-center justify-between gap-2 sm:gap-4 px-3 py-2 sm:px-4 sm:py-3">
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Hamburger toggle - visible on all sizes, light colors for dark bg */}
+          {/* Hamburger toggle — neutral colors matching admin drawer */}
           <button
             onClick={toggleOpen}
-            className="flex items-center justify-center h-9 w-9 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors duration-150"
+            className="flex items-center justify-center h-9 w-9 rounded-lg text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors duration-150"
             aria-label="Toggle navigation menu"
           >
             <Menu className="h-5 w-5" />

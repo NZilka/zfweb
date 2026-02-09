@@ -1,16 +1,11 @@
 /**
  * AdminNavContext - Shared state for admin navigation
- * Manages sidebar drawer open/closed state with responsive defaults
+ * Manages sidebar drawer open/closed state — always starts closed,
+ * opened only via hamburger toggle (no auto-open on desktop)
  */
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface AdminNavContextType {
   // Whether sidebar drawer is open
@@ -32,20 +27,10 @@ export function useAdminNav() {
   return context;
 }
 
-// Desktop breakpoint (lg = 1024px)
-const DESKTOP_BREAKPOINT = 1024;
-
 // Provider component wrapping admin layout
 export function AdminNavProvider({ children }: { children: ReactNode }) {
-  // Start closed - user opens with hamburger menu
+  // Always starts closed — user opens with hamburger menu (no desktop auto-open)
   const [isOpen, setIsOpen] = useState(false);
-
-  // On desktop, default to open after initial mount
-  useEffect(() => {
-    if (window.innerWidth >= DESKTOP_BREAKPOINT) {
-      setIsOpen(true);
-    }
-  }, []);
 
   const toggleOpen = () => setIsOpen((prev) => !prev);
   const close = () => setIsOpen(false);

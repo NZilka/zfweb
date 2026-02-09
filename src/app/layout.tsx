@@ -1,7 +1,22 @@
 import "~/styles/globals.css";
 
 import { GeistSans } from "geist/font/sans";
+// Shop heading font — elegant serif for product names
+import { Cormorant_Garamond } from "next/font/google";
+// Shop body font — clean sans-serif for prices/descriptions
+import { Work_Sans } from "next/font/google";
 import { type Metadata } from "next";
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-cormorant",
+});
+const workSans = Work_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-work-sans",
+});
 import { ClerkProvider } from "@clerk/nextjs";
 // Sonner toast component for notifications across the app
 import { Toaster } from "~/components/ui/sonner";
@@ -20,7 +35,8 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={`${GeistSans.variable} flex flex-col`}>
+        {/* Font vars: GeistSans for admin/UI, Cormorant for shop headings, Work Sans for shop body */}
+        <body className={`${GeistSans.variable} ${cormorant.variable} ${workSans.variable} flex flex-col`}>
           {/* Providers wrap app with client-side contexts (PostHog, etc.) */}
           <Providers>
             {children}
