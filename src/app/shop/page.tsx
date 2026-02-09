@@ -77,11 +77,13 @@ const Products = async () => {
               {/* Product info — Cormorant Garamond heading, Work Sans body */}
               <div className="flex flex-col items-center p-5">
                 <Link href={`/shop/product/${product.id}`}>
+                  {/* Cormorant Garamond heading font for product names */}
                   <h1 className="mb-2 text-2xl font-semibold tracking-tight text-white font-[family-name:var(--font-heading)]">
                     {product.title}
                   </h1>
                 </Link>
-                <p className="text-lg font-light text-[#e8e0d4] font-[family-name:var(--font-body)]">
+                {/* Body font inherited from layout; bone-white price */}
+                <p className="text-lg font-light text-[#e8e0d4]">
                   ${product.price}
                 </p>
               </div>

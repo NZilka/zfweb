@@ -80,7 +80,7 @@ export function CartMergeModal() {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       {/* Modal content */}
       <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-        <h2 className="mb-4 text-xl font-bold">Cart Conflict</h2>
+        <h2 className="mb-4 text-xl font-bold font-[family-name:var(--font-heading)]">Cart Conflict</h2>
         <p className="mb-6 text-gray-600">
           You have items in both your current cart and your saved cart. Which
           would you like to keep?

@@ -30,7 +30,7 @@ export default async function CheckoutSuccessPage({
   if (redirect_status !== "succeeded") {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-8">
-        <h1 className="text-2xl font-bold text-red-600">Payment Failed</h1>
+        <h1 className="text-2xl font-bold font-[family-name:var(--font-heading)] text-red-600">Payment Failed</h1>
         <p className="text-gray-600">
           Your payment was not successful. Please try again.
         </p>
@@ -55,7 +55,7 @@ export default async function CheckoutSuccessPage({
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-8">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-black" />
-        <h1 className="text-2xl font-bold">Processing Your Order</h1>
+        <h1 className="text-2xl font-bold font-[family-name:var(--font-heading)]">Processing Your Order</h1>
         <p className="text-gray-600">
           Please wait while we confirm your payment...
         </p>

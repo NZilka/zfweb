@@ -28,7 +28,7 @@ export default async function AccountPage() {
   if (!email) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center p-8">
-        <h1 className="text-2xl font-bold">No Email Found</h1>
+        <h1 className="text-2xl font-bold font-[family-name:var(--font-heading)]">No Email Found</h1>
         <p className="text-gray-600">Please add an email to your account.</p>
       </div>
     );
@@ -58,14 +58,15 @@ export default async function AccountPage() {
     <div className="mx-auto max-w-4xl p-6">
       {/* Account header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">My Account</h1>
+        {/* Cormorant Garamond heading font */}
+        <h1 className="text-3xl font-bold font-[family-name:var(--font-heading)]">My Account</h1>
         <p className="text-gray-600">{email}</p>
       </div>
 
       {/* Saved payment method section */}
       {paymentInfo?.paymentMethod && (
         <div className="mb-8 rounded-lg border p-6">
-          <h2 className="mb-4 text-xl font-semibold">Saved Payment Method</h2>
+          <h2 className="mb-4 text-xl font-semibold font-[family-name:var(--font-heading)]">Saved Payment Method</h2>
           <div className="flex items-center gap-3">
             <div className="rounded bg-gray-100 px-3 py-2 font-mono">
               {paymentInfo.paymentMethod.brand?.toUpperCase()} ****
@@ -77,7 +78,7 @@ export default async function AccountPage() {
 
       {/* Order history section */}
       <div className="rounded-lg border p-6">
-        <h2 className="mb-4 text-xl font-semibold">Order History</h2>
+        <h2 className="mb-4 text-xl font-semibold font-[family-name:var(--font-heading)]">Order History</h2>
 
         {orders.length === 0 ? (
           <div className="py-8 text-center">

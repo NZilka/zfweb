@@ -23,8 +23,9 @@ export default async function AboutPage() {
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Page title */}
+      {/* Cormorant Garamond heading font for About page title */}
       {title && (
-        <h1 className="mb-6 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+        <h1 className="mb-6 text-3xl font-bold tracking-tight text-white font-[family-name:var(--font-heading)] sm:text-4xl">
           {title}
         </h1>
       )}

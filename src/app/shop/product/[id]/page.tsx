@@ -48,9 +48,10 @@ export default async function ProductPage({
 
         {/* Product details section */}
         <div className="flex flex-1 flex-col gap-4">
-          <h1 className="text-3xl font-bold">{product.title}</h1>
+          {/* Cormorant Garamond heading font for product title */}
+          <h1 className="text-3xl font-bold font-[family-name:var(--font-heading)]">{product.title}</h1>
           <p className="text-2xl font-semibold">${product.price}</p>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-400">
             {product.description}
           </p>
           {/* Show available inventory (accounts for items reserved in other carts) */}

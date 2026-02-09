@@ -45,7 +45,8 @@ export default async function OrderConfirmationPage({
         <div className="mb-4 flex justify-center">
           <CheckCircle className="h-16 w-16 text-green-500" />
         </div>
-        <h1 className="text-3xl font-bold">Thank You for Your Order!</h1>
+        {/* Cormorant Garamond heading font */}
+        <h1 className="text-3xl font-bold font-[family-name:var(--font-heading)]">Thank You for Your Order!</h1>
         <p className="mt-2 text-gray-600">
           Order #{order.id} has been placed successfully.
         </p>
@@ -59,7 +60,7 @@ export default async function OrderConfirmationPage({
 
       {/* Order details card */}
       <div className="mb-8 rounded-lg border bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-        <h2 className="mb-4 text-xl font-semibold">Order Details</h2>
+        <h2 className="mb-4 text-xl font-semibold font-[family-name:var(--font-heading)]">Order Details</h2>
 
         {/* Order info */}
         <div className="mb-6 grid gap-4 border-b pb-4 sm:grid-cols-2 dark:border-gray-700">
