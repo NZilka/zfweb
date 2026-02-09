@@ -44,10 +44,10 @@ export default async function ProductModalPage({
 
           {/* Product details */}
           <div className="flex flex-1 flex-col gap-4">
-            {/* Cormorant Garamond heading font for product title */}
+            {/* Buenard heading font for product title */}
             <h1 className="text-2xl font-bold font-[family-name:var(--font-heading)] md:text-3xl">{product.title}</h1>
             <p className="text-xl font-semibold md:text-2xl">${product.price}</p>
-            <p className="text-gray-400">
+            <p className="text-gray-700">
               {product.description}
             </p>
             {/* Show available inventory (accounts for items reserved in other carts) */}

@@ -58,7 +58,7 @@ export default async function AccountPage() {
     <div className="mx-auto max-w-4xl p-6">
       {/* Account header */}
       <div className="mb-8">
-        {/* Cormorant Garamond heading font */}
+        {/* Buenard heading font */}
         <h1 className="text-3xl font-bold font-[family-name:var(--font-heading)]">My Account</h1>
         <p className="text-gray-600">{email}</p>
       </div>

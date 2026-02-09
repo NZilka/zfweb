@@ -45,7 +45,7 @@ export default async function OrderConfirmationPage({
         <div className="mb-4 flex justify-center">
           <CheckCircle className="h-16 w-16 text-green-500" />
         </div>
-        {/* Cormorant Garamond heading font */}
+        {/* Buenard heading font */}
         <h1 className="text-3xl font-bold font-[family-name:var(--font-heading)]">Thank You for Your Order!</h1>
         <p className="mt-2 text-gray-600">
           Order #{order.id} has been placed successfully.

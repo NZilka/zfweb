@@ -2,15 +2,15 @@ import "~/styles/globals.css";
 
 import { GeistSans } from "geist/font/sans";
 // Shop heading font — elegant serif for product names
-import { Cormorant_Garamond } from "next/font/google";
+import { Buenard } from "next/font/google";
 // Shop body font — clean sans-serif for prices/descriptions
 import { Work_Sans } from "next/font/google";
 import { type Metadata } from "next";
 
-const cormorant = Cormorant_Garamond({
+const buenard = Buenard({
   subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-cormorant",
+  weight: ["400", "700"],
+  variable: "--font-buenard",
 });
 const workSans = Work_Sans({
   subsets: ["latin"],
@@ -35,8 +35,8 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        {/* Font vars: GeistSans for admin/UI, Cormorant for shop headings, Work Sans for shop body */}
-        <body className={`${GeistSans.variable} ${cormorant.variable} ${workSans.variable} flex flex-col`}>
+        {/* Font vars: GeistSans for admin/UI, Buenard for shop headings, Work Sans for shop body */}
+        <body className={`${GeistSans.variable} ${buenard.variable} ${workSans.variable} flex flex-col`}>
           {/* Providers wrap app with client-side contexts (PostHog, etc.) */}
           <Providers>
             {children}

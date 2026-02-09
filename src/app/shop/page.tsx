@@ -76,16 +76,16 @@ async function ProductGrid({
                   availableInventory={availableInventory}
                 />
               </Link>
-              {/* Product info — Cormorant Garamond heading, Work Sans body */}
+              {/* Product info — Buenard heading, Work Sans body */}
               <div className="flex flex-col items-center p-5">
                 <Link href={`/shop/product/${product.id}`}>
-                  {/* Cormorant Garamond heading font for product names */}
-                  <h1 className="mb-2 text-2xl font-semibold tracking-tight text-white font-[family-name:var(--font-heading)]">
+                  {/* Buenard heading font for product names — bone white */}
+                  <h1 className="mb-2 text-2xl tracking-tight text-[#e8e0d4] font-[family-name:var(--font-heading)]">
                     {product.title}
                   </h1>
                 </Link>
-                {/* Body font inherited from layout; bone-white price */}
-                <p className="text-lg font-light text-[#e8e0d4]">
+                {/* Body font inherited from layout; 30% darker bone-white price */}
+                <p className="text-lg font-light text-[#a29d94]">
                   ${product.price}
                 </p>
               </div>
@@ -129,7 +129,7 @@ export default async function HomePage({
       {/* Show search results heading */}
       {searchQuery && (
         <div className="flex w-full max-w-[1200px] flex-col items-center gap-2 px-4">
-          <h1 className="text-3xl font-semibold tracking-tight text-white font-[family-name:var(--font-heading)]">
+          <h1 className="text-3xl font-semibold tracking-tight text-[#e8e0d4] font-[family-name:var(--font-heading)]">
             Results for &ldquo;{searchQuery}&rdquo;
           </h1>
           <Link
@@ -144,7 +144,7 @@ export default async function HomePage({
       {/* Show category heading when filtering by category */}
       {categoryId && !searchQuery && (
         <div className="flex w-full max-w-[1200px] flex-col items-center gap-2 px-4">
-          <h1 className="text-3xl font-semibold tracking-tight text-white font-[family-name:var(--font-heading)]">
+          <h1 className="text-3xl font-semibold tracking-tight text-[#e8e0d4] font-[family-name:var(--font-heading)]">
             {category?.name ?? "Category"}
           </h1>
           <Link
