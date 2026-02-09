@@ -7,6 +7,7 @@ import { Menu, Search, User } from "lucide-react";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { CartButton } from "./CartButton";
 import { MobileMenuDrawer } from "./MobileMenuDrawer";
+import { SearchOverlay } from "./SearchOverlay";
 
 // Props passed from the TopNav server component
 // aboutEnabled controls whether the About link appears in nav
@@ -27,6 +28,8 @@ export function ShopNavClient({
   aboutEnabled,
 }: ShopNavClientProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // Controls visibility of the search overlay bar
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
     <>
@@ -131,13 +134,11 @@ export function ShopNavClient({
             </SignInButton>
           </SignedOut>
 
-          {/* Search placeholder — always visible */}
+          {/* Search button — opens search overlay */}
           <button
             className="hover:text-neutral-500"
             aria-label="Search"
-            onClick={() => {
-              /* Search coming soon — placeholder */
-            }}
+            onClick={() => setIsSearchOpen(true)}
           >
             <Search className="h-5 w-5" />
           </button>
@@ -153,6 +154,12 @@ export function ShopNavClient({
         onClose={() => setIsMobileMenuOpen(false)}
         categories={categories}
         aboutEnabled={aboutEnabled}
+      />
+
+      {/* Search overlay — full-width bar at top */}
+      <SearchOverlay
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
       />
     </>
   );

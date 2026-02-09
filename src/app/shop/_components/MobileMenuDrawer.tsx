@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { X, LogIn, ChevronDown, ChevronUp } from "lucide-react";
 import { SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
@@ -25,6 +25,24 @@ export function MobileMenuDrawer({
 }: MobileMenuDrawerProps) {
   // Tracks whether the Categories section is expanded
   const [categoriesExpanded, setCategoriesExpanded] = useState(false);
+  // When true, skip slide-out animation so drawer vanishes instantly on nav
+  const [isInstant, setIsInstant] = useState(false);
+  // Track previous isOpen to reset isInstant when drawer re-opens
+  const prevIsOpen = useRef(isOpen);
+
+  // Close instantly when a nav link is clicked (no slide-out animation)
+  const handleNavClose = () => {
+    setIsInstant(true);
+    onClose();
+  };
+
+  // Reset instant flag when drawer re-opens so slide-in animation plays
+  useEffect(() => {
+    if (isOpen && !prevIsOpen.current) {
+      setIsInstant(false);
+    }
+    prevIsOpen.current = isOpen;
+  }, [isOpen]);
 
   // Close on Escape key and lock body scroll when open
   useEffect(() => {
@@ -45,20 +63,20 @@ export function MobileMenuDrawer({
 
   return (
     <>
-      {/* Semi-transparent backdrop — fades in/out, click to close */}
+      {/* Semi-transparent backdrop — skips fade when instant-closing */}
       <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ${
-          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
+        className={`fixed inset-0 z-40 bg-black/40 ${
+          isInstant ? "" : "transition-opacity duration-300"
+        } ${isOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Drawer panel — slides from the left, dark bg to match site theme */}
+      {/* Drawer panel — slides from the left, skips animation on instant close */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 flex w-[70%] max-w-xs flex-col bg-black text-white shadow-xl transition-transform duration-300 ease-in-out ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[70%] max-w-xs flex-col bg-black text-white shadow-xl ${
+          isInstant ? "" : "transition-transform duration-300 ease-in-out"
+        } ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         {/* Header with close button */}
         <div className="flex items-center justify-between border-b border-neutral-700 p-4">
@@ -76,10 +94,10 @@ export function MobileMenuDrawer({
 
         {/* Nav links — vertical list with Products, collapsible Categories, and About */}
         <nav className="flex-1 overflow-y-auto px-4 py-6">
-          {/* Products link — goes to shop home (replaces old "All Products") */}
+          {/* Products link — goes to shop home, instant close on click */}
           <Link
             href="/shop"
-            onClick={onClose}
+            onClick={handleNavClose}
             className="block border-b border-neutral-700 py-3 text-sm font-medium uppercase tracking-wide text-neutral-300 hover:text-white"
           >
             Products
@@ -107,7 +125,7 @@ export function MobileMenuDrawer({
                   <Link
                     key={cat.id}
                     href={`/shop?category=${cat.id}`}
-                    onClick={onClose}
+                    onClick={handleNavClose}
                     className="block py-2 text-sm text-neutral-400 hover:text-white"
                   >
                     {cat.name}
@@ -117,11 +135,11 @@ export function MobileMenuDrawer({
             )}
           </div>
 
-          {/* About link — only shown when about page is enabled in settings */}
+          {/* About link — instant close on click, only shown when enabled */}
           {aboutEnabled && (
             <Link
               href="/shop/about"
-              onClick={onClose}
+              onClick={handleNavClose}
               className="block border-b border-neutral-700 py-3 text-sm font-medium uppercase tracking-wide text-neutral-300 hover:text-white"
             >
               About
@@ -142,7 +160,7 @@ export function MobileMenuDrawer({
           <SignedIn>
             <Link
               href="/shop/account"
-              onClick={onClose}
+              onClick={handleNavClose}
               className="flex w-full items-center gap-2 py-2 text-sm text-neutral-300 hover:text-white"
             >
               <LogIn className="h-4 w-4" />

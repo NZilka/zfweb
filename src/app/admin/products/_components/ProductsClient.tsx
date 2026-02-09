@@ -1,17 +1,34 @@
 /**
  * ProductsClient - Main client component for admin products page
- * Manages view mode, filters, selection, and edit modal state
+ * Manages view mode, filters, selection, drag-and-drop reorder, and edit modal state
  */
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Plus, Upload, Layout } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
 import { Button } from "~/components/ui/button";
 import { ProductsTable } from "./ProductsTable";
 import { ProductsGrid } from "./ProductsGrid";
 import { ProductFilters } from "./ProductFilters";
 import { ViewToggle } from "./ViewToggle";
 import { ProductEditModal } from "./ProductEditModal";
+import { updateProductSortOrder } from "~/server/product-actions";
 import type { CategoryType } from "~/app/admin/_components/ProductForm";
 import { filterProducts } from "./filterProducts";
 
@@ -26,6 +43,8 @@ export interface ProductData {
   category_id: number | null;
   imgUrl: string[];
   imgKey: string[];
+  // Sort order for drag-and-drop reordering
+  sort_order: number;
   // New fields for redesign
   status: string;
   on_sale: boolean;
@@ -46,7 +65,7 @@ interface ProductsClientProps {
 }
 
 /**
- * Main products admin interface with list/grid views and filtering
+ * Main products admin interface with list/grid views, filtering, and drag reorder
  */
 export function ProductsClient({ products, categories }: ProductsClientProps) {
   // View mode state (list vs grid)
@@ -64,15 +83,57 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
   // Selection state for bulk actions (future use)
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
 
+  // Local product order for optimistic drag-and-drop reordering
+  const [orderedProducts, setOrderedProducts] = useState<ProductData[]>(products);
+  // Re-sync local order when server products prop changes (edit, delete, revalidation)
+  useEffect(() => {
+    setOrderedProducts(products);
+  }, [products]);
+
+  // dnd-kit sensors — pointer + keyboard for accessibility
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  // Whether any filters are active — disable drag when filtering
+  const hasActiveFilters =
+    searchQuery !== "" || statusFilter !== "all" || categoryFilter !== "all";
+
   // Client-side filtering with useMemo for performance
   // Uses extracted filterProducts function for testability
   const filteredProducts = useMemo(() => {
-    return filterProducts(products, {
+    return filterProducts(hasActiveFilters ? products : orderedProducts, {
       searchQuery,
       statusFilter,
       categoryFilter,
     });
-  }, [products, searchQuery, statusFilter, categoryFilter]);
+  }, [products, orderedProducts, searchQuery, statusFilter, categoryFilter, hasActiveFilters]);
+
+  // Handle drag end — optimistic reorder with rollback on server failure
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = orderedProducts.findIndex((p) => p.id === active.id);
+    const newIndex = orderedProducts.findIndex((p) => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Save previous order for rollback, then optimistically apply new order
+    const previousOrder = orderedProducts;
+    const reordered = arrayMove(orderedProducts, oldIndex, newIndex);
+    setOrderedProducts(reordered);
+
+    try {
+      await updateProductSortOrder(reordered.map((p) => p.id));
+    } catch (error) {
+      // Rollback to previous order on failure
+      setOrderedProducts(previousOrder);
+      console.error("Failed to update product order:", error);
+    }
+  };
 
   // Open dialog for creating new product
   const handleCreate = () => {
@@ -164,40 +225,60 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
         </div>
       </div>
 
-      {/* Products display - table or grid based on viewMode */}
-      {filteredProducts.length === 0 ? (
-        // Empty state
-        <div className="rounded-lg border border-gray-300 bg-white p-8 text-center">
-          <p className="text-gray-500">
-            {products.length === 0
-              ? "No products yet"
-              : "No products match your filters"}
-          </p>
-          {products.length === 0 && (
-            <Button onClick={handleCreate} variant="outline" className="mt-4">
-              Create your first product
-            </Button>
-          )}
-        </div>
-      ) : viewMode === "list" ? (
-        // List view (table)
-        <ProductsTable
-          products={filteredProducts}
-          categories={categories}
-          selectedProducts={selectedProducts}
-          onSelectProduct={handleSelectProduct}
-          onSelectAll={handleSelectAll}
-          onEdit={handleEdit}
-          getCategoryName={getCategoryName}
-        />
-      ) : (
-        // Grid view (cards)
-        <ProductsGrid
-          products={filteredProducts}
-          onEdit={handleEdit}
-          getCategoryName={getCategoryName}
-        />
+      {/* Drag disabled message when filters are active */}
+      {hasActiveFilters && (
+        <p className="text-xs text-gray-400">
+          Clear filters to enable drag-and-drop reordering.
+        </p>
       )}
+
+      {/* Products display wrapped in DndContext for drag-and-drop reordering */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={filteredProducts.map((p) => p.id)}
+          strategy={viewMode === "list" ? verticalListSortingStrategy : rectSortingStrategy}
+        >
+          {filteredProducts.length === 0 ? (
+            // Empty state
+            <div className="rounded-lg border border-gray-300 bg-white p-8 text-center">
+              <p className="text-gray-500">
+                {products.length === 0
+                  ? "No products yet"
+                  : "No products match your filters"}
+              </p>
+              {products.length === 0 && (
+                <Button onClick={handleCreate} variant="outline" className="mt-4">
+                  Create your first product
+                </Button>
+              )}
+            </div>
+          ) : viewMode === "list" ? (
+            // List view (table) with drag handles
+            <ProductsTable
+              products={filteredProducts}
+              categories={categories}
+              selectedProducts={selectedProducts}
+              onSelectProduct={handleSelectProduct}
+              onSelectAll={handleSelectAll}
+              onEdit={handleEdit}
+              getCategoryName={getCategoryName}
+              isDragEnabled={!hasActiveFilters}
+            />
+          ) : (
+            // Grid view (cards) with drag handles
+            <ProductsGrid
+              products={filteredProducts}
+              onEdit={handleEdit}
+              getCategoryName={getCategoryName}
+              isDragEnabled={!hasActiveFilters}
+            />
+          )}
+        </SortableContext>
+      </DndContext>
 
       {/* Create/Edit Modal - full-featured two-column layout */}
       <ProductEditModal

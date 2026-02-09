@@ -83,7 +83,7 @@ export default function CartPage() {
           <ArrowLeft className="h-4 w-4" />
           Continue Shopping
         </button>
-        {/* Cormorant Garamond heading font */}
+        {/* Buenard heading font */}
         <h1 className="text-3xl font-bold font-[family-name:var(--font-heading)]">Shopping Cart</h1>
         <p className="text-gray-500">
           {itemCount} {itemCount === 1 ? "item" : "items"} in your cart

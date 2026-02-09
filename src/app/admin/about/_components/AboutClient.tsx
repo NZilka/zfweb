@@ -215,9 +215,9 @@ export function AboutClient({ initialAbout, kvAvailable }: AboutClientProps) {
           <div className="space-y-3">
             <Label>Images ({images.length}/10)</Label>
 
-            {/* Existing images grid — 1 col mobile, 2 col sm+ */}
+            {/* Existing images grid — 3-col on desktop for better gallery overview */}
             {images.length > 0 && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {images.map((img, index) => (
                   <div
                     key={img.key}
@@ -230,7 +230,7 @@ export function AboutClient({ initialAbout, kvAvailable }: AboutClientProps) {
                         alt={img.alt || "About image"}
                         width={300}
                         height={200}
-                        className="h-40 w-full rounded object-cover"
+                        className="h-40 w-full rounded object-contain bg-neutral-100"
                       />
                       <button
                         type="button"

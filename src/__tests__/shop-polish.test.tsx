@@ -3,7 +3,7 @@
  * - QuickAddButton: "+" overlay on product cards
  * - Carousel: seamless clone-based loop, edge-to-edge layout
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 
 // Mock next/image — render a plain img tag

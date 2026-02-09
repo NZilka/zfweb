@@ -36,7 +36,7 @@ export default async function CheckoutPage() {
         >
           &larr; Back to Cart
         </Link>
-        {/* Cormorant Garamond heading font */}
+        {/* Buenard heading font */}
         <h1 className="text-3xl font-bold font-[family-name:var(--font-heading)]">Checkout</h1>
       </div>
 

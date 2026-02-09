@@ -13,7 +13,7 @@ export default function ShopLayout({
 }: Readonly<{ children: React.ReactNode; modal: React.ReactNode }>) {
   return (
     <CartProvider>
-      {/* Shop-wide fonts: Work Sans body, Cormorant Garamond headings via CSS below */}
+      {/* Shop-wide fonts: Work Sans body, Buenard headings via CSS below */}
       <div className="grid h-screen grid-rows-[auto_1fr] font-[family-name:var(--font-body)]">
         <TopNav />
         <main className="overflow-y-scroll">{children}</main>

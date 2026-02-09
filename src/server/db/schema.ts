@@ -42,6 +42,8 @@ export const product = createTable(
     category_id: integer("category_id").references(() => product_category.id),
     // Product visibility status: active (visible), sold_out (shown but not purchasable), hidden (not shown)
     status: varchar("status", { length: 32 }).notNull().default("active"),
+    // Sort order for manual product reordering in admin (lower = first)
+    sort_order: integer("sort_order").notNull().default(0),
     // Whether product is marked as on sale (for promotional display)
     on_sale: boolean("on_sale").notNull().default(false),
     // URL-friendly slug for product page (e.g., "silver-ring-set")

@@ -4,12 +4,34 @@ import { db } from "./db";
 import { auth } from "@clerk/nextjs/server";
 import { utapi } from "./uploadthing";
 import { product as dbproduct } from "./db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, ilike, or, type SQL } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
-export const getProducts = async () => {
+// Fetch products with optional category and search filters
+// Sorted by sort_order first (for manual drag reorder), then by id as tiebreaker
+export const getProducts = async (opts?: {
+  categoryId?: number;
+  search?: string;
+}) => {
   const products = await db.query.product.findMany({
-    orderBy: (model: any, { asc }) => asc(model.id),
+    where: (model, { eq, and, ilike, or }) => {
+      const conditions: SQL[] = [];
+      // Filter by category when specified
+      if (opts?.categoryId) {
+        conditions.push(eq(model.category_id, opts.categoryId));
+      }
+      // Search across title and description with case-insensitive matching
+      // Escape LIKE metacharacters (% and _) so user input is treated literally
+      if (opts?.search) {
+        const escaped = opts.search.replace(/%/g, "\\%").replace(/_/g, "\\_");
+        const term = `%${escaped}%`;
+        conditions.push(
+          or(ilike(model.title, term), ilike(model.description, term))!,
+        );
+      }
+      return conditions.length > 0 ? and(...conditions) : undefined;
+    },
+    orderBy: (model: any, { asc }) => [asc(model.sort_order), asc(model.id)],
   });
   return products;
 };
@@ -77,6 +99,14 @@ export async function getCategoryById(id: number) {
   const user = await auth();
   if (!user.userId) throw new Error("Unauthorized");
 
+  const category = await db.query.product_category.findFirst({
+    where: (model, { eq }) => eq(model.id, id),
+  });
+  return category;
+}
+
+// Fetch a single category by ID without auth — for public shop pages
+export async function getPublicCategoryById(id: number) {
   const category = await db.query.product_category.findFirst({
     where: (model, { eq }) => eq(model.id, id),
   });

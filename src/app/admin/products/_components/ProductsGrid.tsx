@@ -1,10 +1,13 @@
 /**
  * ProductsGrid - Grid view for products as cards
- * Displays product cards with image, name, price, stock
+ * Displays product cards with image, name, price, stock, and drag handles
  */
 "use client";
 
 import Image from "next/image";
+import { GripVertical } from "lucide-react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "~/components/ui/badge";
 import { Card, CardContent } from "~/components/ui/card";
 import type { ProductData } from "./ProductsClient";
@@ -13,23 +16,35 @@ interface ProductsGridProps {
   products: ProductData[];
   onEdit: (product: ProductData) => void;
   getCategoryName: (categoryId: number | null) => string | null;
+  // Whether drag handles are active (disabled when filters are on)
+  isDragEnabled: boolean;
 }
 
-/**
- * Renders a single product card in grid view
- */
-function ProductCard({
+// Sortable product card — wraps each card with drag-and-drop
+function SortableProductCard({
   product,
   onEdit,
   getCategoryName,
+  isDragEnabled,
 }: {
   product: ProductData;
   onEdit: (product: ProductData) => void;
   getCategoryName: (categoryId: number | null) => string | null;
+  isDragEnabled: boolean;
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: product.id, disabled: !isDragEnabled });
+
+  // Apply drag transform + transition from dnd-kit
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   return (
     <Card
-      // Clickable card to open edit modal
+      ref={setNodeRef}
+      style={style}
       className="cursor-pointer overflow-hidden transition-all hover:ring-2 hover:ring-blue-500"
       onClick={() => onEdit(product)}
     >
@@ -43,18 +58,27 @@ function ProductCard({
             className="object-cover"
           />
         ) : (
-          // Placeholder for products without images
           <div className="flex h-full w-full items-center justify-center text-gray-400">
             No Image
           </div>
         )}
+        {/* Drag handle — overlaid top-left, only shown when drag enabled */}
+        {isDragEnabled && (
+          <button
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
+            className="absolute left-2 top-2 cursor-grab touch-none rounded bg-black/50 p-1 text-white hover:bg-black/70"
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
         {/* Status badges overlaid on image */}
         <div className="absolute right-2 top-2 flex flex-col gap-1">
-          {/* On sale badge */}
           {product.on_sale && (
             <Badge className="bg-orange-500 text-white">Sale</Badge>
           )}
-          {/* Status badge for non-active products */}
           {product.status === "sold_out" && (
             <Badge variant="destructive">Sold Out</Badge>
           )}
@@ -81,17 +105,13 @@ function ProductCard({
       </div>
       {/* Product info section */}
       <CardContent className="p-4">
-        {/* Product title */}
         <h3 className="truncate font-medium text-gray-900">{product.title}</h3>
-        {/* Price */}
         <p className="mt-1 text-lg font-bold text-gray-900">${product.price}</p>
-        {/* Category if assigned */}
         {getCategoryName(product.category_id) && (
           <p className="mt-1 text-xs text-gray-500">
             {getCategoryName(product.category_id)}
           </p>
         )}
-        {/* SKU if available */}
         {product.sku && (
           <p className="mt-1 text-xs text-gray-400">SKU: {product.sku}</p>
         )}
@@ -104,16 +124,18 @@ export function ProductsGrid({
   products,
   onEdit,
   getCategoryName,
+  isDragEnabled,
 }: ProductsGridProps) {
   return (
     // Responsive grid layout: 2 cols on mobile, 3 on md, 4 on lg, 5 on xl
     <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {products.map((product) => (
-        <ProductCard
+        <SortableProductCard
           key={product.id}
           product={product}
           onEdit={onEdit}
           getCategoryName={getCategoryName}
+          isDragEnabled={isDragEnabled}
         />
       ))}
     </div>
