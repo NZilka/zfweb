@@ -6,6 +6,7 @@ import Image from "next/image";
 // QuickAddButton replaces AddToCartButton on product cards — small "+" overlay
 import { QuickAddButton } from "./_components/QuickAddButton";
 import { Carousel } from "./_components/Carousel";
+import { cropToStyle } from "~/components/ui/ImageCropEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,7 @@ async function ProductGrid({
           <div key={product.id}>
             <div className="relative max-w-sm">
               {/* Product image with hover effect + quick-add "+" overlay */}
+              {/* Uses cropToStyle for positioned images, falls back to object-cover */}
               <Link
                 href={`/shop/product/${product.id}`}
                 className="group relative block overflow-hidden"
@@ -36,34 +38,71 @@ async function ProductGrid({
                 {product.imgUrl[0] ? (
                   product.imgUrl[1] ? (
                     // Multiple images: fade to 2nd image on hover
-                    <>
-                      <Image
-                        src={product.imgUrl[0]}
-                        style={{ objectFit: "contain" }}
-                        width={375}
-                        height={375}
-                        alt={product.title}
-                        className="transition-opacity duration-100 group-hover:opacity-0"
-                      />
-                      <Image
-                        src={product.imgUrl[1]}
-                        style={{ objectFit: "contain" }}
-                        width={375}
-                        height={375}
-                        alt={product.title}
-                        className="absolute inset-0 opacity-0 transition-opacity duration-100 group-hover:opacity-100"
-                      />
-                    </>
+                    // Wrap in relative container for crop positioning
+                    <div className="relative aspect-square w-[375px]">
+                      {/* Can't use fill with cropToStyle — fill forces width:100% which conflicts */}
+                      <div className="absolute inset-0 overflow-hidden transition-opacity duration-100 group-hover:opacity-0">
+                        {product.imgCrop?.[0] ? (
+                          <Image
+                            src={product.imgUrl[0]}
+                            alt={product.title}
+                            width={750}
+                            height={750}
+                            style={cropToStyle(product.imgCrop[0])}
+                          />
+                        ) : (
+                          <Image
+                            src={product.imgUrl[0]}
+                            alt={product.title}
+                            fill
+                            className="object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="absolute inset-0 overflow-hidden opacity-0 transition-opacity duration-100 group-hover:opacity-100">
+                        {product.imgCrop?.[1] ? (
+                          <Image
+                            src={product.imgUrl[1]}
+                            alt={product.title}
+                            width={750}
+                            height={750}
+                            style={cropToStyle(product.imgCrop[1])}
+                          />
+                        ) : (
+                          <Image
+                            src={product.imgUrl[1]}
+                            alt={product.title}
+                            fill
+                            className="object-cover"
+                          />
+                        )}
+                      </div>
+                    </div>
                   ) : (
                     // Single image: zoom to 125% on hover
-                    <Image
-                      src={product.imgUrl[0]}
-                      style={{ objectFit: "contain" }}
-                      width={375}
-                      height={375}
-                      alt={product.title}
-                      className="transition-transform duration-300 group-hover:scale-125"
-                    />
+                    <div className="relative aspect-square w-[375px] overflow-hidden">
+                      {/* Can't use fill with cropToStyle — fill forces width:100% */}
+                      {product.imgCrop?.[0] ? (
+                        <div className="transition-transform duration-300 group-hover:scale-125">
+                          <div className="relative aspect-square w-[375px] overflow-hidden">
+                            <Image
+                              src={product.imgUrl[0]}
+                              alt={product.title}
+                              width={750}
+                              height={750}
+                              style={cropToStyle(product.imgCrop[0])}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <Image
+                          src={product.imgUrl[0]}
+                          alt={product.title}
+                          fill
+                          className="object-cover transition-transform duration-300 group-hover:scale-125"
+                        />
+                      )}
+                    </div>
                   )
                 ) : (
                   <div className="flex h-[375px] w-[375px] items-center justify-center bg-gray-200 text-gray-400">

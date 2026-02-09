@@ -7,6 +7,7 @@ import {
   decimal,
   index,
   integer,
+  jsonb,
   PgArray,
   pgTableCreator,
   timestamp,
@@ -37,6 +38,22 @@ export const product = createTable(
       .array()
       .notNull()
       .default(sql`ARRAY[]::text[]`),
+    // Per-image crop data — parallel array to imgUrl/imgKey
+    // Each entry stores react-easy-crop output for CSS rendering
+    imgCrop: jsonb("img_crop")
+      .$type<
+        Array<{
+          croppedArea: {
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+          };
+          zoom: number;
+        } | null>
+      >()
+      .notNull()
+      .default([]),
     inventory: integer("inventory").notNull(),
     sku: varchar("sku", { length: 1024 }),
     category_id: integer("category_id").references(() => product_category.id),

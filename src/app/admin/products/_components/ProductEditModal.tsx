@@ -245,6 +245,7 @@ export function ProductEditModal({
                 categories={categories}
                 initialImageUrls={product?.imgUrl ?? []}
                 initialImageKeys={product?.imgKey ?? []}
+                initialImageCrops={product?.imgCrop}
                 onSuccess={handleFormSuccess}
                 setIsSubmitting={setIsSubmitting}
                 setIsFormValid={setIsFormValid}

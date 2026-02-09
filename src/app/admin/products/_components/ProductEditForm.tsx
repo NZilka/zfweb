@@ -27,12 +27,20 @@ import { ShippingEditor } from "./ShippingEditor";
 import type { ProductData } from "./ProductsClient";
 import type { CategoryType } from "~/app/admin/_components/ProductForm";
 
+// Crop entry type matching schema
+type CropEntry = {
+  croppedArea: { x: number; y: number; width: number; height: number };
+  zoom: number;
+} | null;
+
 interface ProductEditFormProps {
   mode: "create" | "edit";
   product?: ProductData;
   categories: CategoryType[];
   initialImageUrls: string[];
   initialImageKeys: string[];
+  // Initial crop data parallel to urls/keys for image positioning
+  initialImageCrops?: CropEntry[];
   onSuccess?: () => void;
   setIsSubmitting: (value: boolean) => void;
   // Callback to notify parent when form validity changes
@@ -63,6 +71,7 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
       categories,
       initialImageUrls,
       initialImageKeys,
+      initialImageCrops,
       onSuccess,
       setIsSubmitting,
       setIsFormValid,
@@ -88,15 +97,16 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
     const hasInitializedImages = useRef(false);
 
     // Initialize image slots from existing product data in edit mode
+    // Passes crop data alongside urls/keys so images render with positioning
     useEffect(() => {
       if (mode === "edit" && initialImageUrls.length > 0 && !hasInitializedImages.current) {
-        initializeFromProduct(initialImageUrls, initialImageKeys);
+        initializeFromProduct(initialImageUrls, initialImageKeys, initialImageCrops);
         hasInitializedImages.current = true;
       }
       if (mode === "create") {
         hasInitializedImages.current = false;
       }
-    }, [mode, initialImageUrls, initialImageKeys, initializeFromProduct]);
+    }, [mode, initialImageUrls, initialImageKeys, initialImageCrops, initializeFromProduct]);
 
     // Get current image count for validation
     const imageChanges = getImageChanges();
@@ -200,11 +210,18 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
         const newKeys = uploadResult.map((r) => r.key).filter(Boolean);
 
         if (mode === "create") {
-          // CREATE MODE: Create product with uploaded images
-          await addProduct(formProduct, newUrls, newKeys, finalUrlHandle);
+          // CREATE MODE: Create product with uploaded images + crop data
+          // Build crops array parallel to urls: new images use newCrops
+          await addProduct(
+            formProduct,
+            newUrls,
+            newKeys,
+            finalUrlHandle,
+            imageChanges.newCrops,
+          );
           toast.success("Product created");
         } else {
-          // EDIT MODE: Update product with image changes
+          // EDIT MODE: Update product with image changes + crop data
           if (!formProduct.id) {
             throw new Error("Product ID required for edit mode");
           }
@@ -216,6 +233,8 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
             newUrls,
             newKeys,
             orderedImages: imageChanges.orderedImages,
+            keepCrops: imageChanges.keepCrops,
+            newCrops: imageChanges.newCrops,
           }, finalUrlHandle);
           toast.success("Product updated");
         }

@@ -11,6 +11,11 @@ import { getSiteSettings, type CarouselRow } from "./kv";
 export type CarouselSlideItem = {
   url: string;
   alt: string;
+  // Optional crop data for image positioning — missing = default object-cover
+  crop?: {
+    croppedArea: { x: number; y: number; width: number; height: number };
+    zoom: number;
+  };
 };
 
 // A slide is either 3 images side-by-side or 1 full-width video
@@ -49,11 +54,13 @@ function rowToSlide(row: CarouselRow): CarouselSlide {
     };
   }
   // Images row — cells are guaranteed non-null by isCompleteRow check
+  // Pass through crop data (undefined if not set) for CSS positioning on shop
   return {
     type: "images",
     items: row.cells.map((cell) => ({
       url: cell!.url,
       alt: cell!.alt,
+      crop: cell!.crop,
     })),
   };
 }

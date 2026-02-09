@@ -1,23 +1,36 @@
 /**
  * ImageGalleryEditor - Image gallery section for product edit form
- * Displays image thumbnails with count indicator, supports upload/reorder/delete
+ * Displays image thumbnails with count indicator, supports upload/reorder/delete/crop
  */
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { Plus, X, GripVertical } from "lucide-react";
 import { useEditImage } from "~/app/_context/EditImageContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "~/components/ui/dialog";
+import { Button } from "~/components/ui/button";
+import { ImageCropEditor } from "~/components/ui/ImageCropEditor";
 
 const MAX_IMAGES = 5;
 
 /**
  * Displays image gallery with thumbnails and upload functionality
  * Uses the EditImageContext for state management
+ * Click an image to open the crop/position editor
  */
 export function ImageGalleryEditor() {
-  const { images, addImage, removeImage, reorderImages, canAddMore } = useEditImage();
+  const { images, addImage, removeImage, reorderImages, updateImageCrop, canAddMore } = useEditImage();
   const inputRef = useRef<HTMLInputElement>(null);
+  // Track which image is being cropped (index into images array)
+  const [croppingIndex, setCroppingIndex] = useState<number | null>(null);
 
   // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,7 +81,7 @@ export function ImageGalleryEditor() {
 
       {/* Image thumbnails grid */}
       <div className="flex flex-wrap gap-2">
-        {/* Existing images */}
+        {/* Existing images — clickable to open crop editor */}
         {images.map((image, index) => (
           <div
             key={index}
@@ -78,14 +91,21 @@ export function ImageGalleryEditor() {
             onDrop={(e) => handleDrop(e, index)}
             className="group relative h-20 w-20 cursor-grab rounded-md border border-gray-200 bg-gray-50 active:cursor-grabbing"
           >
-            {/* Image thumbnail */}
+            {/* Image thumbnail — click to open crop/position editor */}
             {getDisplayUrl(image) && (
-              <Image
-                src={getDisplayUrl(image)!}
-                alt={`Product image ${index + 1}`}
-                fill
-                className="rounded-md object-cover"
-              />
+              <button
+                type="button"
+                onClick={() => setCroppingIndex(index)}
+                className="relative h-full w-full overflow-hidden rounded-md"
+                aria-label={`Position image ${index + 1}`}
+              >
+                <Image
+                  src={getDisplayUrl(image)!}
+                  alt={`Product image ${index + 1}`}
+                  fill
+                  className="rounded-md object-cover"
+                />
+              </button>
             )}
 
             {/* Drag handle indicator */}
@@ -128,8 +148,44 @@ export function ImageGalleryEditor() {
 
       {/* Help text */}
       <p className="text-xs text-gray-400">
-        Drag images to reorder. Click + to add (max {MAX_IMAGES}).
+        Drag to reorder. Click image to position. Click + to add (max {MAX_IMAGES}).
       </p>
+
+      {/* Crop positioning dialog — opened by clicking an image thumbnail */}
+      <Dialog
+        open={croppingIndex !== null}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setCroppingIndex(null);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Position Image</DialogTitle>
+            <DialogDescription>
+              Drag to pan, scroll or use slider to zoom.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Render crop editor for the selected image */}
+          {croppingIndex !== null && (() => {
+            const image = images[croppingIndex];
+            const url = image ? getDisplayUrl(image) : null;
+            if (!url) return null;
+            return (
+              <ImageCropEditor
+                imageUrl={url}
+                initialCrop={image?.crop}
+                aspect={1}
+                onChange={(data) => updateImageCrop(croppingIndex, data)}
+              />
+            );
+          })()}
+
+          <DialogFooter>
+            <Button onClick={() => setCroppingIndex(null)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import type { CarouselData } from "~/server/carousel";
+import { cropToStyle } from "~/components/ui/ImageCropEditor";
 
 interface CarouselProps {
   data: CarouselData;
@@ -102,19 +103,32 @@ export function Carousel({ data }: CarouselProps) {
                 }}
               />
             ) : (
-              // 3 images side-by-side
+              // 3 images side-by-side — use cropToStyle for positioned images
               slide.items.map((item, itemIdx) => (
                 <div
                   key={itemIdx}
-                  className="w-[calc(33.33%-0.33rem)] flex-shrink-0 overflow-hidden rounded-lg sm:w-[calc(33.33%-0.67rem)]"
+                  className="relative aspect-square w-[calc(33.33%-0.33rem)] flex-shrink-0 overflow-hidden rounded-lg sm:w-[calc(33.33%-0.67rem)]"
                 >
-                  <Image
-                    src={item.url}
-                    width={375}
-                    height={375}
-                    alt={item.alt}
-                    className="h-auto w-full object-contain"
-                  />
+                  {/* Conditional rendering: crop uses absolute positioning via cropToStyle,
+                      default uses explicit dimensions + object-cover.
+                      Can't use fill with cropToStyle — fill forces width:100% which conflicts. */}
+                  {item.crop ? (
+                    <Image
+                      src={item.url}
+                      alt={item.alt}
+                      width={750}
+                      height={750}
+                      style={cropToStyle(item.crop)}
+                    />
+                  ) : (
+                    <Image
+                      src={item.url}
+                      alt={item.alt}
+                      width={375}
+                      height={375}
+                      className="h-full w-full object-cover"
+                    />
+                  )}
                 </div>
               ))
             )}
