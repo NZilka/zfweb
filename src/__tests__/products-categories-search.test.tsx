@@ -38,24 +38,13 @@ vi.mock("@clerk/nextjs/server", () => ({
   auth: (...args: any[]) => mockAuth(...args),
 }));
 
-// Mock db for product-actions — supports transaction
+// Mock db for product-actions — sequential updates (no transaction support on neon-http)
 const mockWhere = vi.fn().mockResolvedValue(undefined);
 const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
 const mockUpdate = vi.fn().mockReturnValue({ set: mockSet });
-// Transaction mock — calls the callback with tx that mirrors db API
-const mockTransaction = vi.fn(async (cb: (tx: any) => Promise<void>) => {
-  const tx = {
-    update: (...args: any[]) => {
-      mockUpdate(...args);
-      return { set: mockSet };
-    },
-  };
-  await cb(tx);
-});
 vi.mock("~/server/db", () => ({
   db: {
     update: (...args: any[]) => mockUpdate(...args),
-    transaction: (cb: any) => mockTransaction(cb),
     query: {
       product: {
         findMany: vi.fn().mockResolvedValue([]),
@@ -300,7 +289,6 @@ describe("updateProductSortOrder", () => {
     mockUpdate.mockClear();
     mockSet.mockClear();
     mockWhere.mockClear();
-    mockTransaction.mockClear();
     mockRevalidatePath.mockClear();
     mockAuth.mockResolvedValue({ userId: "test-user" });
     // Re-wire set/where chain after clear
@@ -308,15 +296,13 @@ describe("updateProductSortOrder", () => {
     mockUpdate.mockReturnValue({ set: mockSet });
   });
 
-  it("updates sort_order for each product ID inside a transaction", async () => {
+  it("updates sort_order for each product ID sequentially", async () => {
     const { updateProductSortOrder } = await import(
       "~/server/product-actions"
     );
     await updateProductSortOrder([3, 1, 2]);
 
-    // Should use a transaction
-    expect(mockTransaction).toHaveBeenCalledTimes(1);
-    // Should call update 3 times inside the transaction — once per product
+    // Should call update 3 times — once per product (no transaction)
     expect(mockUpdate).toHaveBeenCalledTimes(3);
   });
 
@@ -348,13 +334,26 @@ describe("updateProductSortOrder", () => {
     );
     await updateProductSortOrder([]);
 
-    // Transaction should still be called, but no updates inside it
-    expect(mockTransaction).toHaveBeenCalledTimes(1);
+    // No updates should be called for empty array
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
-  it("propagates transaction errors", async () => {
-    mockTransaction.mockRejectedValueOnce(new Error("DB connection lost"));
+  it("sets sort_order sequentially 0 to N-1", async () => {
+    const { updateProductSortOrder } = await import(
+      "~/server/product-actions"
+    );
+    await updateProductSortOrder([10, 20, 30]);
+
+    // Verify each call sets the correct sequential sort_order
+    expect(mockSet).toHaveBeenCalledTimes(3);
+    expect(mockSet).toHaveBeenNthCalledWith(1, { sort_order: 0 });
+    expect(mockSet).toHaveBeenNthCalledWith(2, { sort_order: 1 });
+    expect(mockSet).toHaveBeenNthCalledWith(3, { sort_order: 2 });
+  });
+
+  it("propagates update errors", async () => {
+    // First call succeeds, second fails
+    mockWhere.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("DB connection lost"));
 
     const { updateProductSortOrder } = await import(
       "~/server/product-actions"
