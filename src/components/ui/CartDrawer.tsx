@@ -81,7 +81,7 @@ export function CartDrawer() {
 
       {/* Drawer panel — slides from right with transform */}
       <div
-        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-xl transition-transform duration-500 ease-in-out ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white text-black shadow-xl transition-transform duration-500 ease-in-out ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
