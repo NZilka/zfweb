@@ -94,6 +94,21 @@ export type CarouselSettings = {
   autoScrollInterval: number; // ms between slides, default 3000
 };
 
+// Single image in the About page gallery — UploadThing-hosted with alt text
+export type AboutImage = {
+  url: string;
+  key: string; // UploadThing key for file cleanup
+  alt: string;
+};
+
+// About page settings — admin-editable content rendered on /shop/about
+export type AboutSettings = {
+  enabled: boolean;
+  title: string | null;
+  content: string | null; // Plain text, newlines rendered as paragraphs on shop
+  images: AboutImage[];
+};
+
 // Site-wide settings for maintenance mode, announcements, and branding
 export type SiteSettings = {
   maintenanceMode: {
@@ -114,6 +129,8 @@ export type SiteSettings = {
   };
   // Shop homepage carousel configuration
   carousel: CarouselSettings;
+  // About page content — editable from admin, rendered on /shop/about
+  about: AboutSettings;
   updatedAt: number; // Unix timestamp
 };
 
@@ -247,6 +264,14 @@ export const DEFAULT_CAROUSEL_SETTINGS: CarouselSettings = {
   autoScrollInterval: 3000,
 };
 
+// Default About page settings — disabled with no content
+export const DEFAULT_ABOUT_SETTINGS: AboutSettings = {
+  enabled: false,
+  title: null,
+  content: null,
+  images: [],
+};
+
 // Default settings when none exist - maintenance is OFF by default
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   maintenanceMode: {
@@ -265,6 +290,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     small: { ...DEFAULT_LOGO_VARIANT },
   },
   carousel: { ...DEFAULT_CAROUSEL_SETTINGS },
+  about: { ...DEFAULT_ABOUT_SETTINGS },
   updatedAt: Date.now(),
 };
 
@@ -279,12 +305,13 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     const settings = await kvGet<SiteSettings>(KV_PREFIXES.SITE_SETTINGS);
     if (!settings) return DEFAULT_SITE_SETTINGS;
     // Fill in any missing top-level keys from defaults (backward compat)
-    // Explicit ?? fallbacks needed for keys added after initial release (logo, carousel)
+    // Explicit ?? fallbacks needed for keys added after initial release (logo, carousel, about)
     return {
       ...DEFAULT_SITE_SETTINGS,
       ...settings,
       logo: settings.logo ?? DEFAULT_SITE_SETTINGS.logo,
       carousel: settings.carousel ?? DEFAULT_SITE_SETTINGS.carousel,
+      about: settings.about ?? DEFAULT_SITE_SETTINGS.about,
     };
   } catch {
     return DEFAULT_SITE_SETTINGS;

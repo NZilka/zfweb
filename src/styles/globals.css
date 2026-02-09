@@ -156,6 +156,8 @@
 }
 
 /* Marquee animation for scrolling announcement banner */
+/* Two identical halves [text+spacer][text+spacer] scroll left by -50% */
+/* This creates a seamless loop where copy 2 replaces copy 1's position */
 @keyframes marquee {
   0% {
     transform: translateX(0%);
@@ -166,5 +168,6 @@
 }
 
 .animate-marquee {
-  animation: marquee 15s linear infinite;
+  /* 11.25s = 15s * 0.75 (25% faster than original) */
+  animation: marquee 11.25s linear infinite;
 }

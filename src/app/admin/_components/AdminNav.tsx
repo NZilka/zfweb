@@ -18,6 +18,7 @@ import {
   Package,
   Tag,
   Truck,
+  FileText,
   Settings,
   X,
   type LucideIcon,
@@ -39,6 +40,8 @@ const NAV_ITEMS: NavItem[] = [
   { id: "products", label: "Products", path: "/admin/products", icon: Package },
   { id: "discounts", label: "Discounts", path: "/admin/discounts", icon: Tag },
   { id: "shipping", label: "Shipping", path: "/admin/shipping", icon: Truck },
+  // About page editor — between Shipping and Settings
+  { id: "about", label: "About", path: "/admin/about", icon: FileText },
   { id: "settings", label: "Settings", path: "/admin/settings", icon: Settings },
 ];
 

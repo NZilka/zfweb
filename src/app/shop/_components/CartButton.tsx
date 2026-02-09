@@ -3,22 +3,22 @@
 import { useCart } from "~/app/_context/CartContext";
 import { ShoppingCart } from "lucide-react";
 
-// Cart button for navigation - shows cart icon with item count badge
-// Clicking opens the cart drawer
+// Cart button for navigation — icon-only at all breakpoints
+// Shows item count badge when cart has items
+// Clicking toggles the cart drawer open/closed
 export function CartButton() {
   const { itemCount, toggleCart, isLoading } = useCart();
 
   return (
     <button
       onClick={toggleCart}
-      className="relative flex items-center gap-2 hover:text-gray-600"
+      className="relative hover:text-neutral-500"
       aria-label={`Cart with ${itemCount} items`}
     >
-      <ShoppingCart className="h-6 w-6" />
-      <span className="hidden sm:inline">Cart</span>
-      {/* Item count badge - only show when there are items */}
+      <ShoppingCart className="h-5 w-5" />
+      {/* Item count badge — only shown when cart has items and not loading */}
       {!isLoading && itemCount > 0 && (
-        <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+        <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[10px] font-medium text-white">
           {itemCount > 99 ? "99+" : itemCount}
         </span>
       )}

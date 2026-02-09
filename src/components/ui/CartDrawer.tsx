@@ -4,12 +4,12 @@ import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { X, Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { X, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCart } from "~/app/_context/CartContext";
-import { Button } from "./button";
 
-// Slide-out cart drawer component
-// Shows cart contents with quantity controls and checkout CTA
+// Slide-out cart drawer — always rendered in DOM for CSS transition
+// Slides in from the right using transform, slower ease-in-out animation
+// Styled to match NUIT pattern: clean header, product cards, checkout CTA
 export function CartDrawer() {
   const router = useRouter();
   const {
@@ -23,14 +23,14 @@ export function CartDrawer() {
     removeItem,
   } = useCart();
 
-  // Navigate to shop and close cart - does full navigation to refresh page
+  // Navigate to shop and close cart — full navigation to refresh page
   const handleContinueShopping = () => {
     closeCart();
     router.push("/shop");
     router.refresh();
   };
 
-  // Close drawer on escape key
+  // Close drawer on Escape key and lock body scroll when open
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeCart();
@@ -38,7 +38,6 @@ export function CartDrawer() {
 
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
-      // Prevent body scroll when drawer is open
       document.body.style.overflow = "hidden";
     }
 
@@ -48,121 +47,139 @@ export function CartDrawer() {
     };
   }, [isOpen, closeCart]);
 
-  // Handle quantity update with loading state
-  const handleQuantityChange = async (cartItemId: number, newQuantity: number) => {
+  // Handle quantity update — error already logged in context
+  const handleQuantityChange = async (
+    cartItemId: number,
+    newQuantity: number,
+  ) => {
     try {
       await updateQuantity(cartItemId, newQuantity);
-    } catch (error) {
+    } catch {
       // Error already logged in context
     }
   };
 
-  // Handle item removal
+  // Handle item removal — error already logged in context
   const handleRemove = async (cartItemId: number) => {
     try {
       await removeItem(cartItemId);
-    } catch (error) {
+    } catch {
       // Error already logged in context
     }
   };
 
-  if (!isOpen) return null;
-
   return (
     <>
-      {/* Backdrop overlay */}
+      {/* Backdrop — fades in/out, always in DOM for transition */}
       <div
-        className="fixed inset-0 z-40 bg-black/50 transition-opacity"
+        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-500 ease-in-out ${
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
         onClick={closeCart}
         aria-hidden="true"
       />
 
-      {/* Drawer panel */}
-      <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-xl dark:bg-gray-900">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b p-4 dark:border-gray-700">
-          <h2 className="text-lg font-semibold">
-            Shopping Cart ({itemCount} {itemCount === 1 ? "item" : "items"})
+      {/* Drawer panel — slides from right with transform */}
+      <div
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-xl transition-transform duration-500 ease-in-out ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {/* Header — clean "Cart" title + close button */}
+        <div className="flex items-center justify-between border-b px-5 py-4">
+          <h2 className="text-sm font-semibold uppercase tracking-widest">
+            Cart
           </h2>
           <button
             onClick={closeCart}
-            className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="rounded p-1 hover:bg-neutral-100"
             aria-label="Close cart"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Cart contents */}
-        <div className="flex-1 overflow-y-auto p-4">
+        {/* Cart contents — scrollable area */}
+        <div className="flex-1 overflow-y-auto px-5 py-4">
           {isLoading ? (
             <div className="flex h-full items-center justify-center">
-              <p className="text-gray-500">Loading cart...</p>
+              <p className="text-sm text-neutral-400">Loading cart...</p>
             </div>
           ) : items.length === 0 ? (
+            // Empty cart state
             <div className="flex h-full flex-col items-center justify-center gap-4">
-              <ShoppingBag className="h-16 w-16 text-gray-300" />
-              <p className="text-gray-500">Your cart is empty</p>
-              <Button onClick={handleContinueShopping}>Continue Shopping</Button>
+              <ShoppingBag className="h-12 w-12 text-neutral-200" />
+              <p className="text-sm text-neutral-400">Your cart is empty</p>
+              <button
+                onClick={handleContinueShopping}
+                className="text-sm underline underline-offset-4 hover:text-neutral-500"
+              >
+                Continue Shopping
+              </button>
             </div>
           ) : (
-            <ul className="space-y-4">
+            // Cart items list
+            <ul className="divide-y">
               {items.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex gap-4 rounded-lg border p-3 dark:border-gray-700"
-                >
+                <li key={item.id} className="flex gap-4 py-4">
                   {/* Product image */}
-                  <div className="h-20 w-20 flex-shrink-0">
+                  <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded bg-neutral-50">
                     {item.product.imgUrl[0] ? (
                       <Image
                         src={item.product.imgUrl[0]}
                         alt={item.product.title}
                         width={80}
                         height={80}
-                        className="h-full w-full rounded object-cover"
+                        className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center rounded bg-gray-200 text-xs text-gray-400">
+                      <div className="flex h-full w-full items-center justify-center text-xs text-neutral-300">
                         No Image
                       </div>
                     )}
                   </div>
 
-                  {/* Product details */}
+                  {/* Product details + quantity + remove */}
                   <div className="flex flex-1 flex-col">
-                    <h3 className="font-medium">{item.product.title}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <h3 className="text-sm font-medium">{item.product.title}</h3>
+                    <p className="mt-0.5 text-sm text-neutral-500">
                       ${item.product.price}
                     </p>
 
-                    {/* Quantity controls */}
-                    <div className="mt-2 flex items-center gap-2">
+                    {/* Quantity controls: - num + */}
+                    <div className="mt-auto flex items-center gap-0 pt-2">
                       <button
-                        onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                        onClick={() =>
+                          handleQuantityChange(item.id, item.quantity - 1)
+                        }
                         disabled={item.quantity <= 1}
-                        className="flex h-7 w-7 items-center justify-center rounded border hover:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800"
+                        className="flex h-7 w-7 items-center justify-center border text-neutral-600 hover:bg-neutral-50 disabled:opacity-30"
                         aria-label="Decrease quantity"
                       >
-                        <Minus className="h-4 w-4" />
+                        <Minus className="h-3 w-3" />
                       </button>
-                      <span className="w-8 text-center">{item.quantity}</span>
+                      <span className="flex h-7 w-8 items-center justify-center border-y text-xs">
+                        {item.quantity}
+                      </span>
                       <button
-                        onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                        onClick={() =>
+                          handleQuantityChange(item.id, item.quantity + 1)
+                        }
                         disabled={item.quantity >= item.product.inventory}
-                        className="flex h-7 w-7 items-center justify-center rounded border hover:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800"
+                        className="flex h-7 w-7 items-center justify-center border text-neutral-600 hover:bg-neutral-50 disabled:opacity-30"
                         aria-label="Increase quantity"
                       >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleRemove(item.id)}
-                        className="ml-auto flex h-7 w-7 items-center justify-center rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        aria-label="Remove item"
-                      >
-                        <Trash2 className="h-4 w-4" />
+                        <Plus className="h-3 w-3" />
                       </button>
                     </div>
+
+                    {/* Remove link — text style, not icon */}
+                    <button
+                      onClick={() => handleRemove(item.id)}
+                      className="mt-1 self-start text-xs text-neutral-400 underline underline-offset-2 hover:text-neutral-600"
+                    >
+                      Remove
+                    </button>
                   </div>
                 </li>
               ))}
@@ -170,26 +187,17 @@ export function CartDrawer() {
           )}
         </div>
 
-        {/* Footer with totals and checkout */}
+        {/* Footer — shipping note + checkout CTA with total */}
         {items.length > 0 && (
-          <div className="border-t p-4 dark:border-gray-700">
-            {/* Subtotal */}
-            <div className="mb-4 flex items-center justify-between text-lg font-semibold">
-              <span>Subtotal</span>
-              <span>${total}</span>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex flex-col gap-2">
-              <Link href="/shop/checkout" onClick={closeCart}>
-                <Button className="w-full">Proceed to Checkout</Button>
-              </Link>
-              <Link href="/shop/cart" onClick={closeCart}>
-                <Button variant="outline" className="w-full">
-                  View Full Cart
-                </Button>
-              </Link>
-            </div>
+          <div className="border-t px-5 py-4">
+            <p className="mb-3 text-center text-xs text-neutral-400">
+              Taxes and shipping calculated at checkout
+            </p>
+            <Link href="/shop/checkout" onClick={closeCart}>
+              <button className="w-full bg-black py-3 text-sm font-semibold uppercase tracking-widest text-white hover:bg-neutral-800">
+                Checkout &bull; ${total}
+              </button>
+            </Link>
           </div>
         )}
       </div>
