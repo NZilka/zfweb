@@ -40,12 +40,14 @@ async function ProductGrid({
                     // Multiple images: fade to 2nd image on hover
                     // Wrap in relative container for crop positioning
                     <div className="relative aspect-square w-[375px]">
+                      {/* Can't use fill with cropToStyle — fill forces width:100% which conflicts */}
                       <div className="absolute inset-0 overflow-hidden transition-opacity duration-100 group-hover:opacity-0">
                         {product.imgCrop?.[0] ? (
                           <Image
                             src={product.imgUrl[0]}
                             alt={product.title}
-                            fill
+                            width={750}
+                            height={750}
                             style={cropToStyle(product.imgCrop[0])}
                           />
                         ) : (
@@ -62,7 +64,8 @@ async function ProductGrid({
                           <Image
                             src={product.imgUrl[1]}
                             alt={product.title}
-                            fill
+                            width={750}
+                            height={750}
                             style={cropToStyle(product.imgCrop[1])}
                           />
                         ) : (
@@ -78,13 +81,15 @@ async function ProductGrid({
                   ) : (
                     // Single image: zoom to 125% on hover
                     <div className="relative aspect-square w-[375px] overflow-hidden">
+                      {/* Can't use fill with cropToStyle — fill forces width:100% */}
                       {product.imgCrop?.[0] ? (
                         <div className="transition-transform duration-300 group-hover:scale-125">
                           <div className="relative aspect-square w-[375px] overflow-hidden">
                             <Image
                               src={product.imgUrl[0]}
                               alt={product.title}
-                              fill
+                              width={750}
+                              height={750}
                               style={cropToStyle(product.imgCrop[0])}
                             />
                           </div>

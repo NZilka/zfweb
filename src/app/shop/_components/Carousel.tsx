@@ -109,13 +109,15 @@ export function Carousel({ data }: CarouselProps) {
                   key={itemIdx}
                   className="relative aspect-square w-[calc(33.33%-0.33rem)] flex-shrink-0 overflow-hidden rounded-lg sm:w-[calc(33.33%-0.67rem)]"
                 >
-                  {/* Conditional rendering: crop uses fill + absolute positioning,
-                      default uses explicit dimensions + object-cover */}
+                  {/* Conditional rendering: crop uses absolute positioning via cropToStyle,
+                      default uses explicit dimensions + object-cover.
+                      Can't use fill with cropToStyle — fill forces width:100% which conflicts. */}
                   {item.crop ? (
                     <Image
                       src={item.url}
                       alt={item.alt}
-                      fill
+                      width={750}
+                      height={750}
                       style={cropToStyle(item.crop)}
                     />
                   ) : (

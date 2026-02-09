@@ -36,12 +36,14 @@ export function ImageGallery({ images, productTitle, imgCrop }: ImageGalleryProp
   return (
     <div>
       {/* Main image display — use crop positioning if available */}
+      {/* Can't use fill with cropToStyle — fill forces width:100% which conflicts */}
       <div className="relative aspect-square w-full max-w-[500px] overflow-hidden rounded-lg">
         {currentCrop ? (
           <Image
             src={images[selectedIndex]!}
             alt={productTitle}
-            fill
+            width={1000}
+            height={1000}
             style={cropToStyle(currentCrop)}
           />
         ) : (
@@ -75,7 +77,8 @@ export function ImageGallery({ images, productTitle, imgCrop }: ImageGalleryProp
                   <Image
                     src={url}
                     alt={`${productTitle} ${index + 1}`}
-                    fill
+                    width={160}
+                    height={160}
                     style={cropToStyle(thumbCrop)}
                   />
                 ) : (
