@@ -134,17 +134,23 @@ export const updateProduct = async (
       const url = imageChanges.keepUrls[ref.index];
       const key = imageChanges.keepKeys[ref.index];
       const crop = imageChanges.keepCrops?.[ref.index] ?? null;
-      if (url) finalUrls.push(url);
-      if (key) finalKeys.push(key);
-      finalCrops.push(crop);
+      // Guard all three pushes together to maintain parallel array alignment
+      if (url && key) {
+        finalUrls.push(url);
+        finalKeys.push(key);
+        finalCrops.push(crop);
+      }
     } else {
       // Reference to a newly uploaded image - pull from newUrls/newKeys/newCrops
       const url = imageChanges.newUrls[ref.index];
       const key = imageChanges.newKeys[ref.index];
       const crop = imageChanges.newCrops?.[ref.index] ?? null;
-      if (url) finalUrls.push(url);
-      if (key) finalKeys.push(key);
-      finalCrops.push(crop);
+      // Guard all three pushes together to maintain parallel array alignment
+      if (url && key) {
+        finalUrls.push(url);
+        finalKeys.push(key);
+        finalCrops.push(crop);
+      }
     }
   }
 
