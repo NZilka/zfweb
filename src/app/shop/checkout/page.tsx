@@ -36,7 +36,8 @@ export default async function CheckoutPage() {
         >
           &larr; Back to Cart
         </Link>
-        <h1 className="text-3xl font-bold">Checkout</h1>
+        {/* Cormorant Garamond heading font */}
+        <h1 className="text-3xl font-bold font-[family-name:var(--font-heading)]">Checkout</h1>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
@@ -48,7 +49,8 @@ export default async function CheckoutPage() {
         {/* Order summary */}
         <div className="lg:order-last">
           <div className="sticky top-4 rounded-lg border bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Order Summary</h2>
+            {/* Heading font for section title */}
+            <h2 className="mb-4 text-xl font-semibold font-[family-name:var(--font-heading)] text-gray-900 dark:text-gray-100">Order Summary</h2>
 
             {/* Cart items (readonly) */}
             <div className="max-h-64 space-y-3 overflow-y-auto">

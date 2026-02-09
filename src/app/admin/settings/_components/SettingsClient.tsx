@@ -504,18 +504,36 @@ export function SettingsClient({ initialSettings, kvAvailable, productImages }: 
             />
           </div>
 
-          {/* Preview when enabled */}
+          {/* Preview when enabled — matches shop AnnouncementBar styling */}
           {announcementEnabled && announcementText && (
             <div className="rounded-lg border bg-gray-50 p-4">
               <p className="mb-2 text-sm font-medium text-gray-500">Preview:</p>
-              <div className="overflow-hidden bg-blue-600 py-2 text-white">
+              <div className="overflow-hidden border-b border-neutral-200 bg-neutral-100 py-1.5 text-center text-xs tracking-wide text-neutral-600">
                 {announcementScrolling ? (
-                  <div className="animate-marquee whitespace-nowrap">
-                    <span className="mx-4">{announcementText}</span>
-                    <span className="mx-4">{announcementText}</span>
+                  <div
+                    className="mx-auto overflow-hidden whitespace-nowrap"
+                    style={{
+                      width: `${Math.ceil(announcementText.length * 1.25)}ch`,
+                      maxWidth: "100%",
+                    }}
+                  >
+                    <span className="animate-marquee inline-block">
+                      {announcementText}
+                      <span
+                        className="inline-block"
+                        style={{ width: `${announcementText.length}ch` }}
+                        aria-hidden="true"
+                      />
+                      {announcementText}
+                      <span
+                        className="inline-block"
+                        style={{ width: `${announcementText.length}ch` }}
+                        aria-hidden="true"
+                      />
+                    </span>
                   </div>
                 ) : (
-                  <p className="text-center text-sm">{announcementText}</p>
+                  <p className="px-4">{announcementText}</p>
                 )}
               </div>
             </div>

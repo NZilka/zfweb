@@ -130,7 +130,7 @@ export default function CheckoutForm({ subtotal }: CheckoutFormProps) {
   if (!isStripeConfigured()) {
     return (
       <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-6 text-center dark:border-yellow-800 dark:bg-yellow-900/20">
-        <h2 className="mb-2 text-xl font-semibold text-yellow-800 dark:text-yellow-200">
+        <h2 className="mb-2 text-xl font-semibold font-[family-name:var(--font-heading)] text-yellow-800 dark:text-yellow-200">
           Checkout Not Available
         </h2>
         <p className="mb-4 text-yellow-700 dark:text-yellow-300">
@@ -242,7 +242,7 @@ export default function CheckoutForm({ subtotal }: CheckoutFormProps) {
   // Otherwise show customer info form
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Contact Information</h2>
+      <h2 className="text-xl font-semibold font-[family-name:var(--font-heading)]">Contact Information</h2>
 
       {/* Email */}
       <div>
@@ -257,7 +257,7 @@ export default function CheckoutForm({ subtotal }: CheckoutFormProps) {
         {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
       </div>
 
-      <h2 className="text-xl font-semibold">Shipping Address</h2>
+      <h2 className="text-xl font-semibold font-[family-name:var(--font-heading)]">Shipping Address</h2>
 
       {/* Name fields */}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -373,7 +373,7 @@ export default function CheckoutForm({ subtotal }: CheckoutFormProps) {
       {/* Payment Method Selection (for signed-in users with saved cards) */}
       {isSignedIn && (savedMethods.length > 0 || isLoadingMethods) && (
         <div>
-          <h2 className="mb-3 text-xl font-semibold">Payment Method</h2>
+          <h2 className="mb-3 text-xl font-semibold font-[family-name:var(--font-heading)]">Payment Method</h2>
 
           {isLoadingMethods ? (
             <p className="text-sm text-gray-500">Loading saved cards...</p>
@@ -446,7 +446,7 @@ export default function CheckoutForm({ subtotal }: CheckoutFormProps) {
 
       {/* Discount code input */}
       <div>
-        <h2 className="mb-3 text-xl font-semibold">Discount Code</h2>
+        <h2 className="mb-3 text-xl font-semibold font-[family-name:var(--font-heading)]">Discount Code</h2>
         <DiscountCodeInput
           onDiscountApplied={setAppliedDiscount}
           appliedDiscount={appliedDiscount}
@@ -562,7 +562,7 @@ function PaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <h2 className="text-xl font-semibold">Payment</h2>
+      <h2 className="text-xl font-semibold font-[family-name:var(--font-heading)]">Payment</h2>
 
       {/* Customer info summary (readonly) */}
       <div className="rounded border bg-gray-50 p-4 text-sm dark:border-gray-700 dark:bg-gray-800">

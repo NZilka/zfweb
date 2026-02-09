@@ -8,6 +8,10 @@
     var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
+  /* Shop-specific fonts — Cormorant Garamond for headings, Work Sans for body */
+  --font-heading: var(--font-cormorant), serif;
+  --font-body: var(--font-work-sans), sans-serif;
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);

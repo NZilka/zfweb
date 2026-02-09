@@ -3,19 +3,20 @@ import { getProducts } from "~/server/queries";
 import { getAvailableInventory } from "~/server/cart-actions";
 import { getCarouselData } from "~/server/carousel";
 import Image from "next/image";
-import { AddToCartButton } from "./_components/AddToCartButton";
+// QuickAddButton replaces AddToCartButton on product cards — small "+" overlay
+import { QuickAddButton } from "./_components/QuickAddButton";
 import { Carousel } from "./_components/Carousel";
 
 export const dynamic = "force-dynamic";
 
-// Product listing component - fetches all products and displays them as cards
+// Product listing component - fetches all products and displays as NUIT-style cards
 const Products = async () => {
   const products = await getProducts();
 
   // Fetch available inventory for all products in parallel
   // This accounts for items reserved in other users' carts
   const availableInventories = await Promise.all(
-    products.map((p) => getAvailableInventory(p.id))
+    products.map((p) => getAvailableInventory(p.id)),
   );
 
   return (
@@ -25,8 +26,11 @@ const Products = async () => {
         return (
           <div key={product.id}>
             <div className="relative max-w-sm">
-              <Link href={`/shop/product/${product.id}`} className="group relative block overflow-hidden">
-                {/* Product image with hover effect */}
+              {/* Product image with hover effect + quick-add "+" overlay */}
+              <Link
+                href={`/shop/product/${product.id}`}
+                className="group relative block overflow-hidden"
+              >
                 {product.imgUrl[0] ? (
                   product.imgUrl[1] ? (
                     // Multiple images: fade to 2nd image on hover
@@ -64,27 +68,24 @@ const Products = async () => {
                     No Image
                   </div>
                 )}
+                {/* Quick-add "+" button overlaid on bottom-right of image */}
+                <QuickAddButton
+                  productId={product.id}
+                  availableInventory={availableInventory}
+                />
               </Link>
+              {/* Product info — Cormorant Garamond heading, Work Sans body */}
               <div className="flex flex-col items-center p-5">
                 <Link href={`/shop/product/${product.id}`}>
-                  <h1 className="mb-2 text-2xl font-bold tracking-tight text-gray-400 dark:text-gray-400">
+                  {/* Cormorant Garamond heading font for product names */}
+                  <h1 className="mb-2 text-2xl font-semibold tracking-tight text-white font-[family-name:var(--font-heading)]">
                     {product.title}
                   </h1>
                 </Link>
-                <p className="mb-3 text-xl font-normal text-gray-200 dark:text-gray-200">
+                {/* Body font inherited from layout; bone-white price */}
+                <p className="text-lg font-light text-[#e8e0d4]">
                   ${product.price}
                 </p>
-                {/* Add to Cart button or Sold Out text */}
-                {availableInventory === 0 ? (
-                  <span className="inline-flex items-center px-3 py-2 text-base font-medium text-red-700">
-                    Sold Out
-                  </span>
-                ) : (
-                  <AddToCartButton
-                    productId={product.id}
-                    variant="card"
-                  />
-                )}
               </div>
             </div>
           </div>

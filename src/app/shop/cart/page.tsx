@@ -83,7 +83,8 @@ export default function CartPage() {
           <ArrowLeft className="h-4 w-4" />
           Continue Shopping
         </button>
-        <h1 className="text-3xl font-bold">Shopping Cart</h1>
+        {/* Cormorant Garamond heading font */}
+        <h1 className="text-3xl font-bold font-[family-name:var(--font-heading)]">Shopping Cart</h1>
         <p className="text-gray-500">
           {itemCount} {itemCount === 1 ? "item" : "items"} in your cart
         </p>
@@ -94,7 +95,7 @@ export default function CartPage() {
         <div className="flex flex-col items-center justify-center gap-6 py-16">
           <ShoppingBag className="h-24 w-24 text-gray-300" />
           <div className="text-center">
-            <h2 className="text-xl font-semibold">Your cart is empty</h2>
+            <h2 className="text-xl font-semibold font-[family-name:var(--font-heading)]">Your cart is empty</h2>
             <p className="mt-2 text-gray-500">
               Looks like you haven&apos;t added any items yet.
             </p>
@@ -138,9 +139,10 @@ export default function CartPage() {
 
                   {/* Product details */}
                   <div className="flex flex-1 flex-col">
+                    {/* Product name in heading font */}
                     <Link
                       href={`/shop/product/${item.product.id}`}
-                      className="text-lg font-semibold hover:underline"
+                      className="text-lg font-semibold font-[family-name:var(--font-heading)] hover:underline"
                     >
                       {item.product.title}
                     </Link>

@@ -2,10 +2,9 @@
  * AdminNav - Overlay drawer navigation for admin dashboard
  *
  * Behavior:
- * - All sizes: Overlay drawer with icons + labels
- * - Mobile/Tablet: Closed by default
- * - Desktop (>1024px): Open by default
- * - Hamburger toggle in TopNav opens/closes
+ * - All sizes: Always starts closed, opened via hamburger toggle
+ * - Black bg + neutral colors matching shop mobile drawer style
+ * - Closes after every navigation (no persistent open on desktop)
  *
  * Uses iOS-style active states: thicker stroke + bold when active
  */
@@ -76,10 +75,10 @@ function NavItemButton({
         // Horizontal layout with gap
         "flex w-full items-center gap-3 px-4 py-3",
         "rounded-lg transition-colors duration-150",
-        // Active: background highlight + white text + bold
+        // Active: subtle neutral highlight + white text + bold (matches shop drawer)
         isActive
-          ? "bg-gray-800 text-white font-semibold"
-          : "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200"
+          ? "bg-neutral-800 text-white font-semibold"
+          : "text-neutral-300 hover:bg-neutral-800/50 hover:text-white"
       )}
       aria-current={isActive ? "page" : undefined}
     >
@@ -103,21 +102,18 @@ export function AdminNav() {
 
   const activeId = getActiveNavId(pathname);
 
-  // Navigate and close drawer on mobile/tablet
+  // Navigate and close drawer after selection (always hamburger-controlled)
   const handleNavigate = (path: string) => {
     router.push(path);
-    // Close drawer on mobile after navigation (desktop stays open)
-    if (window.innerWidth < 1024) {
-      close();
-    }
+    close();
   };
 
   return (
     <>
-      {/* Backdrop overlay - only visible when drawer is open on mobile/tablet */}
+      {/* Backdrop overlay — visible on all sizes when drawer is open */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50"
           onClick={close}
           aria-hidden="true"
         />
@@ -130,20 +126,20 @@ export function AdminNav() {
           "fixed top-0 left-0 z-50 h-full",
           // Width
           "w-64",
-          // Styling
-          "border-r border-gray-700 bg-gray-900",
+          // Styling — black bg matching shop mobile drawer
+          "border-r border-neutral-700 bg-black",
           // Slide in/out animation
           "transition-transform duration-300 ease-in-out",
           // Transform based on open state
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Header with close button */}
-        <div className="flex h-14 items-center justify-between border-b border-gray-700 px-4">
-          <span className="text-lg font-semibold text-white">Menu</span>
+        {/* Header with close button — uppercase tracking to match shop drawer */}
+        <div className="flex h-14 items-center justify-between border-b border-neutral-700 px-4">
+          <span className="text-sm font-medium uppercase tracking-widest text-white">Menu</span>
           <button
             onClick={close}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors"
             aria-label="Close menu"
           >
             <X className="h-5 w-5" />
