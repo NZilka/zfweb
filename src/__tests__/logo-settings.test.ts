@@ -30,6 +30,12 @@ vi.mock("~/server/kv", () => ({
       rows: [null, null, null, null],
       autoScrollInterval: 3000,
     },
+    about: {
+      enabled: false,
+      title: null,
+      content: null,
+      images: [],
+    },
     updatedAt: Date.now(),
   },
 }));
@@ -218,12 +224,13 @@ describe("logo-settings", () => {
         },
         updatedAt: Date.now(),
       };
-      // getSiteSettings should fill in missing logo/carousel from defaults
+      // getSiteSettings should fill in missing logo/carousel/about from defaults
       // (this is tested by the merge logic in kv.ts getSiteSettings)
       vi.mocked(getSiteSettings).mockResolvedValue({
         ...oldSettings,
         logo: DEFAULT_SITE_SETTINGS.logo,
         carousel: DEFAULT_SITE_SETTINGS.carousel,
+        about: DEFAULT_SITE_SETTINGS.about,
       });
 
       const settings = await getSiteSettings();

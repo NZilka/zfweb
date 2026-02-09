@@ -34,6 +34,13 @@ const mockSettings = (carouselOverrides = {}) => ({
     autoScrollInterval: 3000,
     ...carouselOverrides,
   },
+  // About page defaults — disabled with no content
+  about: {
+    enabled: false,
+    title: null,
+    content: null,
+    images: [],
+  },
   updatedAt: Date.now(),
 });
 

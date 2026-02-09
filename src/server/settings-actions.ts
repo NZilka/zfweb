@@ -49,6 +49,21 @@ const logoSchema = z.object({
   small: logoVariantSchema,
 });
 
+// Validation schema for a single About page image (url, UploadThing key, alt text)
+const aboutImageSchema = z.object({
+  url: z.string().url(),
+  key: z.string().min(1),
+  alt: z.string().max(200),
+});
+
+// Validation schema for About page settings — controls /shop/about content
+const aboutSchema = z.object({
+  enabled: z.boolean(),
+  title: z.string().max(200).nullable(),
+  content: z.string().max(10000).nullable(),
+  images: z.array(aboutImageSchema).max(10),
+});
+
 // UploadThing URL prefix — all legitimate uploads are served from this domain
 const UPLOADTHING_URL_PREFIX = "https://utfs.io/";
 
@@ -95,6 +110,7 @@ const updateSettingsSchema = z.object({
   announcementBanner: announcementBannerSchema.optional(),
   logo: logoSchema.optional(),
   carousel: carouselSchema.optional(),
+  about: aboutSchema.optional(),
 });
 
 type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
@@ -186,6 +202,8 @@ export async function updateSettings(
         : currentSettings.logo,
       // Carousel merge: replace entire carousel config when provided
       carousel: parsed.data.carousel ?? currentSettings.carousel,
+      // About merge: replace entire about config when provided
+      about: parsed.data.about ?? currentSettings.about,
       updatedAt: Date.now(),
     };
 
@@ -200,6 +218,26 @@ export async function updateSettings(
         // Fire-and-forget: don't block save on file cleanup
         utapi.deleteFiles(removedKeys).catch((err) => {
           console.error("Failed to clean up removed carousel files:", err);
+        });
+      }
+    }
+
+    // Clean up removed about images from UploadThing
+    // Diffs old vs new image keys and deletes any that were removed
+    if (parsed.data.about) {
+      const oldAboutKeys = new Set(
+        currentSettings.about.images.map((img) => img.key)
+      );
+      const newAboutKeys = new Set(
+        parsed.data.about.images.map((img) => img.key)
+      );
+      const removedAboutKeys = [...oldAboutKeys].filter(
+        (k) => !newAboutKeys.has(k)
+      );
+      if (removedAboutKeys.length > 0) {
+        // Fire-and-forget: don't block save on file cleanup
+        utapi.deleteFiles(removedAboutKeys).catch((err) => {
+          console.error("Failed to clean up removed about images:", err);
         });
       }
     }

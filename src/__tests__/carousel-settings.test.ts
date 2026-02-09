@@ -31,6 +31,12 @@ vi.mock("~/server/kv", () => ({
       rows: [null, null, null, null],
       autoScrollInterval: 3000,
     },
+    about: {
+      enabled: false,
+      title: null,
+      content: null,
+      images: [],
+    },
     updatedAt: Date.now(),
   },
 }));

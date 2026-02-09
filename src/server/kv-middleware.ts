@@ -33,6 +33,13 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
     rows: [null, null, null, null],
     autoScrollInterval: 3000,
   },
+  // Default about page: disabled with no content
+  about: {
+    enabled: false,
+    title: null,
+    content: null,
+    images: [],
+  },
   updatedAt: Date.now(),
 };
 

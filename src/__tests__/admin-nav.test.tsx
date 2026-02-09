@@ -42,24 +42,25 @@ describe("AdminNav", () => {
   });
 
   describe("Navigation items rendering", () => {
-    it("renders all six navigation items in drawer", () => {
+    it("renders all seven navigation items in drawer", () => {
       renderAdminNav();
 
-      // Drawer sidebar shows all labels
+      // Drawer sidebar shows all labels including About
       expect(screen.getByText("Dashboard")).toBeTruthy();
       expect(screen.getByText("Orders")).toBeTruthy();
       expect(screen.getByText("Products")).toBeTruthy();
       expect(screen.getByText("Discounts")).toBeTruthy();
       expect(screen.getByText("Shipping")).toBeTruthy();
+      expect(screen.getByText("About")).toBeTruthy();
       expect(screen.getByText("Settings")).toBeTruthy();
     });
 
     it("renders navigation as buttons with close button", () => {
       renderAdminNav();
 
-      // 6 nav items + 1 close button = 7 buttons
+      // 7 nav items + 1 close button = 8 buttons
       const buttons = screen.getAllByRole("button");
-      expect(buttons.length).toBe(7);
+      expect(buttons.length).toBe(8);
     });
 
     it("renders close button with correct aria-label", () => {
@@ -125,6 +126,14 @@ describe("AdminNav", () => {
       expect(shippingButton?.getAttribute("aria-current")).toBe("page");
     });
 
+    it("marks About as active for /admin/about path", () => {
+      mockPathname = "/admin/about";
+      renderAdminNav();
+
+      const aboutButton = screen.getByText("About").closest("button");
+      expect(aboutButton?.getAttribute("aria-current")).toBe("page");
+    });
+
     it("defaults to Dashboard for unknown paths", () => {
       mockPathname = "/admin/unknown";
       renderAdminNav();
@@ -182,6 +191,15 @@ describe("AdminNav", () => {
       fireEvent.click(shippingButton!);
 
       expect(mockPush).toHaveBeenCalledWith("/admin/shipping");
+    });
+
+    it("navigates to /admin/about when About is clicked", () => {
+      renderAdminNav();
+
+      const aboutButton = screen.getByText("About").closest("button");
+      fireEvent.click(aboutButton!);
+
+      expect(mockPush).toHaveBeenCalledWith("/admin/about");
     });
   });
 });
