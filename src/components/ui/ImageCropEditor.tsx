@@ -43,9 +43,11 @@ export function ImageCropEditor({
   );
 
   // Called by react-easy-crop when crop or zoom changes (debounced)
-  // croppedAreaPercentages is the percentage-based area for CSS rendering
+  // react-easy-crop signature: onCropComplete(croppedArea, croppedAreaPixels)
+  // First arg = percentage-based area (0-100), second = pixel values
+  // We store percentages for resolution-independent CSS rendering via cropToStyle()
   const handleCropComplete = useCallback(
-    (_croppedAreaPixels: Area, croppedAreaPercentages: Area) => {
+    (croppedAreaPercentages: Area, _croppedAreaPixels: Area) => {
       setCroppedArea(croppedAreaPercentages);
       onChange({ croppedArea: croppedAreaPercentages, zoom });
     },

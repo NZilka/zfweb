@@ -4,9 +4,10 @@
  * - Carousel validation with optional crop field
  * - Backward compatibility (old data without crop)
  * - CarouselSlideItem crop passthrough
+ * - ImageCropEditor onCropComplete parameter order (percentages vs pixels)
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 
 // Mock server-only since carousel.ts imports it
 vi.mock("server-only", () => ({}));
@@ -308,6 +309,66 @@ describe("carousel slide crop passthrough", () => {
     }
 
     vi.doUnmock("~/server/kv");
+  });
+});
+
+// ---- ImageCropEditor onCropComplete Parameter Order Test ----
+// react-easy-crop's onCropComplete(croppedArea, croppedAreaPixels):
+//   1st arg = percentages (0-100), 2nd arg = pixels
+// Regression: swapped params caused pixel values to be stored, making images
+// render at ~3% size (invisible) via cropToStyle()
+
+describe("ImageCropEditor onCropComplete parameter order", () => {
+  it("passes percentage values (not pixels) to onChange", async () => {
+    // Capture the onCropComplete callback that ImageCropEditor passes to Cropper
+    let capturedOnCropComplete: ((area: any, areaPixels: any) => void) | null =
+      null;
+
+    // Reset module cache so the mock is picked up on fresh import
+    vi.resetModules();
+
+    // Mock react-easy-crop to capture the callback
+    vi.doMock("react-easy-crop", () => ({
+      default: (props: any) => {
+        capturedOnCropComplete = props.onCropComplete;
+        return <div data-testid="mock-cropper" />;
+      },
+    }));
+
+    const onChangeSpy = vi.fn();
+
+    // Fresh import to pick up the mock
+    const { ImageCropEditor } = await import(
+      "~/components/ui/ImageCropEditor"
+    );
+    render(
+      <ImageCropEditor
+        imageUrl="https://utfs.io/f/test"
+        onChange={onChangeSpy}
+        aspect={1}
+      />,
+    );
+
+    // Simulate react-easy-crop calling onCropComplete
+    // First arg = percentage area, second arg = pixel area
+    const percentageArea = { x: 10, y: 20, width: 50, height: 50 };
+    const pixelArea = { x: 150, y: 300, width: 750, height: 750 };
+    // Wrap in act() since onCropComplete triggers React state updates
+    act(() => {
+      capturedOnCropComplete!(percentageArea, pixelArea);
+    });
+
+    // onChange should receive percentage values, NOT pixel values
+    expect(onChangeSpy).toHaveBeenCalledWith({
+      croppedArea: percentageArea,
+      zoom: 1, // default zoom
+    });
+    // Verify it did NOT receive pixel values
+    expect(onChangeSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ croppedArea: pixelArea }),
+    );
+
+    vi.doUnmock("react-easy-crop");
   });
 });
 
