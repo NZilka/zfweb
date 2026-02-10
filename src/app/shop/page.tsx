@@ -6,7 +6,8 @@ import Image from "next/image";
 // QuickAddButton replaces AddToCartButton on product cards — small "+" overlay
 import { QuickAddButton } from "./_components/QuickAddButton";
 import { Carousel } from "./_components/Carousel";
-import { cropToStyle } from "~/components/ui/ImageCropEditor";
+// Import from shared utility (not ImageCropEditor) so it works in server components
+import { cropToStyle } from "~/lib/crop";
 
 export const dynamic = "force-dynamic";
 
