@@ -39,7 +39,8 @@ export default async function ProductModalPage({
         <div className="flex flex-col gap-6 md:flex-row md:gap-8">
           {/* Product images - interactive gallery */}
           <div className="flex-1">
-            <ImageGallery images={product.imgUrl} productTitle={product.title} />
+            {/* Pass imgCrop so cropped images render with correct positioning */}
+            <ImageGallery images={product.imgUrl} productTitle={product.title} imgCrop={product.imgCrop} />
           </div>
 
           {/* Product details */}
