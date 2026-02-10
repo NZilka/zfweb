@@ -17,7 +17,10 @@ import {
   DialogFooter,
 } from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
-import { ImageCropEditor } from "~/components/ui/ImageCropEditor";
+import {
+  ImageCropEditor,
+  cropToStyle,
+} from "~/components/ui/ImageCropEditor";
 
 const MAX_IMAGES = 5;
 
@@ -92,6 +95,7 @@ export function ImageGalleryEditor() {
             className="group relative h-20 w-20 cursor-grab rounded-md border border-gray-200 bg-gray-50 active:cursor-grabbing"
           >
             {/* Image thumbnail — click to open crop/position editor */}
+            {/* Show crop preview when crop data exists, otherwise default cover */}
             {getDisplayUrl(image) && (
               <button
                 type="button"
@@ -99,12 +103,23 @@ export function ImageGalleryEditor() {
                 className="relative h-full w-full overflow-hidden rounded-md"
                 aria-label={`Position image ${index + 1}`}
               >
-                <Image
-                  src={getDisplayUrl(image)!}
-                  alt={`Product image ${index + 1}`}
-                  fill
-                  className="rounded-md object-cover"
-                />
+                {image.crop ? (
+                  <Image
+                    src={getDisplayUrl(image)!}
+                    alt={`Product image ${index + 1}`}
+                    width={160}
+                    height={160}
+                    className="pointer-events-none rounded-md"
+                    style={cropToStyle(image.crop)}
+                  />
+                ) : (
+                  <Image
+                    src={getDisplayUrl(image)!}
+                    alt={`Product image ${index + 1}`}
+                    fill
+                    className="rounded-md object-cover"
+                  />
+                )}
               </button>
             )}
 
