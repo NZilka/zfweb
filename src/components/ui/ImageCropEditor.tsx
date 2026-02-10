@@ -2,6 +2,9 @@
  * ImageCropEditor — Shared drag-to-position + zoom crop editor
  * Uses react-easy-crop for intuitive pan/zoom UI
  * Stores crop data as percentages for resolution-independent rendering
+ *
+ * CropData and cropToStyle live in ~/lib/crop.ts so server components can use them.
+ * Re-exported here for backward compatibility with existing imports.
  */
 "use client";
 
@@ -10,11 +13,10 @@ import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import { Button } from "~/components/ui/button";
 
-// Stored crop data — croppedArea percentages of original image visible in crop box
-export interface CropData {
-  croppedArea: { x: number; y: number; width: number; height: number };
-  zoom: number;
-}
+// Re-export from shared utility so existing imports still work
+export { cropToStyle } from "~/lib/crop";
+export type { CropData } from "~/lib/crop";
+import type { CropData } from "~/lib/crop";
 
 interface ImageCropEditorProps {
   imageUrl: string;
@@ -100,29 +102,3 @@ export function ImageCropEditor({
   );
 }
 
-/**
- * Convert stored CropData to inline CSS for rendering the crop
- * Positions and scales the image so only the cropped area is visible
- * within an overflow-hidden container
- */
-export function cropToStyle(
-  crop?: CropData | null,
-): React.CSSProperties {
-  if (!crop?.croppedArea) {
-    // No crop data — fall back to centered cover
-    return { objectFit: "cover" as const, objectPosition: "center" };
-  }
-  const { croppedArea } = crop;
-  // Scale image so the visible area matches the container
-  // croppedArea values are percentages (0-100) of the original image
-  // maxWidth: "none" overrides Tailwind Preflight's `max-width: 100%` on img
-  // elements, which otherwise caps the width and breaks crop positioning
-  return {
-    position: "absolute" as const,
-    maxWidth: "none",
-    width: `${100 / (croppedArea.width / 100)}%`,
-    height: `${100 / (croppedArea.height / 100)}%`,
-    left: `-${croppedArea.x / (croppedArea.width / 100)}%`,
-    top: `-${croppedArea.y / (croppedArea.height / 100)}%`,
-  };
-}
