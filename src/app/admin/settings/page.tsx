@@ -6,6 +6,7 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { SettingsClient } from "./_components/SettingsClient";
 import { getSettings, checkSettingsAvailable } from "~/server/settings-actions";
 import { getProducts } from "~/server/queries";
+import { env } from "~/env";
 
 // Force dynamic to always fetch fresh settings
 export const dynamic = "force-dynamic";
@@ -35,6 +36,7 @@ export default async function SettingsPage() {
             initialSettings={settings}
             kvAvailable={isAvailable}
             productImages={productImages}
+            testModeAllowed={env.TEST_MODE_ALLOWED}
           />
         </div>
       </SignedIn>

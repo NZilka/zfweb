@@ -15,6 +15,13 @@
       "when": 1769373362448,
       "tag": "0001_greedy_supernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776401915305,
+      "tag": "0002_lying_sasquatch",
+      "breakpoints": true
     }
   ]
 }

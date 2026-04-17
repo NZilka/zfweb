@@ -7,7 +7,7 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { AlertTriangle, Megaphone, ImageIcon, X, Upload, Loader2, Film } from "lucide-react";
+import { AlertTriangle, Megaphone, ImageIcon, X, Upload, Loader2, Film, FlaskConical } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
@@ -23,13 +23,17 @@ interface SettingsClientProps {
   initialSettings: SiteSettings;
   kvAvailable: boolean;
   productImages: { url: string; alt: string }[];
+  // When true, the Test Mode card is rendered. Driven by TEST_MODE_ALLOWED env var.
+  // Absent in production so the card is invisible there even if someone had
+  // previously toggled testMode.enabled in KV.
+  testModeAllowed: boolean;
 }
 
 // Default message shown when no custom message is set
 const DEFAULT_MAINTENANCE_MESSAGE =
   "We're currently performing scheduled maintenance. Please check back soon!";
 
-export function SettingsClient({ initialSettings, kvAvailable, productImages }: SettingsClientProps) {
+export function SettingsClient({ initialSettings, kvAvailable, productImages, testModeAllowed }: SettingsClientProps) {
   // Maintenance mode state
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(
     initialSettings.maintenanceMode.enabled
@@ -80,6 +84,14 @@ export function SettingsClient({ initialSettings, kvAvailable, productImages }: 
     initialSettings.carousel.autoScrollInterval
   );
   const [carouselModalOpen, setCarouselModalOpen] = useState(false);
+
+  // Test mode state — only meaningful when testModeAllowed prop is true
+  const [testModeEnabled, setTestModeEnabled] = useState(
+    initialSettings.testMode.enabled
+  );
+  const [testModeOutcome, setTestModeOutcome] = useState<"success" | "failure">(
+    initialSettings.testMode.outcome
+  );
 
   // Form state
   const [isSaving, setIsSaving] = useState(false);
@@ -252,6 +264,25 @@ export function SettingsClient({ initialSettings, kvAvailable, productImages }: 
     }
   };
 
+  // Save test mode settings (gated by testModeAllowed prop in the UI)
+  // The server action also checks TEST_MODE_ALLOWED env var — defense in depth
+  const handleSaveTestMode = async () => {
+    setIsSaving(true);
+    const result = await updateSettings({
+      testMode: {
+        enabled: testModeEnabled,
+        outcome: testModeOutcome,
+      },
+    });
+
+    if (result.success) {
+      toast.success("Test mode settings saved");
+    } else {
+      toast.error(result.error);
+    }
+    setIsSaving(false);
+  };
+
   // Save carousel settings from the modal — persists rows and interval
   const handleSaveCarousel = async (
     rows: (CarouselRow | null)[],
@@ -306,6 +337,81 @@ export function SettingsClient({ initialSettings, kvAvailable, productImages }: 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
+
+      {/* Test Mode Section — only rendered when TEST_MODE_ALLOWED env var is true
+          (staging and local dev). Absent in production by design. */}
+      {testModeAllowed && (
+        <Card className="border-red-500 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-800">
+              <FlaskConical className="h-5 w-5" />
+              Test Mode (Bypass Stripe)
+            </CardTitle>
+            <CardDescription className="text-red-700">
+              When enabled, checkout skips real Stripe payment and creates test orders
+              directly in the database. Test orders are hidden from the admin order
+              list by default (toggle "Show test orders" on /admin/orders to see them).
+              <br />
+              <strong>This should never be enabled in production.</strong>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Enable toggle */}
+            <div className="flex items-center justify-between">
+              <Label htmlFor="test-mode-toggle" className="flex flex-col gap-1">
+                <span>Enable Test Mode</span>
+                <span className="text-sm font-normal text-red-700">
+                  Checkout will bypass Stripe and simulate the selected outcome
+                </span>
+              </Label>
+              <Switch
+                id="test-mode-toggle"
+                checked={testModeEnabled}
+                onCheckedChange={setTestModeEnabled}
+              />
+            </div>
+
+            {/* Outcome selection — radio group for simulated result */}
+            <div className="space-y-2">
+              <Label>Simulated Outcome</Label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="radio"
+                    name="test-mode-outcome"
+                    checked={testModeOutcome === "success"}
+                    onChange={() => setTestModeOutcome("success")}
+                    className="h-4 w-4"
+                  />
+                  <span>Success (creates test order)</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="radio"
+                    name="test-mode-outcome"
+                    checked={testModeOutcome === "failure"}
+                    onChange={() => setTestModeOutcome("failure")}
+                    className="h-4 w-4"
+                  />
+                  <span>Failure (shows payment error)</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Save button */}
+            <Button onClick={handleSaveTestMode} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Test Mode Settings"
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Maintenance Mode Section */}
       <Card>
