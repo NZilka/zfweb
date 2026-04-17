@@ -20,6 +20,14 @@ export const env = createEnv({
     // Using string validation instead of z.url() to avoid strict URL parsing issues
     UPSTASH_REDIS_REST_URL: z.string().min(1).optional(),
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+    // Test mode capability gate - when "true", admin can toggle runtime test mode from /admin/settings.
+    // Absent or "false" means test mode cannot execute at all (safe default for production).
+    // Explicit string === "true" check rather than z.coerce.boolean() because the latter
+    // coerces any non-empty string (including "false") to true - that would be a footgun.
+    TEST_MODE_ALLOWED: z
+      .string()
+      .optional()
+      .transform((v) => v === "true"),
   },
 
   /**
@@ -48,6 +56,8 @@ export const env = createEnv({
     // Upstash Redis
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+    // Test mode gate - controls whether the admin test mode toggle is available
+    TEST_MODE_ALLOWED: process.env.TEST_MODE_ALLOWED,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

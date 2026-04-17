@@ -1,6 +1,7 @@
 import { TopNav } from "./_components/topnav";
 import { AdminNav } from "./_components/AdminNav";
 import { AdminNavProvider } from "./_components/AdminNavContext";
+import { StagingBanner } from "./_components/StagingBanner";
 import { getSiteSettings } from "~/server/kv";
 
 // Async layout — fetches site settings to pass custom logo URL to TopNav
@@ -22,6 +23,8 @@ export default async function AdminLayout({
       */}
       {/* print:hidden hides the entire admin layout when printing, so only packing slip shows */}
       <div className="flex h-dvh w-full min-w-0 flex-col print:hidden">
+        {/* Staging banner - only renders on the dedicated staging branch deploy */}
+        <StagingBanner />
         {/* Top navigation bar - passes custom logo URL from settings */}
         <TopNav logoUrl={settings.logo.large.url ?? undefined} />
 
