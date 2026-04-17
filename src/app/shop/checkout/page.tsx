@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCartItems, getCartSummary } from "~/server/cart-actions";
+import { getSiteSettings } from "~/server/kv";
+import { env } from "~/env";
 import CheckoutForm from "./CheckoutForm";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,15 +14,22 @@ export const dynamic = "force-dynamic";
 // Checkout page - displays order summary and checkout form
 // Redirects to cart if cart is empty
 export default async function CheckoutPage() {
-  const [items, summary] = await Promise.all([
+  const [items, summary, settings] = await Promise.all([
     getCartItems(),
     getCartSummary(),
+    getSiteSettings(),
   ]);
 
   // Redirect to cart if empty
   if (items.length === 0) {
     redirect("/shop/cart");
   }
+
+  // Test mode is active only when both gates pass:
+  // - env var set (staging/dev)
+  // - admin has flipped the runtime toggle in /admin/settings
+  // When active, the checkout form bypasses Stripe entirely.
+  const testModeActive = env.TEST_MODE_ALLOWED && settings.testMode.enabled;
 
   return (
     <div className="mx-auto max-w-6xl p-4 md:p-8">
@@ -41,9 +50,14 @@ export default async function CheckoutPage() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Checkout form - pass subtotal for discount calculation display */}
+        {/* Checkout form - pass subtotal for discount calculation display.
+            When testModeActive, the form bypasses Stripe Elements entirely. */}
         <div>
-          <CheckoutForm subtotal={parseFloat(summary.total)} />
+          <CheckoutForm
+            subtotal={parseFloat(summary.total)}
+            testModeActive={testModeActive}
+            testModeOutcome={settings.testMode.outcome}
+          />
         </div>
 
         {/* Order summary */}

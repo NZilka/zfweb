@@ -66,14 +66,23 @@ const initialCustomerInfo: CustomerInfo = {
   country: "US",
 };
 
-// Props for CheckoutForm - receives subtotal for discount calculation
+// Props for CheckoutForm - receives subtotal for discount calculation.
+// testModeActive/testModeOutcome come from the server page and control whether
+// the form shows the real Stripe flow or the bypass "Simulate Payment" UI.
 interface CheckoutFormProps {
   subtotal: number;
+  testModeActive: boolean;
+  testModeOutcome: "success" | "failure";
 }
 
 // Main checkout form component - wraps payment form with Stripe Elements
-export default function CheckoutForm({ subtotal }: CheckoutFormProps) {
+export default function CheckoutForm({
+  subtotal,
+  testModeActive,
+  testModeOutcome,
+}: CheckoutFormProps) {
   const { isSignedIn, user } = useUser();
+  const router = useRouter();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>(initialCustomerInfo);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -126,8 +135,9 @@ export default function CheckoutForm({ subtotal }: CheckoutFormProps) {
     fetchSavedMethods();
   }, [isSignedIn]);
 
-  // Show configuration message if Stripe is not set up
-  if (!isStripeConfigured()) {
+  // Show configuration message if Stripe is not set up AND test mode is off.
+  // In test mode we don't need Stripe configured — orders bypass it entirely.
+  if (!isStripeConfigured() && !testModeActive) {
     return (
       <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-6 text-center dark:border-yellow-800 dark:bg-yellow-900/20">
         <h2 className="mb-2 text-xl font-semibold font-[family-name:var(--font-heading)] text-yellow-800 dark:text-yellow-200">
@@ -162,7 +172,34 @@ export default function CheckoutForm({ subtotal }: CheckoutFormProps) {
     setIsCreatingIntent(true);
 
     try {
-      // Create payment intent on server
+      // Test mode path: bypass Stripe entirely. Call the test-place-order
+      // endpoint which either creates a test order (outcome=success) or
+      // returns a simulated failure (outcome=failure). No Stripe Elements are
+      // rendered because test mode doesn't produce a valid clientSecret.
+      if (testModeActive) {
+        const response = await fetch("/api/checkout/test-place-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customerInfo: result.data,
+            ...(appliedDiscount && { discountCode: appliedDiscount.code }),
+            isGift,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message ?? "Test payment failed");
+        }
+
+        const { paymentIntentId } = await response.json();
+        // Jump straight to confirmation — no webhook delay since the order was
+        // created synchronously by the route handler.
+        router.push(`/shop/order/confirmation/${paymentIntentId}`);
+        return;
+      }
+
+      // Real Stripe path: create payment intent on server
       const response = await fetch("/api/checkout/create-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -242,6 +279,22 @@ export default function CheckoutForm({ subtotal }: CheckoutFormProps) {
   // Otherwise show customer info form
   return (
     <div className="space-y-6">
+      {/* Test mode banner — makes it unmistakable that no real payment is happening.
+          Visible to anyone on staging when an admin has toggled test mode on. */}
+      {testModeActive && (
+        <div className="rounded border-2 border-red-500 bg-red-50 p-4 dark:bg-red-950/20">
+          <p className="font-semibold text-red-800 dark:text-red-200">
+            TEST MODE ACTIVE
+          </p>
+          <p className="mt-1 text-sm text-red-700 dark:text-red-300">
+            Clicking &quot;Place Test Order&quot; will{" "}
+            {testModeOutcome === "success"
+              ? "create a test order in the database without charging any real card."
+              : "simulate a payment failure — no order will be created."}
+          </p>
+        </div>
+      )}
+
       <h2 className="text-xl font-semibold font-[family-name:var(--font-heading)]">Contact Information</h2>
 
       {/* Email */}
@@ -370,8 +423,9 @@ export default function CheckoutForm({ subtotal }: CheckoutFormProps) {
         </div>
       </div>
 
-      {/* Payment Method Selection (for signed-in users with saved cards) */}
-      {isSignedIn && (savedMethods.length > 0 || isLoadingMethods) && (
+      {/* Payment Method Selection (for signed-in users with saved cards).
+          Hidden in test mode — saved cards are irrelevant when Stripe is bypassed. */}
+      {!testModeActive && isSignedIn && (savedMethods.length > 0 || isLoadingMethods) && (
         <div>
           <h2 className="mb-3 text-xl font-semibold font-[family-name:var(--font-heading)]">Payment Method</h2>
 
@@ -431,8 +485,9 @@ export default function CheckoutForm({ subtotal }: CheckoutFormProps) {
         </div>
       )}
 
-      {/* Save card checkbox (only for signed-in users using new card) */}
-      {isSignedIn && selectedMethodId === null && (
+      {/* Save card checkbox (only for signed-in users using new card).
+          Hidden in test mode — no real card to save. */}
+      {!testModeActive && isSignedIn && selectedMethodId === null && (
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -505,14 +560,19 @@ export default function CheckoutForm({ subtotal }: CheckoutFormProps) {
         </div>
       )}
 
-      {/* Continue to payment button */}
+      {/* Continue to payment / Place Test Order button.
+          Button label reflects the mode so shoppers see exactly what will happen. */}
       <Button
         onClick={validateAndCreateIntent}
         disabled={isCreatingIntent}
         className="w-full"
         size="lg"
       >
-        {isCreatingIntent ? "Processing..." : "Continue to Payment"}
+        {isCreatingIntent
+          ? "Processing..."
+          : testModeActive
+            ? `Place Test Order (${testModeOutcome})`
+            : "Continue to Payment"}
       </Button>
     </div>
   );
