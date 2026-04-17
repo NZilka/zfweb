@@ -6,6 +6,7 @@
 
 import { z } from "zod";
 import { auth } from "@clerk/nextjs/server";
+import { env } from "~/env";
 import {
   getSiteSettings,
   setSiteSettings,
@@ -62,6 +63,14 @@ const aboutSchema = z.object({
   title: z.string().max(200).nullable(),
   content: z.string().max(10000).nullable(),
   images: z.array(aboutImageSchema).max(10),
+});
+
+// Validation schema for test mode settings — gated by TEST_MODE_ALLOWED env var
+// (checked separately in updateSettings below, not in Zod, because env gating is
+// a policy check rather than a data-shape check)
+const testModeSchema = z.object({
+  enabled: z.boolean(),
+  outcome: z.enum(["success", "failure"]),
 });
 
 // UploadThing URL prefix — all legitimate uploads are served from this domain
@@ -126,6 +135,7 @@ const updateSettingsSchema = z.object({
   logo: logoSchema.optional(),
   carousel: carouselSchema.optional(),
   about: aboutSchema.optional(),
+  testMode: testModeSchema.optional(),
 });
 
 type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
@@ -181,6 +191,16 @@ export async function updateSettings(
     };
   }
 
+  // Env gate for test mode — even if someone sends a testMode payload, the
+  // server rejects it unless TEST_MODE_ALLOWED is enabled in this environment.
+  // Defense in depth: admin UI also hides the toggle when the env is false.
+  if (parsed.data.testMode && !env.TEST_MODE_ALLOWED) {
+    return {
+      success: false,
+      error: "Test mode is not available in this environment",
+    };
+  }
+
   try {
     // Get current settings
     const currentSettings = await getSiteSettings();
@@ -219,6 +239,8 @@ export async function updateSettings(
       carousel: parsed.data.carousel ?? currentSettings.carousel,
       // About merge: replace entire about config when provided
       about: parsed.data.about ?? currentSettings.about,
+      // Test mode merge: replace entire testMode config when provided
+      testMode: parsed.data.testMode ?? currentSettings.testMode,
       updatedAt: Date.now(),
     };
 

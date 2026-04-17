@@ -82,6 +82,14 @@ export function OrdersTable({
   // Get status badges for an order
   const getStatusBadges = (order: OrderWithItems) => {
     const badges = [];
+    // Test-order badge first so it's the most prominent signal when shown
+    if (order.isTest) {
+      badges.push(
+        <Badge key="test" variant="destructive" className="text-xs">
+          TEST
+        </Badge>
+      );
+    }
     if (order.isDownloaded) {
       badges.push(
         <Badge key="downloaded" variant="outline" className="text-xs">
