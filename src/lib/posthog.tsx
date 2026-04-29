@@ -9,8 +9,18 @@ import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, Suspense, type ReactNode } from "react";
 
-// Initialize PostHog only on client and when keys are available
-if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
+// Skip analytics on Vercel preview deploys (both staging and feature-branch previews)
+// so non-prod traffic never pollutes the production PostHog project.
+// Vercel auto-exposes NEXT_PUBLIC_VERCEL_ENV for Next.js apps.
+const vercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV;
+const isPreviewDeploy = vercelEnv === "preview";
+
+// Initialize PostHog only on client, when keys are available, and not on preview deploys
+if (
+  typeof window !== "undefined" &&
+  process.env.NEXT_PUBLIC_POSTHOG_KEY &&
+  !isPreviewDeploy
+) {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
     // PostHog cloud host URL
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
@@ -54,8 +64,8 @@ function PostHogPageView() {
  * Provides PostHog context and automatic page view tracking
  */
 export function PostHogProvider({ children }: { children: ReactNode }) {
-  // Skip PostHog in SSR or if not configured
-  if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) {
+  // Skip PostHog in SSR, if not configured, or on preview deploys (staging/feature previews)
+  if (!process.env.NEXT_PUBLIC_POSTHOG_KEY || isPreviewDeploy) {
     return <>{children}</>;
   }
 
