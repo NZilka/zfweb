@@ -36,6 +36,11 @@ vi.mock("~/server/kv", () => ({
       content: null,
       images: [],
     },
+    // Test mode defaults
+    testMode: {
+      enabled: false,
+      outcome: "success",
+    },
     updatedAt: Date.now(),
   },
 }));
@@ -231,6 +236,7 @@ describe("logo-settings", () => {
         logo: DEFAULT_SITE_SETTINGS.logo,
         carousel: DEFAULT_SITE_SETTINGS.carousel,
         about: DEFAULT_SITE_SETTINGS.about,
+        testMode: DEFAULT_SITE_SETTINGS.testMode,
       });
 
       const settings = await getSiteSettings();

@@ -24,6 +24,8 @@ interface OrdersClientProps {
   currentTab: FulfillmentFilter;
   counts: OrderCounts;
   orders: OrderWithItems[];
+  // When true, test orders are included in the list and counts
+  includeTest: boolean;
 }
 
 // Sub-tab configuration with labels, icons, and counts
@@ -39,18 +41,26 @@ const ORDER_TABS: {
   { id: "all", label: "All", icon: List, countKey: "all" },
 ];
 
-function OrdersTabsContent({ currentTab, counts, orders }: OrdersClientProps) {
+function OrdersTabsContent({ currentTab, counts, orders, includeTest }: OrdersClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Track selected order IDs for CSV export
   const [selectedOrders, setSelectedOrders] = useState<Set<number>>(new Set());
 
-  // Navigate to tab by updating URL params
+  // Navigate to tab by updating URL params (preserves includeTest param)
   const handleTabChange = (tabId: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tabId);
     // Clear selection when changing tabs
     setSelectedOrders(new Set());
+    router.push(`/admin/orders?${params.toString()}`);
+  };
+
+  // Toggle "Show test orders" — flips the URL param and reloads via router
+  const handleIncludeTestToggle = (checked: boolean) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (checked) params.set("includeTest", "true");
+    else params.delete("includeTest");
     router.push(`/admin/orders?${params.toString()}`);
   };
 
@@ -60,11 +70,24 @@ function OrdersTabsContent({ currentTab, counts, orders }: OrdersClientProps) {
   return (
     <div className="space-y-6">
       {/* Header with export button for unshipped tab */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Orders</h1>
-        {showSelection && (
-          <CsvExportButton selectedOrderIds={Array.from(selectedOrders)} />
-        )}
+        <div className="flex items-center gap-4">
+          {/* "Show test orders" toggle — omitted when there are no test orders to care about
+              would be nice to hide, but we don't know without another query; keep it always visible */}
+          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includeTest}
+              onChange={(e) => handleIncludeTestToggle(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <span>Show test orders</span>
+          </label>
+          {showSelection && (
+            <CsvExportButton selectedOrderIds={Array.from(selectedOrders)} />
+          )}
+        </div>
       </div>
 
       {/* Sub-tabs for fulfillment status - horizontally scrollable on mobile */}

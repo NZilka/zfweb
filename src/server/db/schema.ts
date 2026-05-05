@@ -117,6 +117,12 @@ export const order = createTable("order", {
   // Whether order is a gift (hides prices on packing slip)
   is_gift: boolean("is_gift").notNull().default(false),
 
+  // Whether order was created via admin test mode (bypasses real Stripe payment).
+  // Filtered out of admin order list by default; "TEST" badge shown when included.
+  // payment_intent_id on test orders uses the "pi_test_" prefix so they're
+  // visually distinguishable in the DB.
+  is_test: boolean("is_test").notNull().default(false),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),

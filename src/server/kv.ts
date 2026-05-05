@@ -114,6 +114,14 @@ export type AboutSettings = {
   images: AboutImage[];
 };
 
+// Test mode settings — bypasses real Stripe in checkout so orders can be
+// placed end-to-end without charging cards. Only usable when the env var
+// TEST_MODE_ALLOWED is "true" (gated in the admin UI and server action).
+export type TestModeSettings = {
+  enabled: boolean;
+  outcome: "success" | "failure"; // success creates a test order; failure returns an error
+};
+
 // Site-wide settings for maintenance mode, announcements, and branding
 export type SiteSettings = {
   maintenanceMode: {
@@ -136,6 +144,8 @@ export type SiteSettings = {
   carousel: CarouselSettings;
   // About page content — editable from admin, rendered on /shop/about
   about: AboutSettings;
+  // Test mode — bypass Stripe for order placement (staging/dev only)
+  testMode: TestModeSettings;
   updatedAt: number; // Unix timestamp
 };
 
@@ -277,6 +287,12 @@ export const DEFAULT_ABOUT_SETTINGS: AboutSettings = {
   images: [],
 };
 
+// Default test mode settings — disabled with success outcome as the neutral default
+export const DEFAULT_TEST_MODE_SETTINGS: TestModeSettings = {
+  enabled: false,
+  outcome: "success",
+};
+
 // Default settings when none exist - maintenance is OFF by default
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   maintenanceMode: {
@@ -296,6 +312,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   },
   carousel: { ...DEFAULT_CAROUSEL_SETTINGS },
   about: { ...DEFAULT_ABOUT_SETTINGS },
+  testMode: { ...DEFAULT_TEST_MODE_SETTINGS },
   updatedAt: Date.now(),
 };
 
@@ -310,13 +327,14 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     const settings = await kvGet<SiteSettings>(KV_PREFIXES.SITE_SETTINGS);
     if (!settings) return DEFAULT_SITE_SETTINGS;
     // Fill in any missing top-level keys from defaults (backward compat)
-    // Explicit ?? fallbacks needed for keys added after initial release (logo, carousel, about)
+    // Explicit ?? fallbacks needed for keys added after initial release (logo, carousel, about, testMode)
     return {
       ...DEFAULT_SITE_SETTINGS,
       ...settings,
       logo: settings.logo ?? DEFAULT_SITE_SETTINGS.logo,
       carousel: settings.carousel ?? DEFAULT_SITE_SETTINGS.carousel,
       about: settings.about ?? DEFAULT_SITE_SETTINGS.about,
+      testMode: settings.testMode ?? DEFAULT_SITE_SETTINGS.testMode,
     };
   } catch {
     return DEFAULT_SITE_SETTINGS;
