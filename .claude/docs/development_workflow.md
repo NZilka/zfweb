@@ -35,14 +35,17 @@ Brief description of the feature.
 
 ## 2. Branch Creation
 
-- Create a feature branch from main before starting work:
+- Create a feature branch from **current `staging`** (not `main`) so you pick up anything that's been tested-and-not-yet-released:
   ```bash
+  git checkout staging && git pull
   git checkout -b feature/<feature-name>
   # or for fixes:
   git checkout -b fix/<bug-description>
   ```
 - All work for all phases happens on this single branch
 - Push the branch after each phase commit
+
+See `docs/RELEASE_WORKFLOW.md` for the full branch model and staging-first promotion flow.
 
 ## 3. Phase Execution
 
@@ -75,35 +78,52 @@ Repeat for each phase:
 - Mark phase complete in planning document
 - Update any relevant documentation
 
-## 4. Pull Request
+## 4. Merge to staging
 
-After all phases complete:
+After all phases complete, merge the feature into `staging` using a local fast-forward merge (the project's convention — see `docs/RELEASE_WORKFLOW.md` for why):
 
 ```bash
-gh pr create --title "feat: Feature Name" --body "$(cat <<'EOF'
-## Summary
-- Key change 1
-- Key change 2
+git checkout staging && git pull
+git checkout feature/<name> && git rebase staging
+git checkout staging && git merge --ff-only feature/<name>
+pnpm check
+git push origin staging
+```
 
-## Phases Completed
-1. Phase 1 description
-2. Phase 2 description
-...
+If the feature touched `src/server/db/schema.ts`, run `pnpm db:push` against the staging Neon branch before relying on the new schema in the deployed staging app. See the Schema migrations section of `docs/RELEASE_WORKFLOW.md`.
 
-## Test plan
-- [ ] Manual test 1
-- [ ] Manual test 2
+## 5. Verify on staging deploy
 
-Generated with [Claude Code](https://claude.ai/code)
+Vercel auto-deploys `staging` to `*-staging.vercel.app` within a couple minutes of the push. Verify the feature end-to-end on that deploy — type checks and unit tests verify code correctness, not feature correctness.
+
+Then delete the merged feature branch:
+
+```bash
+git branch -d feature/<name>
+git push origin --delete feature/<name>
+```
+
+## 6. Release to production
+
+Production releases are **batched** — multiple verified features ship together via one `staging → main` PR opened via GitHub:
+
+```bash
+gh pr create --base main --head staging --title "release: <date>" --body "$(cat <<'EOF'
+## Release contents
+- feat: <PR titles included in this batch>
+
+## Verified on staging
+- [ ] feature 1: <what was tested>
+
+## Schema changes
+- [ ] None / list any that require `pnpm db:push` against prod after merge
 EOF
 )"
 ```
 
-## 5. Review & Merge
+Merge via the GitHub UI after status checks pass. Apply any schema changes to prod Neon *after* the merge, then verify the prod deploy.
 
-- Address any review feedback with additional commits
-- Ensure CI passes
-- Merge when approved
+Full release process, including hotfix policy and schema-migration ordering rules: `docs/RELEASE_WORKFLOW.md`.
 
 ## Key Principles
 
@@ -118,7 +138,8 @@ EOF
 ## Quick Reference
 
 ```bash
-# Start new feature
+# Start new feature (branch from staging)
+git checkout staging && git pull
 git checkout -b feature/my-feature
 
 # After each phase
@@ -126,6 +147,12 @@ pnpm check && pnpm test
 git add . && git commit -m "feat: Phase X - ..."
 git push
 
-# Create PR when done
-gh pr create --title "feat: My Feature" --body "..."
+# Merge to staging when feature is ready
+git checkout staging && git pull
+git checkout feature/my-feature && git rebase staging
+git checkout staging && git merge --ff-only feature/my-feature
+pnpm check && git push origin staging
+
+# When a batch of features is verified on staging, open the release PR
+gh pr create --base main --head staging --title "release: <date>"
 ```

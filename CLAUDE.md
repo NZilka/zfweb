@@ -45,13 +45,28 @@ answer - give grounded and hallucination-free answers.
 
 ## Git Workflow
 
-**IMPORTANT:** When working on a new feature or fixing a bug, create a git branch first. Work on changes in that branch for the remainder of the session. When planning, break down tasks into pull request sized units of work. After each pull request is done, check it into the branch. Ask any questions you have.
+**IMPORTANT:** All changes flow through `staging` before reaching production (`main`). Never merge a feature directly into `main`.
 
-```bash
-git checkout -b feature/your-feature-name
-# or
-git checkout -b fix/your-bug-fix
+The branch model in one diagram:
+
 ```
+feature/X ─┐
+           ├─► staging ─(verify on staging deploy)─► batched release PR ─► main ─► prod
+feature/Y ─┘
+```
+
+- Branch from current `staging`, not `main`:
+  ```bash
+  git checkout staging && git pull
+  git checkout -b feature/your-feature-name
+  # or
+  git checkout -b fix/your-bug-fix
+  ```
+- Feature → `staging` via local fast-forward merge (rebase first; see release doc).
+- `staging` → `main` via batched GitHub release PR (`gh pr create --base main --head staging`).
+- Hotfixes follow the same path — the `hotfix/` prefix signals urgency, not a bypass.
+
+**Full process, including schema migration ordering and pitfalls, lives in `docs/RELEASE_WORKFLOW.md`. Read it before opening a PR.**
 
 ## PR Completion Requirements
 
@@ -262,7 +277,9 @@ Check these files for detailed patterns and conventions:
 
 | Document                                 | When to Reference                                                                                            |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `.claude/docs/development_workflow.md`   | **Start here for any feature work.** Phased development, branching, testing, PR creation                     |
+| `docs/RELEASE_WORKFLOW.md`               | **Start here before opening any PR.** Branch model, staging-first flow, release PR process, schema migration ordering, hotfix policy |
+| `docs/STAGING_SETUP.md`                  | One-time staging environment setup (Neon branch, Upstash, Stripe webhook, Vercel env vars)                   |
+| `.claude/docs/development_workflow.md`   | Phased development pattern within a single feature branch (use after picking a branch per RELEASE_WORKFLOW)  |
 | `.claude/docs/architectural_patterns.md` | Adding features, understanding code organization, server/client patterns, modal implementation, file uploads |
 | `.claude/lessons/`                       | Learning documentation - lessons created after each PR explaining what was built and why                     |
 | `src/__tests__/`                         | Unit tests - see existing tests for patterns on mocking and test structure                                   |
