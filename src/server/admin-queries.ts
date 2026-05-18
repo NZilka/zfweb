@@ -24,6 +24,8 @@ export interface OrderWithItems {
   trackingNumber: string | null;
   // Whether order is a gift (hides prices on packing slip)
   isGift: boolean;
+  // Whether order was created via admin test mode (shown with a "TEST" badge)
+  isTest: boolean;
   createdAt: Date;
   items: {
     id: number;
@@ -48,10 +50,17 @@ export type FulfillmentFilter = "unshipped" | "in_process" | "shipped" | "all";
  * - all: all paid orders
  */
 export async function getOrdersByFulfillmentStatus(
-  filter: FulfillmentFilter
+  filter: FulfillmentFilter,
+  includeTest: boolean = false
 ): Promise<OrderWithItems[]> {
   // Build where conditions based on filter
   const conditions = [eq(order.status, "paid")];
+
+  // Exclude test orders unless explicitly included — keeps the default admin
+  // view focused on real orders so test orders can't be accidentally fulfilled.
+  if (!includeTest) {
+    conditions.push(eq(order.is_test, false));
+  }
 
   switch (filter) {
     case "unshipped":
@@ -87,6 +96,7 @@ export async function getOrdersByFulfillmentStatus(
       shippedAt: order.shipped_at,
       trackingNumber: order.tracking_number,
       isGift: order.is_gift,
+      isTest: order.is_test,
       createdAt: order.createdAt,
     })
     .from(order)
@@ -131,34 +141,48 @@ export async function getOrdersByFulfillmentStatus(
 /**
  * Get count of orders in each fulfillment status
  * Used for badge counts on sub-tabs
+ * Counts exclude test orders by default (matches default list behavior).
  */
-export async function getOrderCounts(): Promise<{
+export async function getOrderCounts(
+  includeTest: boolean = false
+): Promise<{
   unshipped: number;
   inProcess: number;
   shipped: number;
   all: number;
 }> {
+  // Base condition used in every count query — excludes test orders unless opted in
+  const baseConditions = includeTest
+    ? [eq(order.status, "paid")]
+    : [eq(order.status, "paid"), eq(order.is_test, false)];
+
   const [unshippedResult, inProcessResult, shippedResult, allResult] = await Promise.all([
     // Unshipped: paid, not downloaded
     db
       .select({ count: sql<number>`COUNT(*)::int` })
       .from(order)
-      .where(and(eq(order.status, "paid"), eq(order.is_downloaded, false))),
+      .where(and(...baseConditions, eq(order.is_downloaded, false))),
     // In Process: downloaded, not shipped
     db
       .select({ count: sql<number>`COUNT(*)::int` })
       .from(order)
-      .where(and(eq(order.status, "paid"), eq(order.is_downloaded, true), eq(order.is_shipped, false))),
+      .where(
+        and(
+          ...baseConditions,
+          eq(order.is_downloaded, true),
+          eq(order.is_shipped, false),
+        ),
+      ),
     // Shipped
     db
       .select({ count: sql<number>`COUNT(*)::int` })
       .from(order)
-      .where(and(eq(order.status, "paid"), eq(order.is_shipped, true))),
+      .where(and(...baseConditions, eq(order.is_shipped, true))),
     // All paid
     db
       .select({ count: sql<number>`COUNT(*)::int` })
       .from(order)
-      .where(eq(order.status, "paid")),
+      .where(and(...baseConditions)),
   ]);
 
   return {

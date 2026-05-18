@@ -41,6 +41,11 @@ const mockSettings = (carouselOverrides = {}) => ({
     content: null,
     images: [],
   },
+  // Test mode defaults — disabled with success as the neutral default
+  testMode: {
+    enabled: false,
+    outcome: "success" as const,
+  },
   updatedAt: Date.now(),
 });
 

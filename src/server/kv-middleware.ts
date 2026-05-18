@@ -40,6 +40,11 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
     content: null,
     images: [],
   },
+  // Default test mode: disabled, neutral "success" outcome
+  testMode: {
+    enabled: false,
+    outcome: "success",
+  },
   updatedAt: Date.now(),
 };
 

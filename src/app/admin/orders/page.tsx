@@ -14,7 +14,7 @@ import {
 export const dynamic = "force-dynamic";
 
 interface OrdersPageProps {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; includeTest?: string }>;
 }
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
@@ -22,11 +22,13 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const params = await searchParams;
   const tabParam = params.tab as FulfillmentFilter | undefined;
   const currentTab: FulfillmentFilter = tabParam ?? "unshipped";
+  // Opt-in inclusion of test orders — defaults off so the default view matches real orders
+  const includeTest = params.includeTest === "true";
 
-  // Fetch orders for current tab and counts for all tabs
+  // Fetch orders for current tab and counts for all tabs (both respect includeTest)
   const [orders, counts] = await Promise.all([
-    getOrdersByFulfillmentStatus(currentTab),
-    getOrderCounts(),
+    getOrdersByFulfillmentStatus(currentTab, includeTest),
+    getOrderCounts(includeTest),
   ]);
 
   return (
@@ -37,7 +39,12 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       <SignedIn>
         <div className="mx-auto max-w-7xl">
           {/* OrdersClient handles tabs, selection, export, and table rendering */}
-          <OrdersClient currentTab={currentTab} counts={counts} orders={orders} />
+          <OrdersClient
+            currentTab={currentTab}
+            counts={counts}
+            orders={orders}
+            includeTest={includeTest}
+          />
         </div>
       </SignedIn>
     </main>

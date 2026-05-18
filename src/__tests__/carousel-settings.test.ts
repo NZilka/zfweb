@@ -37,6 +37,10 @@ vi.mock("~/server/kv", () => ({
       content: null,
       images: [],
     },
+    testMode: {
+      enabled: false,
+      outcome: "success",
+    },
     updatedAt: Date.now(),
   },
 }));

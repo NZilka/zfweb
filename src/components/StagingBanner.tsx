@@ -1,8 +1,8 @@
 import { isStaging } from "~/lib/env-info";
 
-// Yellow bar rendered at the top of the admin layout when running on the
-// dedicated staging branch. Visibility is intentional — prevents admins from
-// mistaking staging data for production.
+// Yellow bar rendered site-wide (root layout) on the dedicated staging branch
+// deploy. Visibility is intentional — prevents admins from mistaking staging
+// data for production. No-op (returns null) on prod and local dev.
 export function StagingBanner() {
   if (!isStaging) return null;
 

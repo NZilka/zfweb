@@ -20,6 +20,8 @@ const workSans = Work_Sans({
 import { ClerkProvider } from "@clerk/nextjs";
 // Sonner toast component for notifications across the app
 import { Toaster } from "~/components/ui/sonner";
+// Yellow STAGING banner — renders only on the staging branch deploy.
+import { StagingBanner } from "~/components/StagingBanner";
 // Client-side providers including PostHog analytics
 import { Providers } from "./providers";
 
@@ -37,6 +39,8 @@ export default function RootLayout({
       <html lang="en">
         {/* Font vars: GeistSans for admin/UI, Buenard for shop headings, Work Sans for shop body */}
         <body className={`${GeistSans.variable} ${buenard.variable} ${workSans.variable} flex flex-col`}>
+          {/* Site-wide staging marker — only renders when isStaging is true */}
+          <StagingBanner />
           {/* Providers wrap app with client-side contexts (PostHog, etc.) */}
           <Providers>
             {children}

@@ -12,8 +12,13 @@ import { eq, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 
 // Create an order from a successful Stripe payment
-// Called by webhook handler when payment_intent.succeeded is received
-export async function createOrderFromPayment(paymentIntent: Stripe.PaymentIntent) {
+// Called by webhook handler when payment_intent.succeeded is received.
+// When options.isTest is true, the order is flagged as a test order — used by
+// the test mode checkout flow to exercise the full order pipeline without Stripe.
+export async function createOrderFromPayment(
+  paymentIntent: Stripe.PaymentIntent,
+  options: { isTest?: boolean } = {},
+) {
   const metadata = paymentIntent.metadata;
 
   // Extract customer info from payment intent metadata
@@ -77,6 +82,9 @@ export async function createOrderFromPayment(paymentIntent: Stripe.PaymentIntent
       total: calculatedTotal.toFixed(2),
       // Gift flag controls whether prices show on packing slip
       is_gift: isGift,
+      // Test flag — true when called from the test mode checkout route,
+      // false for real Stripe webhook-triggered orders (the default)
+      is_test: options.isTest ?? false,
     })
     .returning();
 

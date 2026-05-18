@@ -2,7 +2,9 @@
 // Run with: pnpm tsx scripts/test-kv.ts
 
 import { Redis } from "@upstash/redis";
-import "dotenv/config";
+// Explicit .env.local load — node scripts don't get Next.js's env file loading.
+import { config } from "dotenv";
+config({ path: ".env.local" });
 
 async function testConnection() {
   const url = process.env.UPSTASH_REDIS_REST_URL;

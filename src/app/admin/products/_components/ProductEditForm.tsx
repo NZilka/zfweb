@@ -175,11 +175,40 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
       }
     };
 
-    // Upload new files to UploadThing
+    // Upload new files to UploadThing. Throws on any failure so the caller
+    // can abort the form submit before writing a product row to the DB
+    // (otherwise an orphan product with no images would be created and the
+    // user would only see a generic "no images" UI state).
     const handleImageUpload = async (filesToUpload: File[]) => {
       if (filesToUpload.length === 0) return [];
-      const result = await $ut.startUpload(filesToUpload);
-      return result ?? [];
+      let result;
+      try {
+        result = await $ut.startUpload(filesToUpload);
+      } catch (err: any) {
+        // Newer UT versions throw network/SDK errors here
+        throw new Error(
+          `Image upload failed: ${err?.message ?? "unknown error"}`,
+        );
+      }
+      if (!result) {
+        // Older UT versions return undefined on failure without throwing
+        throw new Error(
+          "Image upload failed — no response from UploadThing. Check that UPLOADTHING_TOKEN is configured correctly.",
+        );
+      }
+      if (result.length !== filesToUpload.length) {
+        throw new Error(
+          `Image upload partially failed (${result.length}/${filesToUpload.length} succeeded).`,
+        );
+      }
+      // Defensive: every result must have both url and key
+      const broken = result.findIndex((r) => !r?.url || !r?.key);
+      if (broken !== -1) {
+        throw new Error(
+          `Image upload returned incomplete data for file ${broken + 1}.`,
+        );
+      }
+      return result;
     };
 
     // Handle form submission
@@ -204,10 +233,13 @@ export const ProductEditForm = forwardRef<ProductEditFormHandle, ProductEditForm
         // Get image data from context
         const imageChanges = getImageChanges();
 
-        // Upload any new files
+        // Upload any new files. handleImageUpload throws on any failure, so
+        // a throw here aborts the form submit before addProduct/updateProduct
+        // runs. No .filter(Boolean) needed — the helper validates each entry
+        // has both url and key.
         const uploadResult = await handleImageUpload(imageChanges.newFiles);
-        const newUrls = uploadResult.map((r) => r.url).filter(Boolean);
-        const newKeys = uploadResult.map((r) => r.key).filter(Boolean);
+        const newUrls = uploadResult.map((r) => r.url);
+        const newKeys = uploadResult.map((r) => r.key);
 
         if (mode === "create") {
           // CREATE MODE: Create product with uploaded images + crop data
