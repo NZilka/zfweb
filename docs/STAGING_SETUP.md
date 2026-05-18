@@ -95,11 +95,14 @@ This prevents direct pushes to either branch.
 
 After the first staging deploy:
 
-- [ ] Visit the staging URL → yellow "STAGING ENVIRONMENT" banner appears in `/admin`.
+- [ ] Visit `https://staging.crft.shop` unauthenticated → redirected to Clerk sign-in (staging admin gate).
+- [ ] Sign in as a non-admin Clerk user → redirected to `/staging-restricted` with a sign-out button.
+- [ ] Sign in as an admin (`privateMetadata["can-upload"] === true`) → see the shop and `/admin` normally.
+- [ ] Yellow "STAGING ENVIRONMENT" banner appears site-wide (shop + admin), not just inside `/admin`.
+- [ ] `curl -I https://staging.crft.shop/` returns header `X-Robots-Tag: noindex, nofollow` on every response.
 - [ ] Open browser devtools → Network tab on staging → no PostHog requests (analytics are skipped on preview deploys).
-- [ ] Sign in to `/admin` on staging → if Clerk shared with prod, same credentials work.
 - [ ] Connect to the staging Neon branch via `pnpm db:studio` with staging `DATABASE_URL` — confirm it has its own data.
-- [ ] Once PR #2 ships: `/admin/settings` shows a red **Test Mode** card on staging. That same card is absent on prod.
+- [ ] `/admin/settings` shows a red **Test Mode** card on staging. That same card is absent on prod.
 
 ## Running schema migrations across environments
 
