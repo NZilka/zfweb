@@ -40,3 +40,25 @@ export function shouldRefuseUploadThingBoot(opts: {
 }): boolean {
   return !opts.isProd && opts.appId === opts.prodAppId;
 }
+
+// Detects a token that is *present but malformed* — the typical cause is
+// pasting the token into Vercel's env var UI with surrounding quotes
+// preserved from the .env file. Returns a human-readable reason if broken,
+// null if the token is either absent (caller's problem) or shape-valid.
+//
+// Exported for unit tests and re-use by the boot tripwire.
+export function getMalformedTokenReason(
+  token: string | undefined,
+): string | null {
+  if (!token) return null;
+  // Most common: a literal `'` or `"` at the start or end of the value.
+  // dotenv strips these locally but Vercel's UI does not, so a quoted
+  // copy-paste from .env.local lands in the deploy with literal quotes.
+  if (/^['"]|['"]$/.test(token.trim())) {
+    return "token has wrapping quotes — strip them when pasting into Vercel's env-var UI";
+  }
+  if (getAppIdFromToken(token) === null) {
+    return "token is not a valid base64-encoded JSON object with an appId field";
+  }
+  return null;
+}

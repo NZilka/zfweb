@@ -9,6 +9,7 @@
 import { describe, it, expect } from "vitest";
 import {
   getAppIdFromToken,
+  getMalformedTokenReason,
   shouldRefuseUploadThingBoot,
   PROD_UPLOADTHING_APP_ID,
 } from "~/server/uploadthing-token";
@@ -83,5 +84,48 @@ describe("shouldRefuseUploadThingBoot", () => {
     expect(
       shouldRefuseUploadThingBoot({ isProd: true, appId: null, prodAppId }),
     ).toBe(false);
+  });
+});
+
+describe("getMalformedTokenReason", () => {
+  it("returns null for an absent token (different problem, not the tripwire's job)", () => {
+    expect(getMalformedTokenReason(undefined)).toBeNull();
+    expect(getMalformedTokenReason("")).toBeNull();
+  });
+
+  it("returns null for a valid token", () => {
+    const token = makeToken({ apiKey: "sk_x", appId: "myapp123" });
+    expect(getMalformedTokenReason(token)).toBeNull();
+  });
+
+  it("detects a token wrapped in single quotes — the common Vercel UI paste mistake", () => {
+    const token = makeToken({ apiKey: "sk_x", appId: "myapp123" });
+    expect(getMalformedTokenReason(`'${token}'`)).toMatch(/wrapping quotes/);
+  });
+
+  it("detects a token wrapped in double quotes", () => {
+    const token = makeToken({ apiKey: "sk_x", appId: "myapp123" });
+    expect(getMalformedTokenReason(`"${token}"`)).toMatch(/wrapping quotes/);
+  });
+
+  it("detects a quote-only-on-one-side variant", () => {
+    const token = makeToken({ apiKey: "sk_x", appId: "myapp123" });
+    expect(getMalformedTokenReason(`'${token}`)).toMatch(/wrapping quotes/);
+    expect(getMalformedTokenReason(`${token}"`)).toMatch(/wrapping quotes/);
+  });
+
+  it("detects an unparseable base64 payload", () => {
+    expect(getMalformedTokenReason("!@#$%notbase64")).toMatch(
+      /not a valid base64-encoded JSON object/,
+    );
+  });
+
+  it("detects valid base64 that decodes to something without appId", () => {
+    const garbage = Buffer.from(JSON.stringify({ foo: "bar" })).toString(
+      "base64",
+    );
+    expect(getMalformedTokenReason(garbage)).toMatch(
+      /not a valid base64-encoded JSON object/,
+    );
   });
 });

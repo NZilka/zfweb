@@ -59,10 +59,19 @@ would 404 the prod URLs. Token-level isolation is the only structural fix.
    line. (Production keeps the original prod token in Vercel's Production
    scope; never put it in `.env.local`.)
 5. A boot-time tripwire in `src/server/uploadthing.ts` decodes the active
-   token and refuses to start if the **prod** appId is detected in a
-   non-prod context. So if you ever paste the wrong token locally or
-   forget the Vercel branch filter, the deploy fails loudly instead of
-   silently corrupting prod storage.
+   token and refuses to start if either (a) the token is malformed (e.g.
+   has wrapping quote characters from a copy-paste), or (b) the **prod**
+   appId is detected in a non-prod context. So if you ever paste the wrong
+   value or forget the Vercel branch filter, the deploy fails loudly instead
+   of silently breaking uploads at request time.
+
+> **Pasting tokens into Vercel's env-var UI:** dotenv strips wrapping
+> quotes from `.env.local` lines but Vercel's UI preserves them as part
+> of the value. If your `.env.local` has `UPLOADTHING_TOKEN='eyJ…='`
+> (single-quoted) and you copy the value including the quotes into
+> Vercel, the deploy will fail with an "Invalid token" error. Always
+> paste the raw `eyJ…=` value with no surrounding quotes. Same rule
+> applies to any other env var.
 
 Note: a freshly branched staging Neon DB's image URLs still point at prod
 UT files. They'll load fine for reads (the prod app's bucket is publicly
@@ -139,6 +148,20 @@ appId (`515kq3lhmc`). Re-run this any time you delete + recreate the
 staging Neon branch. Re-running on already-migrated data will skip
 already-staging files; only legacy `utfs.io/...` URLs (no per-app
 subdomain) are re-uploaded conservatively.
+
+## Error visibility on staging
+
+Next.js builds preview deploys with `NODE_ENV=production`, which strips
+error messages from Server Component render errors at runtime (the
+generic "specific message is omitted in production builds…" page). This
+is hostile for QA. To work around it, `src/app/error.tsx` and
+`src/app/global-error.tsx` boundaries check
+`process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"` and render the
+full `error.message` + stack inline on any non-prod deploy. Production
+deploys still show only the digest, matching Next's default behavior.
+
+The `NEXT_PUBLIC_VERCEL_ENV` value is auto-injected by Vercel — no env
+var setup needed.
 
 ## Verifying the setup
 

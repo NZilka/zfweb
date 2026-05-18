@@ -82,10 +82,11 @@ git push origin staging
 
 ### 4. Verify on the staging deploy
 
-After pushing, Vercel builds and deploys staging within ~1–2 minutes. Verify the feature end-to-end on `*-staging.vercel.app`:
+After pushing, Vercel builds and deploys staging within ~1–2 minutes. Verify the feature end-to-end on `https://staging.crft.shop`:
 
 - Exercise the feature in a browser (golden path + edge cases).
-- Check `/admin/settings` shows the yellow STAGING banner and (when enabled) the red Test Mode card.
+- Check the site-wide yellow STAGING banner is visible.
+- **Upload one image** (any admin: products, carousel, about, logo). Quick smoke test that the staging UploadThing app is reachable from this deploy — catches misconfigured `UPLOADTHING_TOKEN` before the release PR.
 - Run any feature-specific checklist from the PR description.
 - For frontend changes, test mobile width (320px) per CLAUDE.md's mobile-first rules.
 
