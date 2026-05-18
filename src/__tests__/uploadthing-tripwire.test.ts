@@ -114,6 +114,23 @@ describe("getMalformedTokenReason", () => {
     expect(getMalformedTokenReason(`${token}"`)).toMatch(/wrapping quotes/);
   });
 
+  it("detects when the full .env line was pasted into the value field", () => {
+    const token = makeToken({ apiKey: "sk_x", appId: "myapp123" });
+    expect(getMalformedTokenReason(`UPLOADTHING_TOKEN=${token}`)).toMatch(
+      /full \.env line/,
+    );
+    // Real-world example: arbitrary uppercase var name
+    expect(getMalformedTokenReason(`FOO_BAR=${token}`)).toMatch(/full \.env line/);
+  });
+
+  it("does NOT false-positive on a valid token that happens to be uppercase-heavy", () => {
+    // The prefix check only fires on `[A-Z_]+=` at the start; a valid base64
+    // token can have uppercase chars and `=` padding but never as a prefix
+    // before the first lowercase char.
+    const token = makeToken({ apiKey: "sk_x", appId: "myapp123" });
+    expect(getMalformedTokenReason(token)).toBeNull();
+  });
+
   it("detects an unparseable base64 payload", () => {
     expect(getMalformedTokenReason("!@#$%notbase64")).toMatch(
       /not a valid base64-encoded JSON object/,

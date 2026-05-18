@@ -57,6 +57,13 @@ export function getMalformedTokenReason(
   if (/^['"]|['"]$/.test(token.trim())) {
     return "token has wrapping quotes — strip them when pasting into Vercel's env-var UI";
   }
+  // Second-most common: the whole .env line (NAME=value) pasted into the
+  // value field instead of just the value. Catches e.g. "UPLOADTHING_TOKEN=eyJ...".
+  // A valid UT token is base64; it can't start with an unbroken UPPER+`_` run
+  // followed by `=`, so this prefix is a strong indicator of the mistake.
+  if (/^[A-Z_]+=/.test(token)) {
+    return "value looks like a full .env line (NAME=value); paste only the value (the part after the equals sign)";
+  }
   if (getAppIdFromToken(token) === null) {
     return "token is not a valid base64-encoded JSON object with an appId field";
   }

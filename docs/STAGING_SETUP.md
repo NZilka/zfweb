@@ -65,13 +65,19 @@ would 404 the prod URLs. Token-level isolation is the only structural fix.
    value or forget the Vercel branch filter, the deploy fails loudly instead
    of silently breaking uploads at request time.
 
-> **Pasting tokens into Vercel's env-var UI:** dotenv strips wrapping
-> quotes from `.env.local` lines but Vercel's UI preserves them as part
-> of the value. If your `.env.local` has `UPLOADTHING_TOKEN='eyJ…='`
-> (single-quoted) and you copy the value including the quotes into
-> Vercel, the deploy will fail with an "Invalid token" error. Always
-> paste the raw `eyJ…=` value with no surrounding quotes. Same rule
-> applies to any other env var.
+> **Pasting tokens into Vercel's env-var UI** — two common mistakes the
+> boot tripwire catches:
+>
+> 1. **Wrapping quotes.** dotenv strips `'…'` / `"…"` from `.env.local`
+>    lines but Vercel's UI preserves them as part of the value. Strip them
+>    when pasting.
+> 2. **The whole .env line.** Copying `UPLOADTHING_TOKEN=eyJ…=` and pasting
+>    into Vercel's *value* field stores the variable name as part of the
+>    value. The variable name belongs in the field on the left; only the
+>    `eyJ…=` (the part after `=`) goes in the value field.
+>
+> Same rules apply to any other env var. The tripwire surfaces a specific
+> error message for each mistake so the fix is obvious.
 
 Note: a freshly branched staging Neon DB's image URLs still point at prod
 UT files. They'll load fine for reads (the prod app's bucket is publicly

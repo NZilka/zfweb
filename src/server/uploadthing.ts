@@ -17,25 +17,10 @@ import {
 //    message that doesn't point at the cause.
 const _tokenProblem = getMalformedTokenReason(process.env.UPLOADTHING_TOKEN);
 if (_tokenProblem) {
-  // Temporary diagnostics: include length, edge chars, and positions of
-  // any non-base64 characters so we can see what's actually in the value
-  // without exposing the secret. Remove once the staging deploy is unblocked.
-  const raw = process.env.UPLOADTHING_TOKEN ?? "";
-  const nonB64 = Array.from(raw)
-    .map((c, i) => (/[A-Za-z0-9+/=]/.test(c) ? null : `[${i}]=U+${c.charCodeAt(0).toString(16).padStart(4, "0")}`))
-    .filter(Boolean)
-    .slice(0, 12)
-    .join(",");
-  const diag =
-    `length=${raw.length}, ` +
-    `first8=${JSON.stringify(raw.slice(0, 8))}, ` +
-    `last8=${JSON.stringify(raw.slice(-8))}, ` +
-    `nonB64=[${nonB64}]`;
   throw new Error(
     `UPLOADTHING_TOKEN is malformed: ${_tokenProblem}. ` +
       `VERCEL_ENV=${process.env.VERCEL_ENV ?? "unset"}, ` +
       `branch=${process.env.VERCEL_GIT_COMMIT_REF ?? "unset"}. ` +
-      `Diag: ${diag}. ` +
       `See docs/STAGING_SETUP.md for env var setup.`,
   );
 }
