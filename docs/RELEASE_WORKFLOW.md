@@ -142,12 +142,11 @@ Merge the PR via GitHub UI (not local) so the merge commit and review history li
 If the release included schema changes, apply them to the prod Neon branch **only after** the release PR has merged:
 
 ```bash
-# Edit .env to point DATABASE_URL at PROD Neon (not staging)
-# (drizzle.config.ts loads .env, not .env.local)
+# Edit .env.local to point DATABASE_URL at PROD Neon (not staging)
 pnpm db:push
 ```
 
-Then revert `.env` to the staging URL for ongoing development.
+Then revert `.env.local` to the staging URL for ongoing development.
 
 ### 8. Verify production
 
@@ -163,10 +162,10 @@ Schema lives in `src/server/db/schema.ts`. The project uses **`pnpm db:push`** (
 
 | When | Action |
 | --- | --- |
-| Feature merged to `staging` | Point `.env` at staging Neon → `pnpm db:push` → push schema change → wait for Vercel staging deploy → verify |
-| Release PR merged to `main` | Point `.env` at prod Neon → `pnpm db:push` → Vercel auto-deploys prod from `main` |
+| Feature merged to `staging` | Point `.env.local` at staging Neon → `pnpm db:push` → push schema change → wait for Vercel staging deploy → verify |
+| Release PR merged to `main` | Point `.env.local` at prod Neon → `pnpm db:push` → Vercel auto-deploys prod from `main` |
 
-**Footgun:** `drizzle.config.ts` uses `dotenv/config`, which loads `.env` and ignores `.env.local`. Always update `.env` — not `.env.local` — before running `pnpm db:push`.
+`drizzle.config.ts` loads `.env.local` explicitly, so `pnpm db:push` and the running app always see the same `DATABASE_URL`. Update `.env.local` (the only env file the project uses for local dev) before running migrations.
 
 **Never** push staging-only schema changes to prod. If `is_test` is added on a feature branch and applied to staging, prod must NOT receive it until the release PR carries that schema into `main`'s source tree.
 
@@ -191,7 +190,7 @@ If a hotfix cannot wait for staging verification (true emergency: prod is down, 
 
 - **Chained PRs dropping changes on GitHub merge.** If feature B is opened against feature A's branch, GitHub computes the diff against A — not against `staging` — and may silently drop changes that already exist in A. Mitigation: always rebase each feature onto current `staging` before merging the next link in the chain. See `MEMORY.md` "Chained PR Merges — DANGER" and `.claude/lessons/45-restore-carousel-types.md`.
 
-- **`pnpm db:push` reading the wrong env file.** `drizzle.config.ts` loads `.env` (not `.env.local`). If `.env.local` is staging but `.env` is prod, you'll push schema to prod by accident. Always read the active `DATABASE_URL` from `.env` before running.
+- **`pnpm db:push` pushing to the wrong DB.** `drizzle.config.ts` reads `DATABASE_URL` from `.env.local`. Always verify what's in `.env.local` before running — it's the same value the app uses, but mistakes are silent (no confirmation prompt).
 
 - **Forgetting to apply schema to prod after release.** The release PR carries the schema *source* to `main`, but `pnpm db:push` still has to be run manually against prod Neon. List schema changes in every release PR body so this step isn't missed.
 

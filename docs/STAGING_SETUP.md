@@ -7,7 +7,7 @@ This doc covers the one-time setup to give the project a staging environment on 
 | Piece | Production | Staging | Notes |
 | --- | --- | --- | --- |
 | Git branch | `main` | `staging` | Both auto-deploy via Vercel |
-| Domain | your prod domain | `<project>-staging.vercel.app` (or a custom subdomain) | |
+| Domain | your prod domain | `staging.crft.shop` (interim; switches to `staging.zilkaforgewerks.com` at launch) | |
 | Neon DB | prod branch | `staging` branch | Branched from prod, separate data |
 | Upstash Redis | prod DB | separate DB | Don't share — SiteSettings would cross-contaminate |
 | Stripe | live keys | test-mode keys | Separate webhook endpoints |
@@ -80,7 +80,7 @@ The key subtlety: Vercel's **Preview** scope applies to every preview branch (ev
 ### 6. Vercel — connect the branch
 
 1. **Settings → Git** — confirm Production Branch is `main`.
-2. Push any commit to `staging` — Vercel will build and deploy to `https://<project>-staging.vercel.app` (or whatever URL it assigns).
+2. Push any commit to `staging` — Vercel will build and deploy to `https://staging.crft.shop` (the custom domain assigned to the `staging` branch via Vercel Settings → Domains, scoped Preview / branch `staging`).
 3. Update the Stripe webhook URL from step 4 if the actual Vercel URL differs from what you guessed.
 
 ### 7. (Optional) Branch protection
@@ -103,14 +103,14 @@ After the first staging deploy:
 
 ## Running schema migrations across environments
 
-There's no automatic migration on Vercel build. When schema changes land:
+There's no automatic migration on Vercel build. Schema changes are applied
+manually per environment via `pnpm db:push`, with the staging push happening
+*before* the release PR ships to prod. The canonical ordering and commands
+live in `docs/RELEASE_WORKFLOW.md` (see "Schema migrations" there).
 
-1. Merge the migration PR to `main`.
-2. Locally, point `.env.local` at the **prod** `DATABASE_URL` and run `pnpm db:push`.
-3. Point `.env.local` at the **staging** `DATABASE_URL` and run `pnpm db:push`.
-4. Restore your local dev URL.
-
-Alternatively set this up as GitHub Actions later.
+Key thing to know locally: `drizzle.config.ts` loads `.env.local` explicitly,
+so the URL you set in `.env.local` is the URL `pnpm db:push` writes to. Always
+verify before running.
 
 ## Gotchas
 
