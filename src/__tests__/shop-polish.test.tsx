@@ -244,7 +244,7 @@ describe("Carousel", () => {
     expect(video?.hasAttribute("loop")).toBe(true);
   });
 
-  it("starts with transition enabled", () => {
+  it("renders the sliding track at slide 0", () => {
     const data: CarouselData = {
       slides: [makeImageSlide(1), makeImageSlide(2)],
       autoScroll: false,
@@ -253,9 +253,14 @@ describe("Carousel", () => {
 
     const { container } = render(<Carousel data={data} />);
 
-    // The sliding track should have transition class initially
-    const track = container.querySelector(".flex.transition-transform");
+    // The track is a .flex div with an inline translateX style.
+    // (Previously this test checked for `.transition-transform` — that
+    // CSS-transition class was removed when slide animation moved to the
+    // Web Animations API. The translateX on the inline style is now the
+    // single source of truth for the track's resting position.)
+    const track = container.querySelector(".flex[style*='translateX']") as HTMLElement | null;
     expect(track).not.toBeNull();
+    expect(track?.style.transform).toBe("translateX(-0%)");
   });
 
   it("clicking a dot navigates to that slide", () => {
