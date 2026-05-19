@@ -1,7 +1,7 @@
 /**
  * QuickAddButton — Small "+" overlay button for product cards
  * Positioned on bottom-right of product image for quick add-to-cart
- * Hidden when product is out of stock
+ * Hidden when product is sold out (inventory exhausted)
  */
 "use client";
 
@@ -21,7 +21,7 @@ export function QuickAddButton({
   const { addToCart } = useCart();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Don't render when out of stock
+  // Don't render when sold out (inventory exhausted)
   if (availableInventory === 0) return null;
 
   const handleClick = async (e: React.MouseEvent) => {

@@ -129,10 +129,11 @@ async function ProductGrid({
                   </h1>
                 </Link>
                 {/* Body font inherited from layout; 30% darker bone-white price.
-                    Sold-out products show the price red + struck-through with
-                    a "Sold out" label next to it, so customers can still see
-                    the price but understand it's not currently available. */}
-                {product.status === "sold_out" ? (
+                    Sold-out treatment fires for BOTH admin-set status="sold_out"
+                    AND inventory exhaustion (availableInventory === 0). Without
+                    the inventory check, products that naturally run out would
+                    still show as available on the grid. */}
+                {product.status === "sold_out" || availableInventory === 0 ? (
                   <p className="flex items-center gap-2 text-lg font-light text-red-500">
                     <span className="line-through">${product.price}</span>
                     <span>Sold out</span>

@@ -31,6 +31,10 @@ export default async function ProductModalPage({
   // Get actual available inventory (total minus reserved in other carts)
   const availableInventory = await getAvailableInventory(productId);
 
+  // Sold-out fires for either admin-set status or natural inventory exhaustion.
+  // Drives the red strikethrough + "Sold out" label treatment on the price line.
+  const isSoldOut = product.status === "sold_out" || availableInventory === 0;
+
   return (
     <ProductModal>
       {/* Track product view for analytics (invisible component) */}
@@ -47,16 +51,26 @@ export default async function ProductModalPage({
           <div className="flex flex-1 flex-col gap-4">
             {/* Buenard heading font for product title */}
             <h1 className="text-2xl font-bold font-[family-name:var(--font-heading)] md:text-3xl">{product.title}</h1>
-            <p className="text-xl font-semibold md:text-2xl">${product.price}</p>
+            {/* Sold-out: red strikethrough price + "Sold out" label inline.
+                Matches the shop-grid treatment. */}
+            {isSoldOut ? (
+              <p className="flex items-center gap-2 text-xl font-semibold text-red-500 md:text-2xl">
+                <span className="line-through">${product.price}</span>
+                <span>Sold out</span>
+              </p>
+            ) : (
+              <p className="text-xl font-semibold md:text-2xl">${product.price}</p>
+            )}
             <p className="text-gray-700">
               {product.description}
             </p>
-            {/* Show available inventory (accounts for items reserved in other carts) */}
-            <p className="text-sm text-gray-500">
-              {availableInventory > 0
-                ? `${availableInventory} in stock`
-                : "Out of stock"}
-            </p>
+            {/* Inventory count only shown when in stock — when sold-out the
+                price line already says "Sold out", a duplicate would be redundant. */}
+            {!isSoldOut && (
+              <p className="text-sm text-gray-500">
+                {availableInventory} in stock
+              </p>
+            )}
 
             {/* Add to Cart - closes modal on success */}
             <div className="mt-4">

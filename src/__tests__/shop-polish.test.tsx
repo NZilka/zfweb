@@ -48,7 +48,7 @@ describe("QuickAddButton", () => {
     expect(screen.getByLabelText("Quick add to cart")).toBeTruthy();
   });
 
-  it("renders nothing when inventory is 0 (out of stock)", () => {
+  it("renders nothing when inventory is 0 (sold out)", () => {
     const { container } = render(
       <QuickAddButton productId={1} availableInventory={0} />,
     );
