@@ -29,6 +29,10 @@ export default async function ProductPage({
   // Get actual available inventory (total minus reserved in other carts)
   const availableInventory = await getAvailableInventory(productId);
 
+  // Sold-out fires for either admin-set status or natural inventory exhaustion.
+  // Drives the red strikethrough + "Sold out" label treatment on the price line.
+  const isSoldOut = product.status === "sold_out" || availableInventory === 0;
+
   return (
     <div className="flex min-h-screen flex-col items-center gap-8 p-8">
       {/* Track product view for analytics (invisible component) */}
@@ -54,16 +58,28 @@ export default async function ProductPage({
         <div className="flex flex-1 flex-col gap-4">
           {/* Buenard heading font for product title */}
           <h1 className="text-3xl font-bold font-[family-name:var(--font-heading)]">{product.title}</h1>
-          <p className="text-2xl font-semibold">${product.price}</p>
+          {/* Sold-out: red strikethrough price + "Sold out" label inline.
+              Matches the shop-grid treatment so customers see consistent
+              cues whether they land on a product card or its detail page. */}
+          {isSoldOut ? (
+            <p className="flex items-center gap-2 text-2xl font-semibold text-red-500">
+              <span className="line-through">${product.price}</span>
+              <span>Sold out</span>
+            </p>
+          ) : (
+            <p className="text-2xl font-semibold">${product.price}</p>
+          )}
           <p className="text-gray-700">
             {product.description}
           </p>
-          {/* Show available inventory (accounts for items reserved in other carts) */}
-          <p className="text-sm text-gray-500">
-            {availableInventory > 0
-              ? `${availableInventory} in stock`
-              : "Out of stock"}
-          </p>
+          {/* Inventory count only shown when in stock — when sold-out the
+              price line already says "Sold out", a duplicate label below
+              would be redundant. */}
+          {!isSoldOut && (
+            <p className="text-sm text-gray-500">
+              {availableInventory} in stock
+            </p>
+          )}
           {/* Add to Cart with quantity selector */}
           <div className="mt-4">
             <AddToCartButton

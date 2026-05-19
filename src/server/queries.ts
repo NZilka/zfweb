@@ -55,34 +55,33 @@ export async function getPublicProductById(id: number) {
   return product;
 }
 
-export async function deleteProduct(id: number) {
+// Core delete logic without the redirect — callable in a loop (the bulk
+// delete server action needs per-item failure isolation, and a redirect
+// throws NEXT_REDIRECT which would terminate the loop on iteration 1).
+// Throws on auth failure, missing product, or DB constraint violation
+// (e.g. FK 23503 if the product is referenced by an order_item or cart_item).
+export async function deleteProductCore(id: number) {
   const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized"); //technically this doesn't need to be here I don't think, but I'm leaving it.
+  if (!user.userId) throw new Error("Unauthorized");
 
-  // the code below is to setup the deleteFiles off UploadThing. If you were just deleting off the db, you wouldn't need this.
   const product = await db.query.product.findFirst({
     where: (model, { eq }) => eq(model.id, id),
   });
   if (!product) throw new Error("Product Not found");
-  //if (product.userId !== user.userId) throw new Error("Unauthorized");
 
+  // DB delete first — this is the operation that can fail with an FK
+  // violation. If it throws, we don't want to have already deleted UT files.
   await db.delete(dbproduct).where(eq(dbproduct.id, id));
 
-  // .delete(product)
-  //   .where(eq(db.product.id, id));
-
+  // UT cleanup only runs after a successful DB delete.
   await utapi.deleteFiles(product.imgKey);
+}
 
-  // analyticsServerClient.capture({
-  //   distinctId: user.userId,
-  //   event: "Product Deleted",
-  //   properties: {
-  //     productId: id,
-  //     productName: product.name,
-  //   },
-  // });
-
-  //revalidatePath("/"); // part of the demo, just left it in as a reminder.
+// Single-product delete preserved as a thin wrapper for existing call sites.
+// Triggers a redirect to /admin so the legacy "Delete from product edit modal"
+// flow keeps working unchanged.
+export async function deleteProduct(id: number) {
+  await deleteProductCore(id);
   redirect("/admin");
 }
 

@@ -4,8 +4,9 @@
  */
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
-import { Plus, Upload, Layout } from "lucide-react";
+import { useState, useMemo, useEffect, useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Upload, Layout, Trash2 } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -28,7 +29,10 @@ import { ProductsGrid } from "./ProductsGrid";
 import { ProductFilters } from "./ProductFilters";
 import { ViewToggle } from "./ViewToggle";
 import { ProductEditModal } from "./ProductEditModal";
-import { updateProductSortOrder } from "~/server/product-actions";
+import {
+  updateProductSortOrder,
+  deleteProductsAction,
+} from "~/server/product-actions";
 import type { CategoryType } from "~/app/admin/_components/ProductForm";
 import { filterProducts } from "./filterProducts";
 
@@ -88,8 +92,18 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductData | undefined>();
 
-  // Selection state for bulk actions (future use)
+  // Selection state for bulk actions (bulk delete wired up below)
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
+
+  // Router used to force a re-render after the bulk delete server action.
+  // revalidatePath in the action invalidates the cache, but the currently
+  // rendered tab still needs router.refresh() to actually re-fetch.
+  const router = useRouter();
+
+  // Pending state for the bulk-delete server action — disables the button
+  // and lets us optionally show a spinner. useTransition keeps the UI
+  // responsive while the server action runs.
+  const [isDeleting, startDeleteTransition] = useTransition();
 
   // Local product order for optimistic drag-and-drop reordering
   const [orderedProducts, setOrderedProducts] = useState<ProductData[]>(products);
@@ -194,6 +208,50 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
     }
   };
 
+  // Bulk delete handler — confirms via native browser prompt (matches the
+  // existing pattern in ProductEditModal / DiscountsClient / ShippingClient),
+  // then calls deleteProductsAction. On partial failure (e.g. FK constraint
+  // because a product is referenced by an order), shows an alert listing
+  // which products couldn't be deleted and why.
+  const handleBulkDelete = () => {
+    const ids = [...selectedProducts];
+    if (ids.length === 0) return;
+
+    // Pull the selected products' titles so the confirm message names
+    // what's about to be deleted. Use `products` (the full list from props),
+    // not `filteredProducts`, so titles resolve even if a selected row
+    // would be hidden by current filters.
+    const selectedRows = products.filter((p) => selectedProducts.has(p.id));
+    const sample = selectedRows
+      .slice(0, 2)
+      .map((p) => `'${p.title}'`)
+      .join(", ");
+    const more =
+      selectedRows.length > 2 ? ` and ${selectedRows.length - 2} others` : "";
+    const message =
+      ids.length === 1
+        ? `Delete '${selectedRows[0]?.title ?? ""}'? This cannot be undone.`
+        : `Delete ${ids.length} products? This includes ${sample}${more}. This cannot be undone.`;
+
+    if (!confirm(message)) return;
+
+    startDeleteTransition(async () => {
+      const result = await deleteProductsAction(ids);
+      // Always clear selection — successful rows are gone, and leaving
+      // failed rows checked would be misleading after the alert.
+      setSelectedProducts(new Set());
+      router.refresh();
+      if (result.failed.length > 0) {
+        const failedList = result.failed
+          .map((f) => `• '${f.title}' — ${f.reason}`)
+          .join("\n");
+        alert(
+          `Deleted ${result.succeeded.length} of ${ids.length}.\n\nCouldn't delete:\n${failedList}`,
+        );
+      }
+    });
+  };
+
   // Get category name by ID for display
   const getCategoryName = (categoryId: number | null) => {
     if (!categoryId) return null;
@@ -206,6 +264,20 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-xl sm:text-2xl font-bold">Products</h1>
         <div className="flex items-center gap-2">
+          {/* Bulk delete button — only renders when at least one product is
+              checked. Hidden on mobile to match the `hidden sm:table-cell`
+              checkbox column (no path to multi-select on mobile). */}
+          {selectedProducts.size > 0 && (
+            <Button
+              onClick={handleBulkDelete}
+              variant="destructive"
+              disabled={isDeleting}
+              className="hidden sm:flex gap-2 px-2 sm:px-4"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Delete ({selectedProducts.size})</span>
+            </Button>
+          )}
           {/* Import button - icon only on mobile */}
           <Button variant="outline" className="gap-2 px-2 sm:px-4">
             <Upload className="h-4 w-4" />
