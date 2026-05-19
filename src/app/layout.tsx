@@ -24,11 +24,17 @@ import { Toaster } from "~/components/ui/sonner";
 import { StagingBanner } from "~/components/StagingBanner";
 // Client-side providers including PostHog analytics
 import { Providers } from "./providers";
+// Used to distinguish staging from prod in the browser tab title.
+import { isStaging } from "~/lib/env-info";
 
 export const metadata: Metadata = {
-  title: "Zilka Forgewerks",
+  // Tab title differs only on staging so it's easy to tell which env a tab
+  // belongs to when several are open. Prod + local both show the real name.
+  title: isStaging ? "ZF Staging" : "Zilka Forgewerks",
   description: "Bespoke Ritually Forged Jewelry and Tools",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  // Favicon comes from src/app/icon.png via Next.js's metadata file
+  // convention — no manual `icons:` array needed (Next.js auto-generates
+  // the <link rel="icon"> tag and serves the file).
 };
 
 export default function RootLayout({
