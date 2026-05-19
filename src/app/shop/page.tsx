@@ -24,7 +24,11 @@ async function ProductGrid({
   );
 
   return (
-    <div className="flex max-w-[1200px] flex-wrap items-start justify-center gap-4">
+    // gap-x-8 doubles the original gap-4 horizontal spacing between cards
+    // in the same row. gap-y-4 keeps vertical wrapping spacing unchanged.
+    // On mobile (single-column wrap) only gap-y is visible, so the wider
+    // horizontal gap kicks in only when multiple cards share a row.
+    <div className="flex max-w-[1200px] flex-wrap items-start justify-center gap-x-8 gap-y-4">
       {products.map((product, index) => {
         const availableInventory = availableInventories[index] ?? 0;
         return (
@@ -124,10 +128,20 @@ async function ProductGrid({
                     {product.title}
                   </h1>
                 </Link>
-                {/* Body font inherited from layout; 30% darker bone-white price */}
-                <p className="text-lg font-light text-[#a29d94]">
-                  ${product.price}
-                </p>
+                {/* Body font inherited from layout; 30% darker bone-white price.
+                    Sold-out products show the price red + struck-through with
+                    a "Sold out" label next to it, so customers can still see
+                    the price but understand it's not currently available. */}
+                {product.status === "sold_out" ? (
+                  <p className="flex items-center gap-2 text-lg font-light text-red-500">
+                    <span className="line-through">${product.price}</span>
+                    <span>Sold out</span>
+                  </p>
+                ) : (
+                  <p className="text-lg font-light text-[#a29d94]">
+                    ${product.price}
+                  </p>
+                )}
               </div>
             </div>
           </div>
