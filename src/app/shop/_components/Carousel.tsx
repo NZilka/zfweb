@@ -19,14 +19,18 @@ interface CarouselProps {
 }
 
 // Slide transition timing.
-// Original was 1000ms ease-in-out. New curve adds 700ms of progressive
-// deceleration across the final 7% of motion: 400ms for 93%→98%, 300ms
-// for 98%→100%. Total = 1700ms.
-const SLIDE_DURATION_MS = 1700;
+// Original was 1000ms ease-in-out. Current curve keeps the first 97% of
+// motion at the original 1000ms pace, then adds 400ms of progressive
+// deceleration across the final 3% — with the last 0.5% taking a
+// disproportionately long 175ms (the "beat" before the slide arrives).
+// Total = 1400ms.
+const SLIDE_DURATION_MS = 1400;
 // Offset 0..1 = animation time as a fraction of total duration.
 // Offset value = motion progress 0..1 reached at that time.
-const KEYFRAME_TIME_AT_93PCT = 1000 / SLIDE_DURATION_MS; // ~0.588
-const KEYFRAME_TIME_AT_98PCT = 1400 / SLIDE_DURATION_MS; // ~0.824
+const KEYFRAME_TIME_AT_97PCT = 1000 / SLIDE_DURATION_MS; // ~0.714
+// 97% → 99.5% (2.5% motion) takes 225ms (~90ms per percent)
+// 99.5% → 100% (0.5% motion) takes 175ms (~350ms per percent — "the beat")
+const KEYFRAME_TIME_AT_99_5PCT = 1225 / SLIDE_DURATION_MS; // ~0.875
 
 export function Carousel({ data }: CarouselProps) {
   const { slides, autoScroll, autoScrollInterval } = data;
@@ -86,14 +90,17 @@ export function Carousel({ data }: CarouselProps) {
     // style.transform already updated to the target, so the slide just jumps
     // (acceptable test-env behavior; real browsers always have .animate).
     if (typeof trackRef.current.animate === "function") {
-      // Multi-keyframe animation: time offsets map non-linearly to motion
-      // progress. Sub-segment easings smooth the joins between the three
-      // segments so the slowdown feels progressive rather than stepped.
+      // Multi-keyframe animation. Time offsets map non-linearly to motion
+      // progress — the curve covers 97% of motion in the first ~71% of
+      // animation time at the original ease-in-out pace, then slows
+      // progressively across the remaining 3%. ease-out on the 97% and
+      // 99.5% keyframes makes each slowdown segment decelerate further
+      // toward its end, building toward the final "beat" before arrival.
       trackRef.current.animate(
         [
           { transform: at(0), offset: 0, easing: "ease-in-out" },
-          { transform: at(0.93), offset: KEYFRAME_TIME_AT_93PCT, easing: "ease-out" },
-          { transform: at(0.98), offset: KEYFRAME_TIME_AT_98PCT, easing: "ease-in" },
+          { transform: at(0.97), offset: KEYFRAME_TIME_AT_97PCT, easing: "ease-out" },
+          { transform: at(0.995), offset: KEYFRAME_TIME_AT_99_5PCT, easing: "ease-out" },
           { transform: at(1), offset: 1 },
         ],
         { duration: SLIDE_DURATION_MS, fill: "forwards" },
