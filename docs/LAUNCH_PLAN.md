@@ -85,10 +85,22 @@ Goal: paid equals shipped; Stripe holds cards; discounts, shipping, and totals c
 - [ ] Dead code removal (list in the review); UploadThing `file.url` to `ufsUrl`.
 - [ ] Post-launch: evaluate Supabase consolidation (database, auth, storage) and Better Auth together; Cloudflare only if cost or bot abuse drives it.
 
+### Rebrand and domains (owner decision 2026-09-04, no hurry)
+
+The brand becomes **Zilka Forge** and the launch domain is **zilkaforge.com** (already on the owner's Vercel account). `zilkaforgewerks.com` currently points at Big Cartel and will redirect to the new domain at some point.
+
+- [ ] Code: rename the brand string everywhere it is rendered or served: root `metadata.title` and description, logo `alt` text in both navs, the packing slip header, the `/staging-restricted` link target, and the `.env.example` / `docs/STAGING_SETUP.md` domain references. Keep the repo name `zfweb` and the `zfweb_` table prefix; renaming those buys nothing.
+- [ ] Vercel (owner): Project, Settings, Domains, add `zilkaforge.com` and assign it to the Git branch `staging` (Preview) so the staging deploy serves the real domain until launch. The staging admin login gate and the `X-Robots-Tag: noindex` header keep it private and unindexed meanwhile. Keep `staging.crft.shop` until the switch is verified, then remove it.
+- [ ] Update the Stripe test-mode webhook endpoint URL and Clerk's allowed origins / redirect URLs to the new host.
+- [ ] At launch: reassign `zilkaforge.com` to Production (`main`), assign `staging.zilkaforge.com` to the `staging` branch, update `docs/STAGING_SETUP.md`, and drop the noindex header from production (it is already staging-only in code).
+- [ ] Later: in Vercel, add `zilkaforgewerks.com` (and `www`) to the project and set a permanent redirect to `zilkaforge.com`, then move its DNS from Big Cartel to Vercel. Do this only when the Big Cartel store is closed, since the redirect replaces it.
+
 ## Owner tasks (dashboard actions Claude cannot do)
 
 - [ ] Clerk: enable MFA (TOTP or passkey) on the admin account.
 - [ ] Neon: move to a paid plan or disable autosuspend before launch.
 - [ ] Stripe: promotion codes, shipping rates, webhook endpoints for Checkout events on staging and prod, receipts on, a restricted API key (`rk_`) replacing `sk_`.
-- [ ] Resend: verify the sending domain.
+- [ ] Resend: verify the sending domain (`zilkaforge.com` once it is live).
+- [ ] GitHub: branch protection on `staging` and `main` requiring the CI `verify` check (see Phase 0).
+- [ ] Vercel: assign `zilkaforge.com` to the `staging` branch until launch (see Rebrand and domains under Phase 4).
 - [x] Vercel: Pro plan.
