@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getProducts, getPublicCategoryById } from "~/server/queries";
-import { getAvailableInventory } from "~/server/cart-actions";
 import { getCarouselData } from "~/server/carousel";
 import Image from "next/image";
 // QuickAddButton replaces AddToCartButton on product cards — small "+" overlay
@@ -11,26 +10,25 @@ import { cropToStyle } from "~/lib/crop";
 
 export const dynamic = "force-dynamic";
 
-// Product card grid — receives products + inventory as props (fetched in HomePage)
-async function ProductGrid({
+// Product card grid — receives products as props (fetched in HomePage)
+function ProductGrid({
   products,
 }: {
   products: Awaited<ReturnType<typeof getProducts>>;
 }) {
-  // Fetch available inventory for all products in parallel
-  // This accounts for items reserved in other users' carts
-  const availableInventories = await Promise.all(
-    products.map((p) => getAvailableInventory(p.id)),
-  );
-
   return (
     // gap-x-8 doubles the original gap-4 horizontal spacing between cards
     // in the same row. gap-y-4 keeps vertical wrapping spacing unchanged.
     // On mobile (single-column wrap) only gap-y is visible, so the wider
     // horizontal gap kicks in only when multiple cards share a row.
     <div className="flex max-w-[1200px] flex-wrap items-start justify-center gap-x-8 gap-y-4">
-      {products.map((product, index) => {
-        const availableInventory = availableInventories[index] ?? 0;
+      {products.map((product) => {
+        // Availability is the product's own stock. The previous per-product
+        // "reserved in other carts" lookup cost about three queries per card
+        // and was abusable (docs/ARCHITECTURE_REVIEW.md C6 and P1). Non-active
+        // products count as unavailable so the quick-add button hides.
+        const availableInventory =
+          product.status === "active" ? Math.max(0, product.inventory) : 0;
         return (
           <div key={product.id}>
             <div className="relative max-w-sm">

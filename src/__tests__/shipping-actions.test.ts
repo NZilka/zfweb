@@ -12,6 +12,12 @@ const { mockAuth } = vi.hoisted(() => ({
 // Mock Clerk auth - must be before importing shipping-actions
 vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
+  // Backend client used by requireAdmin()/isAdminUser(): signed-in test users are admins
+  clerkClient: vi.fn(async () => ({
+    users: {
+      getUser: vi.fn(async () => ({ privateMetadata: { "can-upload": true } })),
+    },
+  })),
 }));
 
 // Mock database module

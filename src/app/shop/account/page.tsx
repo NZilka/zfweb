@@ -8,6 +8,7 @@ import {
 } from "~/server/queries";
 import { getPaymentStateCache, isKvConfigured } from "~/server/kv";
 import { Button } from "~/components/ui/button";
+import { getVerifiedPrimaryEmail } from "~/lib/clerk-user";
 
 // Force dynamic rendering to always fetch fresh data
 export const dynamic = "force-dynamic";
@@ -23,13 +24,17 @@ export default async function AccountPage() {
     redirect("/sign-in");
   }
 
-  // Get primary email from Clerk user
-  const email = user.emailAddresses[0]?.emailAddress;
+  // Verified primary email only. Orders are matched and linked by email, so
+  // an unverified or secondary address (emailAddresses[0] was neither
+  // guaranteed primary nor verified) must never be used here.
+  const email = getVerifiedPrimaryEmail(user);
   if (!email) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center p-8">
-        <h1 className="text-2xl font-bold font-[family-name:var(--font-heading)]">No Email Found</h1>
-        <p className="text-gray-600">Please add an email to your account.</p>
+        <h1 className="text-2xl font-bold font-[family-name:var(--font-heading)]">Verify Your Email</h1>
+        <p className="text-gray-600">
+          Verify the primary email on your account to see your orders.
+        </p>
       </div>
     );
   }

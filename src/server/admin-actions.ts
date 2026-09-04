@@ -8,6 +8,9 @@ import { db } from "~/server/db";
 import { order } from "~/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+// These actions had no auth at all: the CSV export returned customer names,
+// addresses, and emails for any order ids to any caller.
+import { checkAdmin } from "~/server/auth";
 
 // Shipping address type from order
 interface ShippingAddress {
@@ -37,6 +40,11 @@ export async function generatePirateShipCsv(orderIds: number[]): Promise<{
   error?: string;
   downloadedCount?: number;
 }> {
+  // Admin only — this returns customer PII
+  if (!(await checkAdmin())) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   if (orderIds.length === 0) {
     return { success: false, error: "No orders selected" };
   }
@@ -143,6 +151,11 @@ export async function updateOrderFulfillment(
     trackingNumber?: string;
   }
 ): Promise<{ success: boolean; error?: string }> {
+  // Admin only
+  if (!(await checkAdmin())) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   try {
     const now = new Date();
     const updateData: Partial<{
@@ -200,6 +213,11 @@ export async function markOrdersDownloaded(orderIds: number[]): Promise<{
   success: boolean;
   error?: string;
 }> {
+  // Admin only
+  if (!(await checkAdmin())) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   try {
     const now = new Date();
     await db

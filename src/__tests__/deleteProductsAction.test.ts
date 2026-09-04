@@ -21,6 +21,12 @@ vi.mock("next/cache", () => ({
 const mockAuth = vi.fn();
 vi.mock("@clerk/nextjs/server", () => ({
   auth: () => mockAuth(),
+  // Backend client used by requireAdmin()/isAdminUser(): signed-in test users are admins
+  clerkClient: vi.fn(async () => ({
+    users: {
+      getUser: vi.fn(async () => ({ privateMetadata: { "can-upload": true } })),
+    },
+  })),
 }));
 
 // Mock the DB layer just enough to back the title-prefetch select query.

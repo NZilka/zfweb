@@ -4,12 +4,20 @@ import { AdminNavProvider } from "./_components/AdminNavContext";
 // StagingBanner moved to root layout (src/app/layout.tsx) so it renders
 // site-wide on staging deploys, not just inside /admin.
 import { getSiteSettings } from "~/server/kv";
+import { redirect } from "next/navigation";
+import { checkAdmin } from "~/server/auth";
 
 // Async layout — fetches site settings to pass custom logo URL to TopNav
 export default async function AdminLayout({
   children,
   modal,
 }: Readonly<{ children: React.ReactNode; modal: React.ReactNode }>) {
+  // Defense in depth behind the proxy gate: a non-admin who somehow reaches
+  // this layout (matcher gap, misconfiguration) is sent to the shop before
+  // any admin data is fetched or rendered. The proxy already sends anonymous
+  // visitors to sign-in, so this mostly guards signed-in non-admins.
+  if (!(await checkAdmin())) redirect("/shop");
+
   // Fetch site settings for dynamic logo
   const settings = await getSiteSettings();
 

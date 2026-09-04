@@ -9,6 +9,13 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
+// These tests cover CSV formatting, not authorization: treat the caller as an
+// admin. Authorization itself is covered in admin-authz.test.ts.
+vi.mock("~/server/auth", () => ({
+  checkAdmin: vi.fn(async () => true),
+  requireAdmin: vi.fn(async () => ({ userId: "admin" })),
+}));
+
 // Store for mock database records
 const { mockOrders } = vi.hoisted(() => ({
   mockOrders: new Map<

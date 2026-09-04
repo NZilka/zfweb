@@ -6,8 +6,13 @@
 
 import { db } from "~/server/db";
 import { discount } from "~/server/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+// Every export here is a public endpoint. The CRUD actions had no auth at
+// all, so anyone could create a 99%-off code and use it. validateDiscountCode
+// stays public because checkout calls it; usage incrementing moved to the
+// server-only src/server/discount-usage.ts.
+import { checkAdmin, requireAdmin } from "~/server/auth";
 
 // Discount input type for create/update
 export interface DiscountInput {
@@ -43,6 +48,8 @@ export interface DiscountData {
  * Get all discounts
  */
 export async function getDiscounts(): Promise<DiscountData[]> {
+  // Admin only — lists every code including inactive ones
+  await requireAdmin();
   const discounts = await db
     .select()
     .from(discount)
@@ -71,6 +78,8 @@ export async function getDiscounts(): Promise<DiscountData[]> {
 export async function createDiscount(
   input: DiscountInput
 ): Promise<{ success: boolean; error?: string }> {
+  // Admin only
+  if (!(await checkAdmin())) return { success: false, error: "Unauthorized" };
   try {
     // Check if code already exists
     const existing = await db
@@ -113,6 +122,8 @@ export async function updateDiscount(
   id: number,
   input: DiscountInput
 ): Promise<{ success: boolean; error?: string }> {
+  // Admin only
+  if (!(await checkAdmin())) return { success: false, error: "Unauthorized" };
   try {
     // Check if code exists on another discount
     const existing = await db
@@ -156,6 +167,8 @@ export async function updateDiscount(
 export async function deleteDiscount(
   id: number
 ): Promise<{ success: boolean; error?: string }> {
+  // Admin only
+  if (!(await checkAdmin())) return { success: false, error: "Unauthorized" };
   try {
     await db.delete(discount).where(eq(discount.id, id));
     revalidatePath("/admin/discounts");
@@ -175,6 +188,8 @@ export async function deleteDiscount(
 export async function toggleDiscountActive(
   id: number
 ): Promise<{ success: boolean; error?: string }> {
+  // Admin only
+  if (!(await checkAdmin())) return { success: false, error: "Unauthorized" };
   try {
     const current = await db
       .select({ active: discount.active })
@@ -266,23 +281,8 @@ export async function validateDiscountCode(
   }
 }
 
-/**
- * Increment usage counter for a discount code
- * Called after successful order completion
- */
-export async function incrementDiscountUsage(discountId: number): Promise<void> {
-  try {
-    await db
-      .update(discount)
-      .set({
-        numberOfUses: sql`${discount.numberOfUses} + 1`,
-      })
-      .where(eq(discount.id, discountId));
-  } catch (error) {
-    console.error("Error incrementing discount usage:", error);
-    // Don't throw - this is a non-critical operation
-  }
-}
-
-// Note: calculateDiscountedTotal is in ~/lib/discount-utils
-// Moved there because "use server" files require all exports to be async
+// Notes:
+// - incrementDiscountUsage lives in ~/server/discount-usage (server-only) so
+//   it is not a public endpoint; only the Stripe webhook may call it.
+// - calculateDiscountedTotal is in ~/lib/discount-utils because "use server"
+//   files require all exports to be async.

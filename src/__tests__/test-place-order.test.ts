@@ -5,6 +5,9 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// The route imports order-actions, which is server-only now
+vi.mock("server-only", () => ({}));
+
 // Mutable env mock so each test can control TEST_MODE_ALLOWED
 vi.mock("~/env", () => ({
   env: { TEST_MODE_ALLOWED: true },

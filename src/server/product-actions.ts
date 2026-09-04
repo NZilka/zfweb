@@ -4,7 +4,8 @@
  */
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+// requireAdmin replaces the previous "any signed-in user" check
+import { requireAdmin } from "~/server/auth";
 import { db } from "./db";
 import { product } from "./db/schema";
 import { deleteProductCore } from "./queries";
@@ -16,8 +17,8 @@ import { revalidatePath } from "next/cache";
 // Sequential updates — neon-http driver doesn't support transactions.
 // Partial failure risk is acceptable for sort_order (next save corrects it).
 export async function updateProductSortOrder(orderedIds: number[]) {
-  const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  // Admin only (throws AuthorizationError otherwise)
+  await requireAdmin();
 
   // Sequential updates — neon-http is stateless HTTP, no transaction support
   for (let i = 0; i < orderedIds.length; i++) {
@@ -75,8 +76,8 @@ function classifyDeleteError(err: unknown): string {
 export async function deleteProductsAction(
   ids: number[],
 ): Promise<BulkDeleteResult> {
-  const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  // Admin only (throws AuthorizationError otherwise)
+  await requireAdmin();
 
   const result: BulkDeleteResult = { succeeded: [], failed: [] };
 

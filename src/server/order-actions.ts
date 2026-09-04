@@ -1,4 +1,10 @@
-"use server";
+// Internal module, NOT a server action file. It used to be "use server",
+// which registered createOrderFromPayment (creates a paid order without any
+// payment) and getOrderById (customer PII by sequential id) as public
+// endpoints; the production build manifest confirmed both were reachable.
+// Only the Stripe webhook, the test route, and server pages call these, so
+// `server-only` is the correct boundary.
+import "server-only";
 
 import { db } from "~/server/db";
 import {
@@ -66,8 +72,21 @@ export async function createOrderFromPayment(
     }
   }
 
-  // Convert payment amount from cents to dollars for comparison
+  // Compare what Stripe charged with what the cart adds up to (net of any
+  // discount recorded in the intent metadata). Until Phase 1 of
+  // docs/LAUNCH_PLAN.md snapshots line items at checkout, the cart can change
+  // between intent creation and this webhook, so a mismatch is logged loudly
+  // for manual review instead of being stored silently.
   const paymentAmount = paymentIntent.amount / 100;
+  const discountAmount = Number.parseFloat(metadata.discountAmount ?? "0") || 0;
+  const expectedAmount = Math.max(0, calculatedTotal - discountAmount);
+  if (Math.abs(paymentAmount - expectedAmount) > 0.005) {
+    console.warn(
+      `[createOrderFromPayment] Amount mismatch for ${paymentIntent.id}: ` +
+        `paid ${paymentAmount.toFixed(2)}, expected ${expectedAmount.toFixed(2)} ` +
+        `(cart ${calculatedTotal.toFixed(2)} minus discount ${discountAmount.toFixed(2)})`,
+    );
+  }
 
   // Create the order
   const [newOrder] = await db
@@ -120,6 +139,18 @@ export async function createOrderFromPayment(
 
   console.log("Order created successfully:", newOrder.id);
   return newOrder;
+}
+
+// Lightweight existence check used by the webhook to make order creation
+// idempotent. Stripe retries events and can deliver one twice; a retry after
+// the cart was cleared used to throw "No items in cart" and return 500 for
+// every retry.
+export async function findOrderIdByPaymentIntent(paymentIntentId: string) {
+  const row = await db.query.order.findFirst({
+    columns: { id: true },
+    where: (model, { eq }) => eq(model.payment_intent_id, paymentIntentId),
+  });
+  return row?.id ?? null;
 }
 
 // Get order by ID (for order confirmation page)
