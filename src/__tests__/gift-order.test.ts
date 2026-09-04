@@ -4,6 +4,9 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// order-actions is a server-only module now
+vi.mock("server-only", () => ({}));
+
 // Mock next/cache
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),

@@ -11,8 +11,10 @@ import {
   shipping_zone_country,
   shipping_rate,
 } from "./db/schema";
-import { auth } from "@clerk/nextjs/server";
-import { eq, and } from "drizzle-orm";
+// checkAdmin replaces the previous "any signed-in user" check on mutations.
+// getShippingZones / getShippingZoneById stay public: rates are public info.
+import { checkAdmin } from "~/server/auth";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 // === Types ===
@@ -160,8 +162,7 @@ export async function getShippingZoneById(
 export async function createShippingZone(
   input: ShippingZoneInput
 ): Promise<{ success: boolean; zone?: ShippingZoneWithDetails; error?: string }> {
-  const user = await auth();
-  if (!user.userId) {
+  if (!(await checkAdmin())) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -215,8 +216,7 @@ export async function updateShippingZone(
   id: number,
   input: ShippingZoneInput
 ): Promise<{ success: boolean; zone?: ShippingZoneWithDetails; error?: string }> {
-  const user = await auth();
-  if (!user.userId) {
+  if (!(await checkAdmin())) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -277,8 +277,7 @@ export async function updateShippingZone(
 export async function deleteShippingZone(
   id: number
 ): Promise<{ success: boolean; error?: string }> {
-  const user = await auth();
-  if (!user.userId) {
+  if (!(await checkAdmin())) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -307,8 +306,7 @@ export async function deleteShippingZone(
 export async function createShippingRate(
   input: ShippingRateInput
 ): Promise<{ success: boolean; rate?: ShippingRateData; error?: string }> {
-  const user = await auth();
-  if (!user.userId) {
+  if (!(await checkAdmin())) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -363,8 +361,7 @@ export async function updateShippingRate(
   id: number,
   input: Omit<ShippingRateInput, "zone_id">
 ): Promise<{ success: boolean; rate?: ShippingRateData; error?: string }> {
-  const user = await auth();
-  if (!user.userId) {
+  if (!(await checkAdmin())) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -416,8 +413,7 @@ export async function updateShippingRate(
 export async function deleteShippingRate(
   id: number
 ): Promise<{ success: boolean; error?: string }> {
-  const user = await auth();
-  if (!user.userId) {
+  if (!(await checkAdmin())) {
     return { success: false, error: "Unauthorized" };
   }
 

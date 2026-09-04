@@ -7,6 +7,13 @@ import { describe, it, expect, vi } from "vitest";
 // Mock server-only module
 vi.mock("server-only", () => ({}));
 
+// These tests cover validation and CRUD logic, not authorization: treat the
+// caller as an admin. Authorization itself is covered in admin-authz.test.ts.
+vi.mock("~/server/auth", () => ({
+  checkAdmin: vi.fn(async () => true),
+  requireAdmin: vi.fn(async () => ({ userId: "admin" })),
+}));
+
 // Mock next/cache revalidatePath
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),

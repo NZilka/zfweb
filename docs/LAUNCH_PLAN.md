@@ -11,10 +11,10 @@ Tracker for the work between the 2026-09-03 review and launch. This file is the 
 
 ## Status
 
-- Current phase: 0
-- Branch: `fix/admin-authz`
-- Last completed: review and plan docs committed
-- Next step: implement `requireAdmin()` and wire it into every admin action
+- Current phase: 0 (code complete, awaiting staging verification)
+- Branch: `fix/admin-authz` (three commits: docs, H5 lint/CI/build, authorization)
+- Last completed: Phase 0 code, tests (471 passing), lint clean under the 227-warning cap, production build
+- Next step: owner enables branch protection with the CI `verify` check (see Owner tasks), verifies the preview deploy, then ff-merge into `staging` per `docs/RELEASE_WORKFLOW.md`. Then start Phase 1 on `feature/checkout-sessions`.
 - Blockers: none
 - Owner tasks outstanding: see the bottom of this file
 
@@ -22,22 +22,25 @@ Tracker for the work between the 2026-09-03 review and launch. This file is the 
 
 Goal: no unauthenticated or non-admin path can mutate data or read customer PII. Lint and CI work.
 
-- [ ] `src/server/auth.ts`: `isAdminUser(userId)` memoized per request, `requireAdmin()` that throws, `checkAdmin()` that returns a boolean. Backed by Clerk `privateMetadata["can-upload"]` for now; Phase 2 moves it to `customer.role`.
-- [ ] Proxy: `/admin(.*)` requires a signed-in admin (sign-in redirect for anonymous, `/shop` redirect for non-admins). Reuse `isAdminUser` for the staging gate and the maintenance bypass. Tolerate a settings document without `maintenanceMode`.
-- [ ] Admin layout redirects non-admins to `/shop` (defense in depth).
-- [ ] `requireAdmin()` is the first line in: settings-actions (all), admin-actions (all), discount-actions (CRUD and list), product-actions (all), shipping-actions (mutations), db_connect (all), deleteAction, and the admin-only reads in queries.ts.
-- [ ] `order-actions.ts` becomes `server-only`; `incrementDiscountUsage` moves to a `server-only` module; delete `src/server/db/operations.ts`.
-- [ ] Webhook returns 200 without side effects when an order already exists for the payment intent.
-- [ ] Cart: remove cart-time reservations; availability is `product.inventory`; `addToCart` rejects non-active products. Shop, product page, and modal read `product.inventory` directly, which removes the per-product query fan-out.
-- [ ] Account page uses the verified primary email only.
-- [ ] `next.config.js`: allow `*.ufs.sh` images, remove `ignoreBuildErrors`, set `turbopack.root`. Settings validation accepts both UploadThing hosts.
-- [ ] ESLint 9 flat config (`eslint.config.mjs`); `pnpm lint` passes; `pnpm check` runs lint and typecheck.
-- [ ] CI workflow (`.github/workflows/ci.yml`): typecheck, lint, tests, build on PRs and on pushes to `staging` and `main`.
-- [ ] Tests: `requireAdmin`, authorization rejection per action module, cart availability, webhook idempotency, email helper, URL helper.
-- [ ] Lesson: `.claude/lessons/62-admin-authz-hardening.md`.
+- [x] `src/server/auth.ts`: `isAdminUser(userId)` memoized per request, `requireAdmin()` that throws, `checkAdmin()` that returns a boolean. Backed by Clerk `privateMetadata["can-upload"]` for now; Phase 2 moves it to `customer.role`.
+- [x] Proxy: `/admin(.*)` requires a signed-in admin (sign-in redirect for anonymous, `/shop` redirect for non-admins). Reuse `isAdminUser` for the staging gate and the maintenance bypass. Tolerate a settings document without `maintenanceMode`.
+- [x] Admin layout redirects non-admins to `/shop` (defense in depth).
+- [x] `requireAdmin()` is the first line in: settings-actions (all), admin-actions (all), discount-actions (CRUD and list), product-actions (all), shipping-actions (mutations), db_connect (all), deleteAction, and the admin-only reads in queries.ts.
+- [x] `order-actions.ts` becomes `server-only`; `incrementDiscountUsage` moves to a `server-only` module; delete `src/server/db/operations.ts`.
+- [x] Webhook returns 200 without side effects when an order already exists for the payment intent. Also logs a payment-vs-cart amount mismatch until Phase 1 snapshots line items.
+- [x] Cart: remove cart-time reservations; availability is `product.inventory`; `addToCart` rejects non-active products. Shop, product page, and modal read `product.inventory` directly, which removes the per-product query fan-out.
+- [x] Account page uses the verified primary email only.
+- [x] `next.config.js`: allow `*.ufs.sh` images, remove `ignoreBuildErrors`, set `turbopack.root`. Settings validation accepts both UploadThing hosts.
+- [x] ESLint 9 flat config (`eslint.config.mjs`); `pnpm lint` passes; `pnpm check` runs lint and typecheck. Lint ratchet: `--max-warnings 227` in package.json. Lower it whenever a file is cleaned; never raise it. The `any` / unsafe family and stylistic rules are warnings until the count reaches 0, then they become errors.
+- [x] CI workflow (`.github/workflows/ci.yml`): typecheck, lint, tests, build on PRs and on pushes to `staging` and `main`.
+- [x] Tests: `requireAdmin`, authorization rejection per action module, cart availability, webhook idempotency, email helper, URL helper, proxy admin gate.
+- [x] Lesson: `.claude/lessons/62-admin-authz-hardening.md`.
+- [ ] Owner: GitHub branch protection on `staging` and `main` requiring the CI `verify` check (Settings, Branches, Add rule: require status checks to pass, select `verify`; for `main` also require a pull request and block force pushes).
 - [ ] Verified on staging: a non-admin account cannot reach `/admin` or call an admin action; shop, cart, and checkout still work.
 
 Acceptance: every export of every `"use server"` file is either public by design (cart, discount validation, shipping zones read, URL handle check) or starts with `requireAdmin()`. `pnpm check && pnpm test:run && pnpm build` pass in CI.
+
+Deferred from Phase 0 to later phases: `getProducts` still returns hidden products to the shop (Phase 4, public status filter); server actions still throw instead of returning result objects (Phase 1); `file.url` to `ufsUrl` (Phase 4).
 
 ## Phase 1: Checkout Sessions (`feature/checkout-sessions`)
 

@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { constructWebhookEvent, retrievePaymentIntent } from "~/server/stripe";
-import { createOrderFromPayment } from "~/server/order-actions";
+import {
+  createOrderFromPayment,
+  findOrderIdByPaymentIntent,
+} from "~/server/order-actions";
 import {
   syncPaymentStateByPaymentIntent,
   syncOrderStateToKV,
 } from "~/server/stripe-sync";
-// Import discount usage increment for successful payments
-import { incrementDiscountUsage } from "~/server/discount-actions";
+// Discount usage increment lives in a server-only module (not an action)
+import { incrementDiscountUsage } from "~/server/discount-usage";
 import type Stripe from "stripe";
 
 // Check if PaymentIntent payload is a snapshot (has full data) or thin (just ID)
@@ -67,6 +70,15 @@ export async function POST(request: Request) {
         const obj = event.data.object as { id: string; metadata?: Record<string, string> };
         const paymentIntent = await getPaymentIntent(obj, true);
         console.log("Payment succeeded:", paymentIntent.id);
+
+        // Idempotency: Stripe retries this event on any non-2xx and may
+        // deliver it twice. If the order already exists, acknowledge and
+        // stop; re-running would hit the unique payment_intent_id or the
+        // already-cleared cart and return 500 on every retry.
+        if (await findOrderIdByPaymentIntent(paymentIntent.id)) {
+          console.log("Order already exists for", paymentIntent.id);
+          break;
+        }
 
         // Create order from successful payment
         const order = await createOrderFromPayment(paymentIntent);

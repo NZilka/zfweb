@@ -21,6 +21,9 @@ vi.mock("@clerk/nextjs/server", () => ({
   // clerkMiddleware identity-wraps so the default export still loads
   clerkMiddleware: (fn: unknown) => fn,
   clerkClient: vi.fn(),
+  // Route matcher used by the /admin gate; a plain prefix check is enough here
+  createRouteMatcher: (patterns: string[]) => (req: { nextUrl: { pathname: string } }) =>
+    patterns.some((p) => req.nextUrl.pathname.startsWith(p.replace("(.*)", ""))),
 }));
 
 import { isStagingAllowlisted } from "~/proxy";

@@ -3,7 +3,9 @@
 import { db } from "~/server/db";
 import { product as dbProduct, product_category } from "~/server/db/schema";
 import { type ProductType } from "~/app/_context/ProductContext";
-import { auth } from "@clerk/nextjs/server";
+// Every export of this "use server" file is a public endpoint. addProduct
+// had no auth at all and the rest accepted any signed-in shopper.
+import { requireAdmin } from "~/server/auth";
 import { utapi } from "~/server/uploadthing";
 import { eq, and, ne } from "drizzle-orm";
 import { type OrderedImageRef } from "~/app/_context/EditImageContext";
@@ -24,6 +26,8 @@ export const checkUrlHandleExists = async (
   urlHandle: string,
   excludeProductId?: number,
 ) => {
+  // Admin only (used by the product edit form)
+  await requireAdmin();
   if (!urlHandle.trim()) return false;
 
   const conditions = [eq(dbProduct.url_handle, urlHandle)];
@@ -55,6 +59,8 @@ export const addProduct = async (
   // Optional crop data array parallel to urls/keys
   imgCrop?: CropEntry[],
 ) => {
+  // Admin only — previously unauthenticated
+  await requireAdmin();
   const result: { returnId: number }[] = await db
     .insert(dbProduct)
     .values({
@@ -99,9 +105,8 @@ export const updateProduct = async (
   imageChanges: ImageChanges,
   urlHandle?: string,
 ) => {
-  // Verify user is authenticated
-  const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  // Admin only (throws AuthorizationError otherwise)
+  await requireAdmin();
 
   // Fetch current product to verify it exists
   const existingProduct = await db.query.product.findFirst({
@@ -180,9 +185,8 @@ export const updateProduct = async (
 
 // Create a new product category
 export const createCategory = async (input: CategoryInput) => {
-  // Verify user is authenticated
-  const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  // Admin only (throws AuthorizationError otherwise)
+  await requireAdmin();
 
   // Validate input using Zod schema
   const validated = categorySchema.parse(input);
@@ -200,9 +204,8 @@ export const createCategory = async (input: CategoryInput) => {
 
 // Update an existing product category
 export const updateCategory = async (id: number, input: CategoryInput) => {
-  // Verify user is authenticated
-  const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  // Admin only (throws AuthorizationError otherwise)
+  await requireAdmin();
 
   // Validate input using Zod schema
   const validated = categorySchema.parse(input);
@@ -227,9 +230,8 @@ export const updateCategory = async (id: number, input: CategoryInput) => {
 
 // Delete a product category and set affected products' category_id to null
 export const deleteCategory = async (id: number) => {
-  // Verify user is authenticated
-  const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  // Admin only (throws AuthorizationError otherwise)
+  await requireAdmin();
 
   // Verify category exists
   const existing = await db.query.product_category.findFirst({

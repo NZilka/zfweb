@@ -53,6 +53,12 @@ vi.mock("~/server/uploadthing", () => ({
 // Mock Clerk auth — updateSettings requires authentication
 vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(() => Promise.resolve({ userId: "test-user-id" })),
+  // Backend client used by requireAdmin()/isAdminUser(): the test user is an admin
+  clerkClient: vi.fn(async () => ({
+    users: {
+      getUser: vi.fn(async () => ({ privateMetadata: { "can-upload": true } })),
+    },
+  })),
 }));
 
 // Import after mocking

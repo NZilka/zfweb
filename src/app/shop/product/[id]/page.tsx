@@ -1,5 +1,4 @@
 import { getPublicProductById } from "~/server/queries";
-import { getAvailableInventory } from "~/server/cart-actions";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "~/app/shop/_components/AddToCartButton";
@@ -26,8 +25,10 @@ export default async function ProductPage({
     notFound();
   }
 
-  // Get actual available inventory (total minus reserved in other carts)
-  const availableInventory = await getAvailableInventory(productId);
+  // Availability is the product's own stock; non-active products are not
+  // purchasable (cross-cart reservations were removed, see cart-actions.ts)
+  const availableInventory =
+    product.status === "active" ? Math.max(0, product.inventory) : 0;
 
   // Sold-out fires for either admin-set status or natural inventory exhaustion.
   // Drives the red strikethrough + "Sold out" label treatment on the price line.

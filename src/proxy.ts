@@ -11,11 +11,16 @@
  * header as defense in depth against the URL being indexed if the gate
  * ever has a bug or leaks.
  */
-import { clerkMiddleware, clerkClient } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { isStaging } from "~/lib/env-info";
 // Use middleware-safe KV utility (no server-only directive)
 import { getMaintenanceSettings } from "~/server/kv-middleware";
+// Single definition of "admin" shared with server actions and layouts
+import { isAdminUser } from "~/server/auth";
+
+// Everything under /admin requires a signed-in admin (see gate below).
+const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
 // Paths exempt from the staging admin gate.
 // - Sign-in / sign-up flows must be reachable while unauthenticated, otherwise
@@ -60,46 +65,53 @@ export default clerkMiddleware(async (auth, req) => {
       );
     }
 
-    // Authenticated — verify admin status. Same lookup pattern as the
-    // maintenance check below; cost is one extra Clerk API call per request
-    // on staging only.
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    const isAdmin = user?.privateMetadata?.["can-upload"] === true;
-
-    if (!isAdmin) {
+    // Authenticated — verify admin status through the shared helper so the
+    // definition of "admin" lives in one place (src/server/auth.ts). Cost is
+    // one Clerk API call per request on staging only.
+    if (!(await isAdminUser(userId))) {
       return withStagingHeaders(
         NextResponse.redirect(new URL("/staging-restricted", req.url)),
       );
     }
-    // Admin — fall through to maintenance check.
+    // Admin — fall through to the admin and maintenance checks.
+  }
+
+  // === Admin area gate ===
+  // /admin and everything under it requires a signed-in admin. Before this
+  // gate the admin pages only hid their UI behind <SignedIn>: the data was
+  // still fetched and rendered for any signed-in shopper. Anonymous visitors
+  // go to Clerk sign-in (and come back here); signed-in non-admins go to
+  // the shop. Server actions enforce the same rule via requireAdmin().
+  if (isAdminRoute(req)) {
+    const { userId, redirectToSignIn } = await auth();
+    if (!userId) {
+      return withStagingHeaders(redirectToSignIn({ returnBackUrl: req.url }));
+    }
+    if (!(await isAdminUser(userId))) {
+      return withStagingHeaders(
+        NextResponse.redirect(new URL("/shop", req.url)),
+      );
+    }
   }
 
   // === Maintenance mode (existing logic) ===
   // Skip maintenance check for admin routes and the maintenance page itself.
   // All other routes should show maintenance page when enabled.
-  const isAdminRoute = pathname.startsWith("/admin");
   const isMaintenancePage = pathname === "/maintenance";
   const isApiRoute = pathname.startsWith("/api");
 
-  if (!isAdminRoute && !isMaintenancePage && !isApiRoute) {
+  if (!isAdminRoute(req) && !isMaintenancePage && !isApiRoute) {
     const settings = await getMaintenanceSettings();
 
-    if (settings.maintenanceMode.enabled) {
-      // Check if user is an admin (has can-upload permission)
+    // Optional chaining: a settings document written before maintenanceMode
+    // existed would otherwise throw here, outside any try/catch, and 500
+    // every page.
+    if (settings.maintenanceMode?.enabled) {
       // Admins can bypass maintenance mode to test the site
       const { userId } = await auth();
 
-      if (userId) {
-        // Fetch user data to check admin permissions
-        const client = await clerkClient();
-        const user = await client.users.getUser(userId);
-        const isAdmin = user?.privateMetadata?.["can-upload"] === true;
-
-        // Allow admins to access site during maintenance
-        if (isAdmin) {
-          return withStagingHeaders(NextResponse.next());
-        }
+      if (userId && (await isAdminUser(userId))) {
+        return withStagingHeaders(NextResponse.next());
       }
 
       // Redirect non-admin users to maintenance page

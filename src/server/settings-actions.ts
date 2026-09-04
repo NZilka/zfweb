@@ -5,7 +5,10 @@
 "use server";
 
 import { z } from "zod";
-import { auth } from "@clerk/nextjs/server";
+// Every export of this file is a public endpoint; checkAdmin() gates the
+// admin-only ones (previously any signed-in shopper could call them).
+import { checkAdmin } from "~/server/auth";
+import { isUploadThingUrl } from "~/lib/uploadthing-url";
 import { env } from "~/env";
 import {
   getSiteSettings,
@@ -73,9 +76,6 @@ const testModeSchema = z.object({
   outcome: z.enum(["success", "failure"]),
 });
 
-// UploadThing URL prefix — all legitimate uploads are served from this domain
-const UPLOADTHING_URL_PREFIX = "https://utfs.io/";
-
 // Crop data schema — percentages from react-easy-crop for CSS positioning
 const cropDataSchema = z
   .object({
@@ -98,7 +98,8 @@ const carouselImageCellSchema = z
     // Optional crop data for image positioning — backward compat with existing cells
     crop: cropDataSchema,
   })
-  .refine((cell) => cell.url.startsWith(UPLOADTHING_URL_PREFIX), {
+  // Accepts both UploadThing hosts (utfs.io and <appId>.ufs.sh)
+  .refine((cell) => isUploadThingUrl(cell.url), {
     message: "Carousel image URL must be from UploadThing",
   })
   .refine((cell) => cell.url.includes(cell.key), {
@@ -150,6 +151,9 @@ type ActionResult<T = void> =
  * Returns default settings if KV is not configured or on error
  */
 export async function getSettings(): Promise<SiteSettings> {
+  // Admin only: the full document includes test-mode and maintenance config.
+  // Public pages read settings through getSiteSettings() (server-only).
+  if (!(await checkAdmin())) throw new Error("Unauthorized");
   return getSiteSettings();
 }
 
@@ -168,9 +172,9 @@ export async function checkSettingsAvailable(): Promise<boolean> {
 export async function updateSettings(
   input: UpdateSettingsInput
 ): Promise<ActionResult> {
-  // Auth check — prevent unauthenticated access to settings mutation
-  const user = await auth();
-  if (!user.userId) {
+  // Admin check — before this, any signed-in shopper could flip maintenance
+  // mode, swap the logo, or rewrite the About page.
+  if (!(await checkAdmin())) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -356,14 +360,14 @@ export async function copyProductImageToCarousel(
   | { success: true; url: string; key: string }
   | { success: false; error: string }
 > {
-  // Auth check — only authenticated admins can modify carousel
-  const user = await auth();
-  if (!user.userId) {
+  // Admin check — this triggers a server-side upload (storage cost)
+  if (!(await checkAdmin())) {
     return { success: false, error: "Unauthorized" };
   }
 
-  // Validate source URL is from UploadThing to prevent arbitrary URL fetching
-  if (!sourceUrl.startsWith(UPLOADTHING_URL_PREFIX)) {
+  // Validate source URL is from UploadThing (either host) to prevent
+  // arbitrary URL fetching
+  if (!isUploadThingUrl(sourceUrl)) {
     return { success: false, error: "Source URL must be from UploadThing" };
   }
 

@@ -1,10 +1,12 @@
 import "server-only";
 
 import { db } from "./db";
-import { auth } from "@clerk/nextjs/server";
+// Admin-only reads and deletes use requireAdmin instead of "any signed-in
+// user"; this module is server-only, so the check covers internal callers.
+import { requireAdmin } from "~/server/auth";
 import { utapi } from "./uploadthing";
 import { product as dbproduct } from "./db/schema";
-import { eq, and, ilike, or, type SQL } from "drizzle-orm";
+import { eq, type SQL } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 // Fetch products with optional category and search filters
@@ -31,14 +33,14 @@ export const getProducts = async (opts?: {
       }
       return conditions.length > 0 ? and(...conditions) : undefined;
     },
-    orderBy: (model: any, { asc }) => [asc(model.sort_order), asc(model.id)],
+    orderBy: (model, { asc }) => [asc(model.sort_order), asc(model.id)],
   });
   return products;
 };
 
 export async function getProductById(id: number) {
-  const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  // Admin only (throws AuthorizationError otherwise)
+  await requireAdmin();
 
   const product = await db.query.product.findFirst({
     where: (model, { eq }) => eq(model.id, id),
@@ -61,8 +63,8 @@ export async function getPublicProductById(id: number) {
 // Throws on auth failure, missing product, or DB constraint violation
 // (e.g. FK 23503 if the product is referenced by an order_item or cart_item).
 export async function deleteProductCore(id: number) {
-  const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  // Admin only (throws AuthorizationError otherwise)
+  await requireAdmin();
 
   const product = await db.query.product.findFirst({
     where: (model, { eq }) => eq(model.id, id),
@@ -95,8 +97,8 @@ export async function getCategories() {
 
 // Fetch a single category by ID for editing
 export async function getCategoryById(id: number) {
-  const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  // Admin only (throws AuthorizationError otherwise)
+  await requireAdmin();
 
   const category = await db.query.product_category.findFirst({
     where: (model, { eq }) => eq(model.id, id),
@@ -148,7 +150,7 @@ export async function linkGuestOrdersToUser(
 ): Promise<number> {
   // Import here to avoid circular dependencies
   const { customer, order } = await import("~/server/db/schema");
-  const { eq, and, isNull } = await import("drizzle-orm");
+  const { eq } = await import("drizzle-orm");
 
   // Find or create customer record for this user
   let customerRecord = await db.query.customer.findFirst({

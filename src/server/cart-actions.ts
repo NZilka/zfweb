@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "~/server/db";
-import { shopping_session, cart_item, product, customer } from "~/server/db/schema";
-import { eq, and, gt, sql } from "drizzle-orm";
+import { shopping_session, cart_item } from "~/server/db/schema";
+import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 
@@ -23,41 +23,20 @@ function getExpiryDate(): Date {
   return new Date(Date.now() + SESSION_DURATION_MS);
 }
 
-// Get total quantity of a product reserved in all active carts (non-expired sessions)
-// Optionally exclude a specific session (for checking current user's available qty)
-async function getReservedQuantity(productId: number, excludeSessionId?: number): Promise<number> {
-  // Get all cart items for this product in non-expired sessions
-  const activeSessions = await db.query.shopping_session.findMany({
-    where: (model, { gt }) => gt(model.expires_at, new Date()),
-  });
-
-  const activeSessionIds = activeSessions
-    .filter(s => excludeSessionId ? s.id !== excludeSessionId : true)
-    .map(s => s.id);
-
-  if (activeSessionIds.length === 0) return 0;
-
-  const cartItems = await db.query.cart_item.findMany({
-    where: (model, { eq, and, inArray }) =>
-      and(
-        eq(model.product_id, productId),
-        inArray(model.session_id, activeSessionIds)
-      ),
-  });
-
-  return cartItems.reduce((sum, item) => sum + item.quantity, 0);
-}
-
-// Get available inventory for a product (total - reserved in other carts)
-export async function getAvailableInventory(productId: number, excludeSessionId?: number): Promise<number> {
+// Available inventory for a product. This is now simply the product's own
+// stock. The previous model ("inventory minus the quantity sitting in every
+// other non-expired cart") let any visitor spin up sessions and park the
+// whole stock in carts for 30 days, and it cost three queries per product on
+// the shop page. Stock is held only during checkout from Phase 1 of
+// docs/LAUNCH_PLAN.md onward. Returns 0 for unknown or non-active products
+// so they cannot be added to a cart.
+export async function getAvailableInventory(productId: number) {
   const productData = await db.query.product.findFirst({
     where: (model, { eq }) => eq(model.id, productId),
+    columns: { inventory: true, status: true },
   });
-
-  if (!productData) return 0;
-
-  const reserved = await getReservedQuantity(productId, excludeSessionId);
-  return Math.max(0, productData.inventory - reserved);
+  if (!productData || productData.status !== "active") return 0;
+  return Math.max(0, productData.inventory);
 }
 
 // Get or create a shopping session for the current user/guest
@@ -164,13 +143,20 @@ export async function getCartItems(): Promise<CartItemWithProduct[]> {
 export async function addToCart(productId: number, quantity: number = 1) {
   const session = await getOrCreateSession();
 
-  // Check if product exists
+  // Check the product exists and is purchasable. Admin-set "sold_out" and
+  // "hidden" products used to be addable by calling this action directly.
   const productData = await db.query.product.findFirst({
     where: (model, { eq }) => eq(model.id, productId),
   });
 
   if (!productData) {
     throw new Error("Product not found");
+  }
+  if (productData.status !== "active") {
+    throw new Error("This item is no longer available");
+  }
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw new Error("Invalid quantity");
   }
 
   // Check if item already in cart
@@ -179,28 +165,23 @@ export async function addToCart(productId: number, quantity: number = 1) {
       and(eq(model.session_id, session.id), eq(model.product_id, productId)),
   });
 
-  // Get available inventory (excludes items in OTHER carts, not ours)
-  const availableInventory = await getAvailableInventory(productId, session.id);
-
-  // Current quantity in our cart
+  // Stock check against the product's own inventory (no cross-cart
+  // reservation any more — see getAvailableInventory)
+  const availableInventory = productData.inventory;
   const currentQtyInCart = existingItem?.quantity ?? 0;
 
-  // Check if we can add the requested quantity
-  if (quantity > availableInventory) {
-    if (availableInventory === 0) {
-      throw new Error("This item is no longer available");
-    }
-    throw new Error(`Only ${availableInventory} available`);
+  if (availableInventory <= 0) {
+    throw new Error("This item is no longer available");
+  }
+  if (currentQtyInCart + quantity > availableInventory) {
+    const canAdd = availableInventory - currentQtyInCart;
+    throw new Error(
+      canAdd > 0 ? `Only ${canAdd} more available` : "No more available",
+    );
   }
 
   if (existingItem) {
-    // Update quantity - availableInventory already excludes our cart,
-    // so it represents the max we can have total
     const newQuantity = existingItem.quantity + quantity;
-    if (newQuantity > availableInventory) {
-      const canAdd = availableInventory - existingItem.quantity;
-      throw new Error(canAdd > 0 ? `Only ${canAdd} more available` : "No more available");
-    }
 
     await db
       .update(cart_item)
@@ -252,11 +233,15 @@ export async function updateCartItemQuantity(
     // Remove item if quantity is 0 or less
     await db.delete(cart_item).where(eq(cart_item.id, cartItemId));
   } else {
-    // Get available inventory (excludes items in OTHER carts)
-    const availableInventory = await getAvailableInventory(item.product_id, session.id);
-
-    // Max we can have is: available + what we already have in cart
-    const maxQuantity = availableInventory + item.quantity;
+    // Stock check against the product's own inventory (no cross-cart
+    // reservation any more — see getAvailableInventory)
+    if (!Number.isInteger(quantity)) {
+      throw new Error("Invalid quantity");
+    }
+    if (productData.status !== "active") {
+      throw new Error("This item is no longer available");
+    }
+    const maxQuantity = productData.inventory;
 
     if (quantity > maxQuantity) {
       throw new Error(`Only ${maxQuantity} available`);

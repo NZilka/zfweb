@@ -6,6 +6,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type Stripe from "stripe";
 
+// order-actions is a server-only module now (it is no longer a public
+// server action file); the guard package must be stubbed in tests.
+vi.mock("server-only", () => ({}));
+
 // Capture values passed to the order insert so we can assert is_test
 const orderInsertValues: Record<string, unknown>[] = [];
 
