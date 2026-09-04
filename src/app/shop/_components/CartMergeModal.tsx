@@ -47,7 +47,8 @@ export function CartMergeModal() {
       }
     }
 
-    checkConflict();
+    // `void`: intentionally fire-and-forget; checkConflict handles its own errors
+    void checkConflict();
   }, [isSignedIn, isLoaded, hasChecked]);
 
   // Reset check when user signs out

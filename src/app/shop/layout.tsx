@@ -3,6 +3,13 @@ import { CartProvider } from "~/app/_context/CartContext";
 import { CartDrawer } from "~/components/ui/CartDrawer";
 import { CartMergeModal } from "./_components/CartMergeModal";
 
+// Every shop route renders on demand. TopNav reads site settings and
+// categories, so any statically prerendered child (e.g. /shop/cart, a client
+// page with no segment config of its own) would query the database during
+// `next build`, which fails in CI where no database exists. Phase 3 of
+// docs/LAUNCH_PLAN.md replaces this with cache tags.
+export const dynamic = "force-dynamic";
+
 // Shop layout wraps all shop pages with CartProvider for cart state
 // Uses parallel routes for product modals - modal slot renders product overlays
 // Includes CartDrawer which renders when cart is opened

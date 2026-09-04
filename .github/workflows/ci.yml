@@ -1,0 +1,51 @@
+# Continuous integration: the gate docs/RELEASE_WORKFLOW.md assumes exists.
+# Runs typecheck, lint, unit tests, and a production build on every PR and on
+# pushes to the two long-lived branches. Make this a required status check on
+# `staging` and `main` in GitHub branch protection.
+name: CI
+
+on:
+  pull_request:
+  push:
+    # Long-lived branches plus the short-lived branch prefixes from
+    # docs/RELEASE_WORKFLOW.md, so a feature branch gets a verdict before
+    # it is fast-forwarded into staging.
+    branches: [staging, main, "feature/**", "fix/**", "hotfix/**"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # The build never talks to real services. Env validation is skipped and
+      # syntactically valid placeholders satisfy the clients that construct
+      # themselves at import time (Neon, Clerk). No secrets are needed.
+      SKIP_ENV_VALIDATION: "1"
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmsuZXhhbXBsZS5jb20k
+      CLERK_SECRET_KEY: sk_test_ci_placeholder
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the pnpm version from package.json "packageManager".
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck and lint
+        run: pnpm check
+
+      - name: Unit tests
+        run: pnpm test:run
+
+      - name: Production build
+        run: pnpm build

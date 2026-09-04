@@ -33,7 +33,8 @@ export function ShippingEditor() {
         setIsLoading(false);
       }
     }
-    fetchZones();
+    // `void`: intentionally fire-and-forget; fetchZones handles its own errors
+    void fetchZones();
   }, []);
 
   if (isLoading) {

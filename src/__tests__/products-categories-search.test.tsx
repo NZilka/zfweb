@@ -36,6 +36,12 @@ vi.mock("@clerk/nextjs", () => ({
 const mockAuth = vi.fn().mockResolvedValue({ userId: "test-user" });
 vi.mock("@clerk/nextjs/server", () => ({
   auth: (...args: any[]) => mockAuth(...args),
+  // Backend client used by requireAdmin()/isAdminUser(): signed-in test users are admins
+  clerkClient: vi.fn(async () => ({
+    users: {
+      getUser: vi.fn(async () => ({ privateMetadata: { "can-upload": true } })),
+    },
+  })),
 }));
 
 // Mock db for product-actions — sequential updates (no transaction support on neon-http)
@@ -204,9 +210,13 @@ describe("AdminNavContext — instantClose", () => {
     expect(screen.getByTestId("open").textContent).toBe("false");
     expect(screen.getByTestId("instant").textContent).toBe("false");
 
-    act(() => contextValue.toggleOpen());
+    act(() => {
+      contextValue.toggleOpen();
+    });
 
-    act(() => contextValue.instantClose());
+    act(() => {
+      contextValue.instantClose();
+    });
     expect(screen.getByTestId("open").textContent).toBe("false");
     expect(screen.getByTestId("instant").textContent).toBe("true");
   });
@@ -232,10 +242,14 @@ describe("AdminNavContext — instantClose", () => {
       </AdminNavProvider>,
     );
 
-    act(() => contextValue.instantClose());
+    act(() => {
+      contextValue.instantClose();
+    });
     expect(screen.getByTestId("instant").textContent).toBe("true");
 
-    act(() => contextValue.toggleOpen());
+    act(() => {
+      contextValue.toggleOpen();
+    });
     expect(screen.getByTestId("instant").textContent).toBe("false");
   });
 });

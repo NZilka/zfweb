@@ -258,7 +258,7 @@ describe("Carousel", () => {
     // CSS-transition class was removed when slide animation moved to the
     // Web Animations API. The translateX on the inline style is now the
     // single source of truth for the track's resting position.)
-    const track = container.querySelector(".flex[style*='translateX']") as HTMLElement | null;
+    const track = container.querySelector<HTMLElement>(".flex[style*='translateX']");
     expect(track).not.toBeNull();
     expect(track?.style.transform).toBe("translateX(-0%)");
   });

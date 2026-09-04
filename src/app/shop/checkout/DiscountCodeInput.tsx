@@ -56,7 +56,8 @@ export function DiscountCodeInput({ onDiscountApplied, appliedDiscount }: Discou
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleApply();
+      // `void`: handleApply manages its own loading/error state
+      void handleApply();
     }
   };
 
