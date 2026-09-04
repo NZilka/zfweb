@@ -51,3 +51,4 @@ Before starting work, consider:
 - Any uncommitted changes? (`git status`)
 - Dev server running? (port 3000)
 - What was the last task completed?
+- Which launch phase are we in? (`docs/LAUNCH_PLAN.md` → Status block)

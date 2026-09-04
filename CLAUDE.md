@@ -278,6 +278,8 @@ Check these files for detailed patterns and conventions:
 | Document                                 | When to Reference                                                                                            |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `docs/RELEASE_WORKFLOW.md`               | **Start here before opening any PR.** Branch model, staging-first flow, release PR process, schema migration ordering, hotfix policy |
+| `docs/LAUNCH_PLAN.md`                    | **Read at session start.** Phase-by-phase execution tracker with a Status block (current branch, next step). Tick items as they land and update Status before ending a session |
+| `docs/ARCHITECTURE_REVIEW.md`            | Security, performance, and architecture review (2026-09-03), owner decisions, Checkout Sessions and wholesale designs. Read before touching checkout, cart, admin actions, or auth |
 | `docs/STAGING_SETUP.md`                  | One-time staging environment setup (Neon branch, Upstash, Stripe webhook, Vercel env vars)                   |
 | `.claude/docs/development_workflow.md`   | Phased development pattern within a single feature branch (use after picking a branch per RELEASE_WORKFLOW)  |
 | `.claude/docs/architectural_patterns.md` | Adding features, understanding code organization, server/client patterns, modal implementation, file uploads |
