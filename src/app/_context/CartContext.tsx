@@ -84,7 +84,8 @@ export function CartProvider({ children }: CartProviderProps) {
 
   // Load cart on mount
   useEffect(() => {
-    refreshCart();
+    // `void`: intentionally fire-and-forget; refreshCart handles its own errors
+    void refreshCart();
   }, [refreshCart]);
 
   // Cart drawer controls

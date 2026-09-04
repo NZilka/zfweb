@@ -132,7 +132,8 @@ export default function CheckoutForm({
       }
     }
 
-    fetchSavedMethods();
+    // `void`: intentionally fire-and-forget; fetchSavedMethods handles its own errors
+    void fetchSavedMethods();
   }, [isSignedIn]);
 
   // Show configuration message if Stripe is not set up AND test mode is off.

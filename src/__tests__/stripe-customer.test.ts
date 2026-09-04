@@ -94,7 +94,7 @@ vi.mock("~/server/db", () => ({
   db: {
     query: {
       customer: {
-        findFirst: vi.fn(async ({ where }: { where: Function }) => {
+        findFirst: vi.fn(async ({ where }: { where: (...args: any[]) => any }) => {
           // Simulate the where clause by checking all customers
           for (const [, cust] of mockDbCustomers) {
             // Create a mock model object with the customer data

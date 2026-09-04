@@ -26,6 +26,9 @@ import "./src/env.js";
 //   },
 // }
 
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 /** @type {import("next").NextConfig} */
 const config = {
   async redirects() {
@@ -38,10 +41,21 @@ const config = {
     ];
   },
   images: {
-    remotePatterns: [{ hostname: "utfs.io" }],
+    // Both UploadThing hosts: utfs.io (legacy shared host, still what the
+    // deprecated `file.url` returns) and <appId>.ufs.sh (per-app host behind
+    // `file.ufsUrl`, already written by the staging re-key script). A URL on
+    // an unlisted host makes next/image throw during render.
+    remotePatterns: [
+      { protocol: "https", hostname: "utfs.io", pathname: "/f/**" },
+      { protocol: "https", hostname: "*.ufs.sh", pathname: "/f/**" },
+    ],
   },
-  typescript: {
-    ignoreBuildErrors: true,
+  // `typescript.ignoreBuildErrors` was removed: the build now fails on type
+  // errors, and CI runs `pnpm check` (typecheck + lint) before it.
+  // Pin the workspace root so Turbopack stops inferring it from a stray
+  // lockfile in the home directory.
+  turbopack: {
+    root: path.dirname(fileURLToPath(import.meta.url)),
   },
 };
 

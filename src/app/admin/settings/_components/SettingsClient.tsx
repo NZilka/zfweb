@@ -350,7 +350,7 @@ export function SettingsClient({ initialSettings, kvAvailable, productImages, te
             <CardDescription className="text-red-700">
               When enabled, checkout skips real Stripe payment and creates test orders
               directly in the database. Test orders are hidden from the admin order
-              list by default (toggle "Show test orders" on /admin/orders to see them).
+              list by default (toggle &quot;Show test orders&quot; on /admin/orders to see them).
               <br />
               <strong>This should never be enabled in production.</strong>
             </CardDescription>

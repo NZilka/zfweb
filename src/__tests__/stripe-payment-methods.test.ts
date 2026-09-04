@@ -57,7 +57,7 @@ const mockPaymentIntents = vi.hoisted(
 );
 
 // Counter for generating unique payment intent IDs
-let paymentIntentCounter = vi.hoisted(() => ({ value: 1 }));
+const paymentIntentCounter = vi.hoisted(() => ({ value: 1 }));
 
 // Mock Stripe SDK
 vi.mock("stripe", () => {
